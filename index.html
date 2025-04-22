@@ -7,10 +7,49 @@
     <title>방덱 목록 관리</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+    <style>
+        .title-container {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+            position: relative;
+            width: 100%;
+        }
+        
+        .main-title {
+            color: #333;
+            text-decoration: none;
+            position: relative;
+            margin: 0;
+            text-align: center;
+        }
+        
+        .main-title:hover {
+            color: #333;
+        }
+        
+        .login-status {
+            font-size: 0.8em;
+            color: #666;
+            position: absolute;
+            right: 0;
+            bottom: 0;
+        }
+
+        .help-link {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>방덱 목록 관리</h1>
+        <div class="title-container">
+            <h1 class="main-title" onclick="handleLogin()">방덱 목록 관리</h1>
+            <span class="login-status" id="loginStatus"></span>
+        </div>
         <div class="help-link">
             <a href="help.html" class="help-btn">도움말 보기</a>
         </div>
@@ -78,11 +117,11 @@
     </div>
 
     <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+    
     <script type="module">
-        // Firebase 모듈 import
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
-
         try {
             // Firebase 설정
             const firebaseConfig = {
@@ -96,19 +135,36 @@
             };
 
             // Firebase 초기화
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-
-            // 전역 변수로 Firebase 객체들 노출
-            window.db = db;
-            window.firestore = {
-                collection,
-                doc,
-                setDoc,
-                getDoc
-            };
+            firebase.initializeApp(firebaseConfig);
+            window.db = firebase.firestore();
+            window.firestore = firebase.firestore;
 
             console.log('Firebase가 성공적으로 초기화되었습니다.');
+
+            // Google 로그인 설정
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            // 로그인 상태 확인
+            firebase.auth().onAuthStateChanged((user) => {
+                const loginStatus = document.getElementById('loginStatus');
+                if (user) {
+                    loginStatus.textContent = '로그인됨';
+                } else {
+                    loginStatus.textContent = '';
+                }
+            });
+            
+            // 로그인 처리 함수
+            window.handleLogin = async () => {
+                try {
+                    if (!firebase.auth().currentUser) {
+                        await firebase.auth().signInWithPopup(provider);
+                    }
+                } catch (error) {
+                    console.error('로그인 오류:', error);
+                }
+            };
+
         } catch (error) {
             console.error('Firebase 초기화 오류:', error);
         }

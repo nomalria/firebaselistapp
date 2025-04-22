@@ -183,76 +183,76 @@ async function loadLists() {
         }
         
         // Firebase 로드 실패시 로컬 스토리지에서 로드
-        const savedLists = localStorage.getItem('lists');
-        if (savedLists) {
-            try {
-                const parsedLists = JSON.parse(savedLists);
-                lists = parsedLists.map(list => ({
-                    ...list,
-                    memos: (list.memos || []).map(memo => {
-                        if (typeof memo === 'string') {
-                            let text = memo;
-                            let status = null;
-                            if (text.includes('공격성공')) {
-                                status = 'success';
+    const savedLists = localStorage.getItem('lists');
+    if (savedLists) {
+        try {
+            const parsedLists = JSON.parse(savedLists);
+            lists = parsedLists.map(list => ({
+                ...list,
+                memos: (list.memos || []).map(memo => {
+                    if (typeof memo === 'string') {
+                        let text = memo;
+                        let status = null;
+                        if (text.includes('공격성공')) {
+                            status = 'success';
                                 text = text.replace(/\s*\/?\/?\s*공격성공.*/, '').trim();
-                            } else if (text.includes('공격실패')) {
-                                status = 'fail';
+                        } else if (text.includes('공격실패')) {
+                            status = 'fail';
                                 text = text.replace(/\s*\/?\/?\s*공격실패.*/, '').trim();
-                            }
-                            return { id: Date.now().toString() + Math.random().toString(16).slice(2), text, status };
-                        } else if (typeof memo === 'object' && memo !== null) {
-                            return { ...memo, status: memo.status !== undefined ? memo.status : null };
-                        } else {
-                            return null;
                         }
+                        return { id: Date.now().toString() + Math.random().toString(16).slice(2), text, status };
+                    } else if (typeof memo === 'object' && memo !== null) {
+                        return { ...memo, status: memo.status !== undefined ? memo.status : null };
+                    } else {
+                        return null;
+                    }
                     }).filter(memo => memo !== null)
-                }));
-                saveLists(); // 변환된 구조 즉시 저장
-            } catch (e) {
-                console.error("기존 목록 로딩/파싱 오류:", e);
+            }));
+            saveLists(); // 변환된 구조 즉시 저장
+        } catch (e) {
+            console.error("기존 목록 로딩/파싱 오류:", e);
                 localStorage.removeItem('lists');
-                lists = [];
-            }
+            lists = [];
         }
+    }
 
-        const savedTemporaryLists = localStorage.getItem('temporaryLists');
-        if (savedTemporaryLists) {
-            try {
-                const parsedTempLists = JSON.parse(savedTemporaryLists);
-                temporaryLists = parsedTempLists.map(list => ({
-                    ...list,
-                    memos: (list.memos || []).map(memo => {
-                        if (typeof memo === 'string') {
-                            let text = memo;
-                            let status = null;
-                            if (text.includes('공격성공')) {
-                                status = 'success';
-                                text = text.replace(/\s*\/?\/?\s*공격성공.*/, '').trim();
-                            } else if (text.includes('공격실패')) {
-                                status = 'fail';
-                                text = text.replace(/\s*\/?\/?\s*공격실패.*/, '').trim();
-                            }
-                            return { id: Date.now().toString() + Math.random().toString(16).slice(2), text, status };
-                        } else if (typeof memo === 'object' && memo !== null) {
-                            return { ...memo, status: memo.status !== undefined ? memo.status : null };
-                        } else {
-                            return null;
+    const savedTemporaryLists = localStorage.getItem('temporaryLists');
+    if (savedTemporaryLists) {
+        try {
+            const parsedTempLists = JSON.parse(savedTemporaryLists);
+            temporaryLists = parsedTempLists.map(list => ({
+                ...list,
+                memos: (list.memos || []).map(memo => {
+                     if (typeof memo === 'string') {
+                        let text = memo;
+                        let status = null;
+                         if (text.includes('공격성공')) {
+                            status = 'success';
+                            text = text.replace(/\s*\/?\/?\s*공격성공.*/, '').trim();
+                        } else if (text.includes('공격실패')) {
+                            status = 'fail';
+                            text = text.replace(/\s*\/?\/?\s*공격실패.*/, '').trim();
                         }
-                    }).filter(memo => memo !== null)
-                }));
-                saveTemporaryLists(); // 변환된 구조 즉시 저장
-            } catch (e) {
-                console.error("임시 목록 로딩/파싱 오류:", e);
-                localStorage.removeItem('temporaryLists');
-                temporaryLists = [];
-            }
+                        return { id: Date.now().toString() + Math.random().toString(16).slice(2), text, status };
+                    } else if (typeof memo === 'object' && memo !== null) {
+                        return { ...memo, status: memo.status !== undefined ? memo.status : null };
+                    } else {
+                         return null;
+                    }
+                }).filter(memo => memo !== null)
+            }));
+            saveTemporaryLists(); // 변환된 구조 즉시 저장
+        } catch (e) {
+            console.error("임시 목록 로딩/파싱 오류:", e);
+            localStorage.removeItem('temporaryLists');
+            temporaryLists = [];
         }
+    }
         
         // 로컬 스토리지에서 데이터를 불러온 후에도 화면 업데이트
-        renderLists(1);
-        renderTemporaryLists();
-        updateStats();
+    renderLists(1);
+    renderTemporaryLists();
+    updateStats();
     } catch (error) {
         console.error('데이터 로드 중 오류 발생:', error);
         alert('데이터를 불러오는 중 오류가 발생했습니다.');
@@ -387,7 +387,7 @@ function addNewList() {
         minute: '2-digit',
         hour12: false
     }).replace(/\. /g, '-').replace(/: /, ':').replace(/.$/, '');
-
+    
     // 입력된 단어 개수 확인
     const words = title.split(' ').filter(w => w);
     
@@ -514,6 +514,20 @@ function renderTemporaryLists() {
 
 // 방덱 삭제
 async function deleteList(listId, isTemporary = false) {
+    const list = isTemporary ? 
+        temporaryLists.find(l => l.id.toString() === listId.toString()) :
+        lists.find(l => l.id.toString() === listId.toString());
+
+    // 권한 체크
+    const user = firebase.auth().currentUser;
+    const isAdmin = user && user.email === 'longway7098@gmail.com';
+    const isOldList = list && list.createdAt === '2025-04-22-09:30';
+
+    if (!isTemporary && isOldList && !isAdmin) {
+        alert('이전 목록은 관리자만 삭제할 수 있습니다.');
+        return;
+    }
+
     if (confirm('해당 목록을 삭제하시겠습니까?')) {
         try {
             const db = window.db;
@@ -580,7 +594,7 @@ function addMemo(listId, isTemporary = false) {
     let originalMemoText = memoInput.value.trim();
     let processedMemoText = originalMemoText;
     let initialStatus = null;
-    
+
     if (originalMemoText) {
         const successKeywords = ["공성", "공격성공"];
         const failKeywords = ["공실", "공격실패"];
@@ -611,7 +625,7 @@ function addMemo(listId, isTemporary = false) {
                 }
             }
         }
-        
+
         if (!processedMemoText && initialStatus !== null) {
              return; 
         } else if (!processedMemoText && initialStatus === null) {
@@ -737,16 +751,16 @@ function renderLists(page = 1) {
                 <div class="memo-list">
                     ${(list.memos || []).map(memo => `
                         <div class="memo-container">
-                            <div class="memo-item" data-memo-id="${memo.id}">
-                                <span class="memo-status-icon ${memo.status || 'unknown'}">
-                                    ${memo.status === 'success' ? '✅' : memo.status === 'fail' ? '❌' : ''}
-                                </span>
-                                <span class="memo-text">${memo.text}</span>
-                                <div class="memo-buttons">
-                                    <button class="status-btn success-btn ${memo.status === 'success' ? 'active' : ''}" onclick="setMemoStatus('${list.id}', '${memo.id}', 'success', false)" title="성공">✅</button>
-                                    <button class="status-btn fail-btn ${memo.status === 'fail' ? 'active' : ''}" onclick="setMemoStatus('${list.id}', '${memo.id}', 'fail', false)" title="실패">❌</button>
-                                    <button class="edit-btn" onclick="startEditMemo('${list.id}', '${memo.id}', false)">편집</button>
-                                    <button class="delete-btn" onclick="deleteMemo('${list.id}', '${memo.id}', false)">삭제</button>
+                        <div class="memo-item" data-memo-id="${memo.id}">
+                            <span class="memo-status-icon ${memo.status || 'unknown'}">
+                                ${memo.status === 'success' ? '✅' : memo.status === 'fail' ? '❌' : ''}
+                            </span>
+                            <span class="memo-text">${memo.text}</span>
+                            <div class="memo-buttons">
+                                <button class="status-btn success-btn ${memo.status === 'success' ? 'active' : ''}" onclick="setMemoStatus('${list.id}', '${memo.id}', 'success', false)" title="성공">✅</button>
+                                <button class="status-btn fail-btn ${memo.status === 'fail' ? 'active' : ''}" onclick="setMemoStatus('${list.id}', '${memo.id}', 'fail', false)" title="실패">❌</button>
+                                <button class="edit-btn" onclick="startEditMemo('${list.id}', '${memo.id}', false)">편집</button>
+                                <button class="delete-btn" onclick="deleteMemo('${list.id}', '${memo.id}', false)">삭제</button>
                                 </div>
                             </div>
                             <div class="edit-section" id="editMemoSection-${memo.id}">
@@ -933,14 +947,14 @@ function toggleMemos(listId) {
         const listItem = memoSection.closest('.list-item');
         if (listItem) {
             setTimeout(() => {
-                const listItemRect = listItem.getBoundingClientRect();
-                const viewportHeight = window.innerHeight;
-                
+        const listItemRect = listItem.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        
                 if (listItemRect.bottom + 300 > viewportHeight) {
-                    window.scrollTo({
+            window.scrollTo({
                         top: window.scrollY + (listItemRect.bottom + 300 - viewportHeight),
-                        behavior: 'smooth'
-                    });
+                behavior: 'smooth'
+            });
                 }
             }, 300); // 애니메이션 완료 후 스크롤 조정
         }
@@ -1115,12 +1129,12 @@ function saveListEdit(listId, isTemporary = false) {
 
         // 기존 목록이 없는 경우 일반적인 제목 수정 진행
         const list = temporaryLists.find(l => l.id.toString() === listId.toString());
-        if (list) {
-            list.title = newTitle;
+    if (list) {
+        list.title = newTitle;
             saveTemporaryLists();
             renderTemporaryLists();
         }
-    } else {
+        } else {
         const list = lists.find(l => l.id.toString() === listId.toString());
         if (list) {
             list.title = newTitle;
@@ -1170,17 +1184,17 @@ function startEditMemo(listId, memoId, isTemporary = false) {
         memoItem.classList.add('editing');
         
         // 편집창 찾기
-        const editSection = document.getElementById(`editMemoSection-${memoId}`);
+    const editSection = document.getElementById(`editMemoSection-${memoId}`);
 
         if (editSection) {
             const input = editSection.querySelector('input');
-            if (input) {
+    if (input) {
                 input.value = memo.text;
                 editSection.style.display = 'block';
-                input.focus();
-                input.select();
-            }
-            editingMemoId = memoId;
+        input.focus();
+        input.select();
+    }
+    editingMemoId = memoId;
         }
     }
 }
@@ -1266,7 +1280,7 @@ function cancelMemoEdit(listId, memoId, isTemporary = false) {
         // 편집창 닫기
         const editSection = memoItem.nextElementSibling;
         if (editSection && editSection.classList.contains('edit-section')) {
-            editSection.style.display = 'none';
+        editSection.style.display = 'none';
         }
     }
     editingMemoId = null;
@@ -1390,7 +1404,7 @@ function sortAll(event) {
 
     // 임시 목록 내 메모 정렬
     temporaryLists.forEach(list => {
-        if (list.memos && list.memos.length > 0) {
+         if (list.memos && list.memos.length > 0) {
             list.memos.sort((a, b) => {
                 const textA = a.text || '';
                 const textB = b.text || '';
@@ -1667,9 +1681,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.addEventListener('click', function(e) {
                 if (!dropdownContent.contains(e.target) && !dropdownBtn.contains(e.target)) {
                     dropdownContent.classList.remove('show');
-                }
-            });
         }
+    });
+}
     }
 
     // 클립보드 데이터 로드
