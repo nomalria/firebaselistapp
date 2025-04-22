@@ -1750,6 +1750,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     }
+
+    // 백업 파일 입력 필드 이벤트 리스너
+    document.getElementById('backupFile').addEventListener('change', async function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            try {
+                await loadBackupFile(file);
+                alert('백업 파일이 성공적으로 로드되었습니다.');
+            } catch (error) {
+                console.error('백업 파일 로드 중 오류:', error);
+                alert('백업 파일 로드 중 오류가 발생했습니다.');
+            }
+        }
+    });
 });
 
 // 메모 아이템 HTML 생성 함수
@@ -2121,150 +2135,89 @@ async function loadBackupFile(file) {
         
         console.log('백업 파일 로드 시작...');
         
-        if (!Array.isArray(backupData)) {
-            throw new Error('올바르지 않은 백업 파일 형식입니다.');
-        }
-
         // Firebase 초기화 확인
-        const db = window.db;
-        if (!db) {
+        if (!window.db) {
             throw new Error('Firebase가 초기화되지 않았습니다.');
         }
 
-        // 백업 데이터의 각 목록을 처리
-        backupData.forEach(backupList => {
-            // 기존 목록에서 동일한 제목의 목록 찾기
-            const existingList = lists.find(list => isSameList(list.title, backupList.title));
+        // 백업 데이터 구조 확인
+        let listsToProcess = [];
+        if (backupData.lists) {
+            // 새로운 형식 (Firebase 문서 형식)
+            listsToProcess = backupData.lists;
+        } else if (Array.isArray(backupData)) {
+            // 이전 형식 (배열 형식)
+            listsToProcess = backupData;
+        } else {
+            throw new Error('올바르지 않은 백업 파일 형식입니다.');
+        }
+
+        // 현재 데이터 로드
+        const currentDoc = await db.collection('lists').doc('main').get();
+        let currentLists = [];
+        if (currentDoc.exists) {
+            currentLists = currentDoc.data().lists || [];
+        }
+
+        // 백업 데이터 처리
+        listsToProcess.forEach(backupList => {
+            const existingList = currentLists.find(list => 
+                list.title === backupList.title
+            );
             
             if (existingList) {
                 // 기존 목록이 있는 경우, 메모 병합
-                const updatedMemos = [...existingList.memos]; // 기존 메모 복사
-                
                 backupList.memos.forEach(backupMemo => {
-                    // 동일한 텍스트의 메모가 있는지 확인
-                    const existingMemoIndex = updatedMemos.findIndex(memo => 
+                    const existingMemo = existingList.memos.find(memo => 
                         memo.text === backupMemo.text
                     );
                     
-                    if (existingMemoIndex === -1) {
-                        // 동일한 메모가 없는 경우 새로 추가
-                        let wins = 0;
-                        let losses = 0;
-
-                        // status 값을 확인하여 wins/losses 설정
-                        if (backupMemo.status === 'success' || backupMemo.text.startsWith('✅')) {
-                            wins = 1;
-                        } else if (backupMemo.status === 'fail' || backupMemo.text.startsWith('❌')) {
-                            losses = 1;
-                        }
-                        
-                        // 메모 텍스트에서 아이콘 제거
-                        let cleanText = backupMemo.text;
-                        if (cleanText.startsWith('✅ ')) {
-                            cleanText = cleanText.substring(2);
-                        } else if (cleanText.startsWith('❌ ')) {
-                            cleanText = cleanText.substring(2);
-                        }
-
-                        updatedMemos.push({
+                    if (!existingMemo) {
+                        // 새로운 메모 추가
+                        existingList.memos.push({
                             id: Date.now().toString() + Math.random().toString(16).slice(2),
-                            text: cleanText,
-                            wins: wins,
-                            losses: losses
+                            text: backupMemo.text,
+                            wins: backupMemo.wins || 0,
+                            losses: backupMemo.losses || 0,
+                            comments: backupMemo.comments || []
                         });
-            } else {
-                        // 기존 메모가 있고 승패가 0인 경우에만 업데이트
-                        const existingMemo = updatedMemos[existingMemoIndex];
-                        if (existingMemo.wins === 0 && existingMemo.losses === 0) {
-                            if (backupMemo.status === 'success' || backupMemo.text.startsWith('✅')) {
-                                existingMemo.wins = 1;
-                            } else if (backupMemo.status === 'fail' || backupMemo.text.startsWith('❌')) {
-                                existingMemo.losses = 1;
-                            }
-                        }
                     }
                 });
-                
-                // 업데이트된 메모 배열로 교체
-                existingList.memos = updatedMemos;
-                
-    } else {
-                // 기존 목록이 없는 경우 새로운 목록으로 추가
-                const newList = {
+            } else {
+                // 새로운 목록 추가
+                currentLists.push({
                     id: Date.now().toString() + Math.random().toString(16).slice(2),
                     title: backupList.title,
                     createdAt: backupList.createdAt || formatCreatedAt(new Date().toISOString()),
-                    memos: backupList.memos.map(memo => {
-                        let wins = 0;
-                        let losses = 0;
-                        let cleanText = memo.text;
-
-                        // status 값이나 아이콘을 기반으로 wins/losses 설정
-                        if (memo.status === 'success' || memo.text.startsWith('✅')) {
-                            wins = 1;
-                            if (cleanText.startsWith('✅ ')) {
-                                cleanText = cleanText.substring(2);
-                            }
-                        } else if (memo.status === 'fail' || memo.text.startsWith('❌')) {
-                            losses = 1;
-                            if (cleanText.startsWith('❌ ')) {
-                                cleanText = cleanText.substring(2);
-                            }
-                        }
-
-                        return {
-                            id: Date.now().toString() + Math.random().toString(16).slice(2),
-                            text: cleanText,
-                            wins: wins,
-                            losses: losses
-                        };
-                    })
-                };
-                lists.push(newList);
+                    memos: backupList.memos.map(memo => ({
+                        id: Date.now().toString() + Math.random().toString(16).slice(2),
+                        text: memo.text,
+                        wins: memo.wins || 0,
+                        losses: memo.losses || 0,
+                        comments: memo.comments || []
+                    }))
+                });
             }
         });
 
-        // Firebase에 데이터 저장
-        const batch = db.batch();
-
-        // 메인 목록 저장
-        const mainDocRef = db.collection('lists').doc('main');
-        batch.set(mainDocRef, {
-            lists: lists,
+        // Firebase에 저장
+        await db.collection('lists').doc('main').set({
+            lists: currentLists,
             updated_at: new Date().toISOString()
         });
 
-        // 임시 목록 저장
-        const tempDocRef = db.collection('lists').doc('temporary');
-        batch.set(tempDocRef, {
-            lists: temporaryLists,
-            updated_at: new Date().toISOString()
-        });
-
-        // 배치 작업 실행
-        await batch.commit();
-        console.log('Firebase에 데이터 저장 완료');
-
-        // 로컬 스토리지에도 저장
-        localStorage.setItem('lists', JSON.stringify(lists));
-        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+        // 전역 변수 업데이트
+        window.lists = currentLists;
         
         // UI 업데이트
-        renderLists(currentPage);
+        renderLists();
         updateStats();
         
         console.log('백업 파일 로드 완료');
         
-        } catch (error) {
+    } catch (error) {
         console.error('백업 파일 처리 중 오류:', error);
-        
-        // 오류 발생 시에도 로컬 스토리지에는 저장
-        try {
-            localStorage.setItem('lists', JSON.stringify(lists));
-            localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-        } catch (storageError) {
-            console.error('로컬 스토리지 저장 중 오류:', storageError);
-        }
+        throw error;
     }
 }
 
