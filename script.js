@@ -645,18 +645,17 @@ function addMemo(listId, isTemporary = false) {
         return;
     }
 
-    // 새 메모 객체 생성
+    // 새 메모 객체 생성 (status 제거)
     const newMemo = {
         id: Date.now().toString() + Math.random().toString(16).slice(2),
         text: memoText,
-        status: null,
         wins: 0,
         losses: 0
     };
 
     // 메모 추가
     list.memos.push(newMemo);
-
+            
     // 변경사항 저장
     if (isTemporary) {
         saveTemporaryLists();
@@ -676,7 +675,7 @@ function addMemo(listId, isTemporary = false) {
     if (memoCountElement) {
         memoCountElement.textContent = `${list.memos.length}/50`;
     }
-
+            
     // 입력 필드 초기화
     memoInput.value = '';
 }
@@ -1225,10 +1224,8 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
     if (memoItem) {
         const memoText = memoItem.querySelector('.memo-text');
         if (memoText) {
-            const statusIcon = memo.status === 'success' ? '✅' : 
-                             memo.status === 'fail' ? '❌' : '';
-            memoText.innerHTML = `${statusIcon} ${newText}`;
-            memoText.style.display = ''; // 텍스트 다시 표시
+            memoText.innerHTML = newText;
+            memoText.style.display = '';
         }
         memoItem.classList.remove('editing');
         
@@ -1647,9 +1644,79 @@ async function preserveWinLossData() {
     }
 }
 
+// 메모에서 아이콘 제거하는 함수
+function removeStatusIcons() {
+    console.log('메모 아이콘 제거 시작...');
+
+    // 메인 목록 처리
+    lists = lists.map(list => ({
+        ...list,
+        memos: list.memos.map(memo => {
+            // 승패 데이터 보존
+            const wins = typeof memo.wins === 'number' ? memo.wins : 0;
+            const losses = typeof memo.losses === 'number' ? memo.losses : 0;
+            
+            // 텍스트에서 아이콘 제거
+            let cleanText = memo.text;
+            if (cleanText.startsWith('✅ ')) {
+                cleanText = cleanText.substring(2);
+            } else if (cleanText.startsWith('❌ ')) {
+                cleanText = cleanText.substring(2);
+            }
+            
+            return {
+                ...memo,
+                text: cleanText,
+                wins: wins,
+                losses: losses,
+                status: null // status 필드 제거
+            };
+        })
+    }));
+
+    // 임시 목록 처리
+    temporaryLists = temporaryLists.map(list => ({
+        ...list,
+        memos: list.memos.map(memo => {
+            // 승패 데이터 보존
+            const wins = typeof memo.wins === 'number' ? memo.wins : 0;
+            const losses = typeof memo.losses === 'number' ? memo.losses : 0;
+            
+            // 텍스트에서 아이콘 제거
+            let cleanText = memo.text;
+            if (cleanText.startsWith('✅ ')) {
+                cleanText = cleanText.substring(2);
+            } else if (cleanText.startsWith('❌ ')) {
+                cleanText = cleanText.substring(2);
+            }
+            
+            return {
+                ...memo,
+                text: cleanText,
+                wins: wins,
+                losses: losses,
+                status: null // status 필드 제거
+            };
+        })
+    }));
+
+    // 변경사항 저장
+    saveLists();
+    saveTemporaryLists();
+    
+    // UI 업데이트
+    renderLists(currentPage);
+    renderTemporaryLists();
+    
+    console.log('메모 아이콘 제거 완료');
+}
+
 // 페이지 로드 시 이벤트 리스너 수정
 document.addEventListener('DOMContentLoaded', async function() {
     await loadLists();
+    
+    // 아이콘 제거 실행
+    removeStatusIcons();
     
     // 승패 데이터 마이그레이션 실행
     await preserveWinLossData();
@@ -1827,15 +1894,11 @@ function createMemoItemHTML(memo, listId, isTemporary) {
     const wins = typeof memo.wins === 'number' ? memo.wins : 0;
     const losses = typeof memo.losses === 'number' ? memo.losses : 0;
     const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
-    
-    // 상태 아이콘 결정
-    const statusIcon = memo.status === 'success' ? '✅' : 
-                      memo.status === 'fail' ? '❌' : '';
 
     return `
         <div class="memo-item" data-memo-id="${memo.id}">
             <div class="memo-text">
-                ${statusIcon} ${memo.text}
+                ${memo.text}
             </div>
             <div class="memo-counter">
                 <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
@@ -1843,10 +1906,6 @@ function createMemoItemHTML(memo, listId, isTemporary) {
                 <button class="counter-btn minus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', -1, ${isTemporary})">-승</button>
                 <button class="counter-btn plus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', 1, ${isTemporary})">+패</button>
                 <button class="counter-btn minus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', -1, ${isTemporary})">-패</button>
-                <button class="status-btn success-btn ${memo.status === 'success' ? 'active' : ''}" 
-                    onclick="setMemoStatus('${listId}', '${memo.id}', 'success', ${isTemporary})">✅</button>
-                <button class="status-btn fail-btn ${memo.status === 'fail' ? 'active' : ''}" 
-                    onclick="setMemoStatus('${listId}', '${memo.id}', 'fail', ${isTemporary})">❌</button>
             </div>
             <div class="memo-buttons">
                 <button class="edit-btn" onclick="startEditMemo('${listId}', '${memo.id}', ${isTemporary})">수정</button>
@@ -1969,3 +2028,70 @@ function addClipboardShortcutListener(element) {
         });
     }
 }
+
+// status 관련 스타일 제거
+const style = document.createElement('style');
+style.textContent = `
+    .memo-item {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        padding: 10px;
+        position: relative;
+    }
+
+    .memo-text {
+        margin-bottom: 10px;
+        word-break: break-all;
+    }
+
+    .memo-counter {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+
+    .counter-text {
+        margin-right: 10px;
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    .counter-btn {
+        padding: 2px 5px;
+        font-size: 0.8em;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+
+    .counter-btn:hover {
+        background-color: #e9ecef;
+    }
+
+    .memo-buttons {
+        display: flex;
+        gap: 5px;
+    }
+
+    .edit-btn, .delete-btn {
+        padding: 3px 8px;
+        font-size: 0.9em;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        background-color: #fff;
+        cursor: pointer;
+    }
+
+    .edit-btn:hover, .delete-btn:hover {
+        background-color: #f8f9fa;
+    }
+
+    .delete-btn {
+        color: #dc3545;
+    }
+`;
+document.head.appendChild(style);
