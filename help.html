@@ -6,52 +6,113 @@
     <title>방덱 목록 관리 - 도움말</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
+            font-family: 'Pretendard', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             color: #333;
+            background-color: #f8f9fa;
         }
 
         h1 {
             color: #2c3e50;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            font-size: 2em;
         }
 
         h2 {
             color: #34495e;
-            margin-top: 30px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
         }
 
         .section {
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .section ul {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        .section li {
+            margin: 12px 0;
+        }
+
+        .section li ul {
+            margin-top: 8px;
         }
 
         .back-link {
             display: inline-block;
-            margin-top: 30px;
-            padding: 8px 15px;
-            background-color: #f0f0f0;
-            color: #333;
+            margin-top: 40px;
+            padding: 12px 20px;
+            background-color: #3498db;
+            color: white;
             text-decoration: none;
-            border-radius: 4px;
-            transition: background-color 0.2s;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
 
         .back-link:hover {
-            background-color: #e0e0e0;
+            background-color: #2980b9;
+            transform: translateY(-2px);
         }
 
         .keyboard-shortcut {
-            background-color: #e8e8e8;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: monospace;
+            background-color: #e9ecef;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            color: #2c3e50;
+            border: 1px solid #dee2e6;
+        }
+
+        .highlight {
+            background-color: #fff3cd;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: #856404;
+            font-weight: 500;
+        }
+
+        .example {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 3px solid #6c757d;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .section {
+                padding: 20px;
+                margin: 15px 0;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            h2 {
+                font-size: 1.3em;
+            }
         }
     </style>
 </head>
@@ -59,38 +120,157 @@
     <h1>방덱 목록 관리 도움말</h1>
 
     <div class="section">
+        <h2>검색 및 추가 기능</h2>
+        <ul>
+            <li>
+                <strong>단어 검색</strong>
+                <p>입력창에 단어를 입력하면 실시간으로 추천 단어가 표시됩니다.</p>
+            </li>
+            <li>
+                <strong>추천 단어 선택</strong>
+                <ul>
+                    <li>
+                        PC 사용 시:
+                        <ul>
+                            <li><span class="keyboard-shortcut">스페이스바</span> - 첫 번째 추천 단어 선택</li>
+                            <li><span class="keyboard-shortcut">↑</span> <span class="keyboard-shortcut">↓</span> - 추천 단어 이동</li>
+                            <li><span class="keyboard-shortcut">Tab</span> - 다음 추천 단어로 이동</li>
+                            <li><span class="keyboard-shortcut">Shift + Tab</span> - 이전 추천 단어로 이동</li>
+                            <li><span class="keyboard-shortcut">Enter</span> - 선택된 추천 단어 입력</li>
+                        </ul>
+                    </li>
+                    <li>
+                        모바일 사용 시:
+                        <ul>
+                            <li>스페이스 입력 또는 추천 단어 직접 터치</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <strong>단어 분리 검색</strong>
+                <p>목록의 각 단어가 개별적으로 검색됩니다.</p>
+                <div class="example">
+                    예시) "4방덱 물무희" 목록이 있을 때:
+                    <ul>
+                        <li>"4" 입력 → "4방덱" 추천</li>
+                        <li>"물" 입력 → "물무희" 추천</li>
+                    </ul>
+                </div>
+            </li>
+            <li>
+                <strong>임시 목록 자동 이동</strong>
+                <p>3개 이하의 단어를 입력하면 다음과 같이 처리됩니다:</p>
+                <ul>
+                    <li>기존 목록과 일치할 경우: 해당 목록이 임시 목록으로 자동 이동</li>
+                    <li>일치하는 목록이 없는 경우: 새로운 임시 목록 생성</li>
+                </ul>
+                <div class="example">
+                    예시) "물무희" 입력 시:
+                    <ul>
+                        <li>기존 목록에 "4방덱 물무희"가 있다면 → 임시 목록으로 이동</li>
+                        <li>일치하는 목록이 없다면 → 새로운 임시 목록 생성</li>
+                    </ul>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
         <h2>기본 기능</h2>
         <ul>
-            <li>새 목록 추가: 상단의 입력창에 제목을 입력하고 Enter를 누르세요.</li>
-            <li>목록 편집: 목록을 클릭하여 메모를 추가하거나 편집할 수 있습니다.</li>
-            <li>목록 삭제: 목록 우측의 X 버튼을 클릭하세요.</li>
+            <li>
+                <strong>새 목록 추가</strong>
+                <p>상단의 입력창에 제목을 입력하고 Enter를 누르세요.</p>
+            </li>
+            <li>
+                <strong>목록 편집</strong>
+                <p>목록을 클릭하여 메모를 추가하거나 편집할 수 있습니다.</p>
+            </li>
+            <li>
+                <strong>목록 삭제</strong>
+                <p>목록 우측의 X 버튼을 클릭하세요.</p>
+            </li>
         </ul>
     </div>
 
     <div class="section">
         <h2>메모 기능</h2>
         <ul>
-            <li>메모 추가: 목록을 클릭하고 메모 입력창에 내용을 입력한 후 Enter를 누르세요.</li>
-            <li>메모 편집: 메모를 클릭하여 내용을 수정할 수 있습니다.</li>
-            <li>메모 삭제: 메모 우측의 X 버튼을 클릭하세요.</li>
+            <li>
+                <strong>메모 추가</strong>
+                <p>목록을 클릭하고 메모 입력창에 내용을 입력한 후 Enter를 누르세요.</p>
+            </li>
+            <li>
+                <strong>메모 편집</strong>
+                <p>메모를 클릭하여 내용을 수정할 수 있습니다.</p>
+            </li>
+            <li>
+                <strong>메모 삭제</strong>
+                <p>메모 우측의 X 버튼을 클릭하세요.</p>
+            </li>
+            <li>
+                <strong>메모 상태 설정</strong>
+                <ul>
+                    <li>
+                        상태 아이콘:
+                        <ul>
+                            <li><span class="highlight">✅</span> - 공격 성공</li>
+                            <li><span class="highlight">❌</span> - 공격 실패</li>
+                        </ul>
+                    </li>
+                    <li>
+                        설정 방법:
+                        <ul>
+                            <li>
+                                단축어 사용:
+                                <ul>
+                                    <li>성공: <span class="highlight">공성</span> 또는 <span class="highlight">공격성공</span></li>
+                                    <li>실패: <span class="highlight">공실</span> 또는 <span class="highlight">공격실패</span></li>
+                                    <li>(단축어 사용시 해당 메모의 맨 끝에 입력하셔야합니다, 단축어 이후의 메모 내용은 모두 삭제됩니다.)</li>
+                                </ul>
+                            </li>
+                            <li>아이콘 클릭: 메모 우측의 ✅ 또는 ❌ 버튼 클릭</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
         </ul>
     </div>
 
     <div class="section">
         <h2>클립보드 기능</h2>
         <ul>
-            <li>클립보드 토글: 상단의 클립보드 버튼을 클릭하여 클립보드를 열고 닫을 수 있습니다.</li>
-            <li>항목 추가: 클립보드가 열린 상태에서 + 버튼을 클릭하여 새 항목을 추가할 수 있습니다.</li>
-            <li>단축키: <span class="keyboard-shortcut">Alt + 1~9</span> 키를 눌러 해당 위치의 클립보드 항목을 입력할 수 있습니다.</li>
-            <li>최대 9개까지 항목을 저장할 수 있습니다.</li>
+            <li>
+                <strong>클립보드 열기/닫기</strong>
+                <p>상단의 클립보드 버튼을 클릭하여 클립보드를 열고 닫을 수 있습니다.</p>
+            </li>
+            <li>
+                <strong>항목 추가</strong>
+                <p>클립보드가 열린 상태에서 + 버튼을 클릭하여 새 항목을 추가할 수 있습니다.</p>
+            </li>
+            <li>
+                <strong>단축키</strong>
+                <p><span class="keyboard-shortcut">Alt + 1~9</span> 키를 눌러 해당 위치의 클립보드 항목을 입력할 수 있습니다.</p>
+            </li>
+            <li>
+                <strong>저장 제한</strong>
+                <p>최대 9개까지 항목을 저장할 수 있습니다.</p>
+            </li>
         </ul>
     </div>
 
     <div class="section">
         <h2>데이터 저장</h2>
         <ul>
-            <li>모든 데이터는 자동으로 저장되며, 브라우저를 닫았다가 다시 열어도 유지됩니다.</li>
-            <li>목록과 메모는 Firebase에 저장되며, 인터넷 연결이 없는 경우 로컬 저장소에 임시 저장됩니다.</li>
+            <li>
+                <strong>자동 저장</strong>
+                <p>모든 데이터는 자동으로 저장되며, 브라우저를 닫았다가 다시 열어도 유지됩니다.</p>
+            </li>
+            <li>
+                <strong>저장 위치</strong>
+                <p>목록과 메모는 Firebase에 저장되며, 인터넷 연결이 없는 경우 로컬 저장소에 임시 저장됩니다.</p>
+            </li>
         </ul>
     </div>
 
