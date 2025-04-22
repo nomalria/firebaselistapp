@@ -1821,3 +1821,54 @@ document.addEventListener('DOMContentLoaded', async function() {
         subtree: true
     });
 });
+
+// 메모 아이템 HTML 생성 함수
+function createMemoItemHTML(memo, listId, isTemporary) {
+    const wins = typeof memo.wins === 'number' ? memo.wins : 0;
+    const losses = typeof memo.losses === 'number' ? memo.losses : 0;
+    const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
+    
+    // 상태 아이콘 결정
+    const statusIcon = memo.status === 'success' ? '✅' : 
+                      memo.status === 'fail' ? '❌' : '';
+
+    return `
+        <div class="memo-item" data-memo-id="${memo.id}">
+            <div class="memo-text">
+                ${statusIcon} ${memo.text}
+            </div>
+            <div class="memo-counter">
+                <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
+                <button class="counter-btn plus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', 1, ${isTemporary})">+승</button>
+                <button class="counter-btn minus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', -1, ${isTemporary})">-승</button>
+                <button class="counter-btn plus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', 1, ${isTemporary})">+패</button>
+                <button class="counter-btn minus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', -1, ${isTemporary})">-패</button>
+                <button class="status-btn success-btn ${memo.status === 'success' ? 'active' : ''}" 
+                    onclick="setMemoStatus('${listId}', '${memo.id}', 'success', ${isTemporary})">✅</button>
+                <button class="status-btn fail-btn ${memo.status === 'fail' ? 'active' : ''}" 
+                    onclick="setMemoStatus('${listId}', '${memo.id}', 'fail', ${isTemporary})">❌</button>
+            </div>
+            <div class="memo-buttons">
+                <button class="edit-btn" onclick="startEditMemo('${listId}', '${memo.id}', ${isTemporary})">수정</button>
+                <button class="delete-btn" onclick="deleteMemo('${listId}', '${memo.id}', ${isTemporary})">삭제</button>
+            </div>
+        </div>
+    `;
+}
+
+// 클립보드 관련 함수들
+function loadClipboardItems() {
+    try {
+        const saved = localStorage.getItem('clipboardItems');
+        if (saved) {
+            clipboardItems = JSON.parse(saved);
+            if (!Array.isArray(clipboardItems) || clipboardItems.length !== MAX_CLIPBOARD_ITEMS) {
+                clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
+            }
+        }
+        renderClipboardItems();
+    } catch (error) {
+        console.error('클립보드 로드 중 오류:', error);
+        clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
+    }
+}
