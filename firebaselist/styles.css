@@ -1,0 +1,1117 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #E8F5E9;
+    color: #333;
+}
+
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    margin-left: 340px; /* 클립보드 너비 + 여백 */
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #2E7D32;
+    margin-bottom: 30px;
+}
+
+/* 드롭다운 메뉴 스타일 */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-btn {
+    padding: 8px 15px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+    font-size: 0.9em;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: #e9ecef;
+    margin: 8px 0;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #fff;
+    min-width: 200px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    border-radius: 4px;
+    z-index: 1000;
+    margin-top: 5px;
+    padding: 8px 0;
+}
+
+.dropdown-content.show {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #333;
+    font-size: 0.9em;
+}
+
+.dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+.dropdown-item.selected {
+    background-color: #e3f2fd;
+    font-weight: bold;
+    position: relative;
+}
+
+.dropdown-item.selected::before {
+    content: "✓";
+    position: absolute;
+    left: 5px;
+    color: #007bff;
+}
+
+.dropdown-item .count {
+    background-color: #ddd;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.9em;
+    margin-left: 10px;
+}
+
+/* 기존 stats-section 스타일 수정 */
+.stats-section {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+    padding: 0 10px;
+}
+
+.stat-item {
+    display: none; /* 기존 통계 버튼 숨기기 */
+}
+
+/* 통합 검색/추가 섹션 */
+.search-add-section {
+    margin: 20px 0;
+    position: relative;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-add-section .input-group {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    font-size: 16px;
+    min-width: 200px;
+}
+
+#addListBtn {
+    padding: 12px 24px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    white-space: nowrap;
+    transition: background-color 0.3s;
+    min-width: 100px;
+}
+
+#addListBtn:hover {
+    background-color: #45a049;
+}
+
+/* 검색 결과 */
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.search-results .list-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+}
+
+.search-results .list-item:last-child {
+    border-bottom: none;
+}
+
+.search-results .list-item:hover {
+    background-color: #f5f5f5;
+}
+
+.search-results .list-item.selected {
+    background-color: #e3f2fd;
+    font-weight: bold;
+}
+
+.search-results .memo-count {
+    float: right;
+    color: #666;
+    font-size: 14px;
+}
+
+/* 검색 입력 필드 */
+.search-section {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.search-section .input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.search-section input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.search-section .add-btn {
+    padding: 12px 24px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    white-space: nowrap;
+    min-width: 100px;
+    transition: background-color 0.3s;
+}
+
+.search-section .add-btn:hover {
+    background-color: #45a049;
+}
+
+/* GitHub 관련 스타일 제거 */
+.github-section,
+.github-status,
+.github-user-info,
+.github-logout-btn,
+.github-login-btn,
+.github-action-btn {
+    display: none;
+}
+
+/* 방덱 목록 */
+.lists-container {
+    margin-top: 20px;
+}
+
+.list-item {
+    position: relative;
+    margin-bottom: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.list-title {
+    padding: 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8f9fa;
+    border-radius: 4px 4px 0 0;
+    position: relative;
+}
+
+.list-title-text {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-right: 10px;
+    color: #333;
+}
+
+.list-created-at {
+    display: block;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    text-align: right;
+}
+
+.memo-count {
+    margin: 0 8px;
+    color: #666;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.button-group {
+    display: flex;
+    gap: 6px;
+}
+
+.edit-btn, .delete-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.edit-btn {
+    background-color: #2196F3;
+    color: white;
+}
+
+.edit-btn:hover {
+    background-color: #0b7dda;
+}
+
+.delete-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.delete-btn:hover {
+    background-color: #d32f2f;
+}
+
+/* 메모 섹션 */
+.memo-section {
+    position: relative;
+    width: 100%;
+    background-color: #f8f9fa;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.memo-section.expanded {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.memo-section .input-group {
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+}
+
+.memo-section .input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.memo-section .input-group button {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.memo-section .input-group button:hover {
+    background-color: #45a049;
+}
+
+.memo-list {
+    padding: 8px 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: #fff;
+}
+
+/* 메모 컨테이너 */
+.memo-container {
+    position: relative;
+    margin-bottom: 1px;
+}
+
+.memo-item {
+    position: relative;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    gap: 8px;
+    background-color: #fff;
+}
+
+.memo-item.editing {
+    background-color: #f8f9fa;
+    border-bottom: none;
+}
+
+.memo-item .edit-section {
+    display: none;
+    width: 100%;
+    padding: 8px 10px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.memo-container .edit-section {
+    display: none;
+}
+
+.memo-item.editing + .edit-section {
+    display: block;
+}
+
+.memo-text {
+    flex: 1;
+    line-height: 1.4;
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.memo-buttons {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-left: auto;
+}
+
+.memo-buttons button {
+    padding: 4px 8px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.edit-section .input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+}
+
+.edit-section input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    font-size: 15px;
+    font-weight: 500;
+    min-width: 200px;
+    max-width: 60%;
+}
+
+.edit-section .edit-buttons {
+    display: flex;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.edit-section .save-btn,
+.edit-section .cancel-btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 60px;
+}
+
+.edit-section .save-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.edit-section .cancel-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.memo-status-icon {
+    margin-right: 8px;
+    font-size: 1.1em;
+    min-width: 20px;
+    text-align: center;
+    position: relative;
+    line-height: 1.5;
+}
+
+/* 상태 텍스트 (아이콘 위) */
+.memo-status-icon::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.65em;
+    font-weight: bold;
+    color: #555;
+    white-space: nowrap;
+}
+
+.memo-status-icon.success::before {
+    content: '공격성공';
+    color: #28a745;
+}
+
+.memo-status-icon.fail::before {
+    content: '공격실패';
+    color: #dc3545;
+}
+
+.memo-status-icon.unknown {
+    /* color: #ccc; */
+}
+
+.memo-text.editing {
+    white-space: normal;
+    word-break: break-all;
+}
+
+/* 정렬 섹션 */
+.sort-section {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+}
+
+.sort-section button {
+    padding: 10px 20px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.sort-section button:hover {
+    background-color: #1976D2;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .stats-section {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    input[type="text"],
+    input[type="password"] {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    button {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}
+
+.edit-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.edit-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.edit-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.save-btn, .cancel-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.save-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.save-btn:hover {
+    background-color: #45a049;
+}
+
+.cancel-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.cancel-btn:hover {
+    background-color: #d32f2f;
+}
+
+.list-title-text, .memo-text {
+    flex: 1;
+    word-break: break-all;
+}
+
+.button-group, .memo-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-btn, .delete-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.edit-btn {
+    background-color: #2196F3;
+    color: white;
+}
+
+.edit-btn:hover {
+    background-color: #0b7dda;
+}
+
+.delete-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.delete-btn:hover {
+    background-color: #d32f2f;
+}
+
+.edit-section {
+    display: none;
+    position: relative;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #ddd;
+}
+
+.edit-section .input-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 0;
+    align-items: center;
+}
+
+.edit-section .edit-input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    font-size: 15px;
+    font-weight: 500;
+    min-height: 45px;
+}
+
+.edit-section .edit-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.edit-section .save-btn,
+.edit-section .cancel-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    min-width: 80px;
+}
+
+.edit-section .save-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.edit-section .cancel-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.edit-section .save-btn:hover {
+    background-color: #45a049;
+}
+
+.edit-section .cancel-btn:hover {
+    background-color: #d32f2f;
+}
+
+/* 임시 목록 섹션 */
+.temporary-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #FFF3E0;
+    border-radius: 8px;
+    border: 2px dashed #FF9800;
+}
+
+.temporary-section h2 {
+    color: #FF9800;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+/* 기존 목록 섹션 */
+.existing-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #E8F5E9;
+    border-radius: 8px;
+}
+
+.existing-section h2 {
+    color: #2E7D32;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+/* 페이지네이션 컨트롤 */
+.pagination-controls {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.pagination-controls button,
+.pagination-controls .page-number {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 0 3px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    color: #007bff;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s, color 0.3s;
+    text-decoration: none;
+    font-size: 0.9em;
+    min-width: 35px; /* 최소 너비 확보 */
+    text-align: center; /* 내부 텍스트 중앙 정렬 추가 */
+    box-sizing: border-box; /* 패딩 포함하여 너비 계산 */
+}
+
+.pagination-controls button:hover,
+.pagination-controls .page-number:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+}
+
+.pagination-controls button:disabled {
+    color: #6c757d;
+    cursor: not-allowed;
+    background-color: #e9ecef;
+    border-color: #ddd;
+}
+
+.pagination-controls .page-number.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+    cursor: default;
+}
+
+.pagination-controls .page-number.disabled { /* 페이지 번호가 없을 때 (예: ...) */
+    color: #6c757d;
+    background-color: transparent;
+    border: none;
+    cursor: default;
+}
+
+/* 상태 버튼 기본 스타일 */
+.status-btn {
+    padding: 3px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    background-color: #f0f0f0;
+    transition: background-color 0.2s, border-color 0.2s;
+    line-height: 1;
+}
+
+.status-btn:hover {
+    background-color: #e0e0e0;
+}
+
+/* 성공/실패 버튼 활성 상태 */
+.status-btn.active {
+    border-width: 2px;
+}
+.status-btn.success-btn.active {
+    border-color: #28a745;
+    background-color: #e9f7ec;
+}
+
+.status-btn.fail-btn.active {
+    border-color: #dc3545;
+    background-color: #fdecea;
+}
+
+/* 버튼 컨테이너 */
+.button-container {
+    display: flex;
+    justify-content: center; /* 버튼 중앙 정렬 */
+    gap: 15px; /* 버튼 사이 간격 */
+    flex-wrap: wrap; /* 내용이 넘칠 경우 줄바꿈 */
+    margin: 20px 0; /* 위아래 여백 */
+    position: relative; /* 자식 요소 absolute 위치 기준 */
+}
+
+/* 액션 버튼 공통 스타일 (기존 sort-btn 대체 및 확장) */
+.action-btn {
+    padding: 10px 20px;
+    background-color: #2196F3; /* 기본 파란색 계열 */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s, box-shadow 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn:hover {
+    background-color: #1976D2;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 액션 상태 메시지 스타일 */
+.action-status {
+    position: absolute; /* 절대 위치 */
+    width: auto; /* 내용에 맞게 너비 조절 */
+    text-align: center; /* 텍스트 중앙 정렬 (필요 시) */
+    bottom: -1.5em; /* 버튼 아래에 위치 (line-height 고려) */
+    left: 50%; /* 임시 위치, JS에서 덮어씀 */
+    transform: translateX(-50%); /* 좌우 중앙 정렬 */
+    display: none; /* 초기에는 숨김 */
+    font-size: 0.85em;
+    color: #666;
+    height: 1.2em; /* 메시지가 없을 때도 공간 차지 (레이아웃 밀림 방지) */
+    line-height: 1.2em;
+    padding: 2px 5px; /* 약간의 내부 여백 */
+    background-color: #f0f0f0; /* 배경색 추가 (옵션) */
+    border-radius: 3px; /* 모서리 둥글게 (옵션) */
+    white-space: nowrap; /* 메시지가 길어도 줄바꿈 방지 */
+    transition: opacity 0.5s ease-out; /* 사라질 때 부드럽게 */
+    z-index: 10; /* 다른 요소 위에 표시 */
+}
+
+/* 기존 .sort-btn 스타일 제거 또는 주석 처리 */
+/*
+.sort-btn {
+    padding: 10px 20px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    display: block; 
+    margin: 20px auto; 
+}
+.sort-btn:hover {
+    background-color: #1976D2;
+}
+*/
+
+.import-btn {
+    display: none;
+}
+
+.import-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 10px 0;
+    transition: background-color 0.3s;
+}
+
+.import-btn:hover {
+    background-color: #45a049;
+}
+
+/* 클립보드 설정 스타일 */
+.clipboard-settings {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 300px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    margin: 0;
+    padding: 15px;
+    z-index: 1000;
+}
+
+.clipboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.clipboard-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+    color: #333;
+}
+
+.toggle-clipboard-btn {
+    padding: 5px 10px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-width: 60px;
+    font-size: 0.9em;
+}
+
+.toggle-clipboard-btn:hover {
+    background: #e0e0e0;
+}
+
+.clipboard-content {
+    transition: all 0.3s ease-out;
+    overflow: hidden;
+    max-height: 1000px;
+    opacity: 1;
+}
+
+.clipboard-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.clipboard-description {
+    color: #666;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
+.clipboard-text {
+    width: 200px;
+    height: 30px;
+    resize: none;
+    padding: 5px;
+    margin: 2px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.add-clipboard-item {
+    background: #f0f0f0;
+    border: 1px dashed #999;
+    border-radius: 4px;
+    padding: 6px;
+    width: 100%;
+    text-align: center;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9em;
+    margin-top: 4px;
+}
+
+.add-clipboard-item:hover {
+    background: #e0e0e0;
+    border-color: #666;
+    color: #333;
+}
+
+.clipboard-items {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+.clipboard-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 5px;
+    padding: 2px;
+}
+
+.clipboard-item-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.shortcut {
+    font-size: 12px;
+    color: #666;
+    margin-left: 5px;
+}
+
+.delete-clipboard-item {
+    background: none;
+    border: none;
+    color: #ff4444;
+    cursor: pointer;
+    font-size: 0.8em;
+    padding: 2px 6px;
+}
+
+.delete-clipboard-item:hover {
+    background: #ffe0e0;
+    border-radius: 3px;
+}
+
+/* 스크롤바 스타일링 */
+.clipboard-items::-webkit-scrollbar {
+    width: 6px;
+}
+
+.clipboard-items::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.clipboard-items::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.clipboard-items::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* 모바일 대응 스타일 */
+@media (max-width: 768px) {
+    .clipboard-items {
+        grid-template-columns: 1fr;
+    }
+    
+    .clipboard-item {
+        margin-bottom: 10px;
+    }
+}
+
+/* 모바일 대응 스타일 */
+@media (max-width: 1024px) {
+    .clipboard-settings {
+        position: static;
+        width: 100%;
+        margin: 20px 0;
+    }
+
+    .container {
+        margin: 0 auto;
+        width: 100%;
+        max-width: 700px;
+    }
+} 
