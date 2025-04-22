@@ -39,11 +39,10 @@ function formatCreatedAt(dateStr) {
     return dateStr.replace(/-(\d{2})-(\d{2})$/, ' $1:$2');
 }
 
-// Firebase에 데이터 저장 (변경된 데이터만 전송)
+// Firebase에 데이터 저장
 async function saveToFirebase() {
     try {
         const db = window.db;
-        const { doc, setDoc, getDoc, updateDoc } = window.firestore;
         
         if (!db) {
             console.error('Firebase가 초기화되지 않았습니다.');
@@ -51,11 +50,11 @@ async function saveToFirebase() {
         }
 
         // 현재 Firebase에 저장된 데이터 가져오기
-        const mainListsDoc = await getDoc(doc(db, 'lists', 'main'));
-        const tempListsDoc = await getDoc(doc(db, 'lists', 'temporary'));
+        const mainListsDoc = await db.collection('lists').doc('main').get();
+        const tempListsDoc = await db.collection('lists').doc('temporary').get();
         
-        const currentMainLists = mainListsDoc.exists() ? mainListsDoc.data().lists : [];
-        const currentTempLists = tempListsDoc.exists() ? tempListsDoc.data().lists : [];
+        const currentMainLists = mainListsDoc.exists ? mainListsDoc.data().lists : [];
+        const currentTempLists = tempListsDoc.exists ? tempListsDoc.data().lists : [];
 
         // 변경된 메인 목록 찾기
         const changedMainLists = lists.filter(list => {
@@ -94,44 +93,20 @@ async function saveToFirebase() {
 
         // 메인 목록 업데이트
         if (changedMainLists.length > 0 || deletedMainListIds.length > 0) {
-            const mainDocRef = doc(db, 'lists', 'main');
-            const updates = {};
-
-            // 변경된 목록 각각 업데이트
-            changedMainLists.forEach(list => {
-                updates[`lists.${list.id}`] = list;
+            const mainDocRef = db.collection('lists').doc('main');
+            await mainDocRef.set({
+                lists: lists,
+                updated_at: new Date().toISOString()
             });
-
-            // 삭제된 목록 처리
-            deletedMainListIds.forEach(id => {
-                updates[`lists.${id}`] = null;
-            });
-
-            // 타임스탬프 추가
-            updates.updated_at = new Date().toISOString();
-
-            await updateDoc(mainDocRef, updates);
         }
 
         // 임시 목록 업데이트
         if (changedTempLists.length > 0 || deletedTempListIds.length > 0) {
-            const tempDocRef = doc(db, 'lists', 'temporary');
-            const updates = {};
-
-            // 변경된 임시 목록 각각 업데이트
-            changedTempLists.forEach(list => {
-                updates[`lists.${list.id}`] = list;
+            const tempDocRef = db.collection('lists').doc('temporary');
+            await tempDocRef.set({
+                lists: temporaryLists,
+                updated_at: new Date().toISOString()
             });
-
-            // 삭제된 임시 목록 처리
-            deletedTempListIds.forEach(id => {
-                updates[`lists.${id}`] = null;
-            });
-
-            // 타임스탬프 추가
-            updates.updated_at = new Date().toISOString();
-
-            await updateDoc(tempDocRef, updates);
         }
 
     } catch (error) {
@@ -146,7 +121,6 @@ async function saveToFirebase() {
 async function loadFromFirebase() {
     try {
         const db = window.db;
-        const { doc, getDoc } = window.firestore;
         
         if (!db) {
             console.error('Firebase가 초기화되지 않았습니다.');
@@ -154,15 +128,15 @@ async function loadFromFirebase() {
         }
 
         // 메인 목록 로드
-        const mainListsDoc = await getDoc(doc(db, 'lists', 'main'));
-        if (mainListsDoc.exists()) {
-            lists = mainListsDoc.data().lists;
+        const mainListsDoc = await db.collection('lists').doc('main').get();
+        if (mainListsDoc.exists) {
+            lists = mainListsDoc.data().lists || [];
         }
 
         // 임시 목록 로드
-        const tempListsDoc = await getDoc(doc(db, 'lists', 'temporary'));
-        if (tempListsDoc.exists()) {
-            temporaryLists = tempListsDoc.data().lists;
+        const tempListsDoc = await db.collection('lists').doc('temporary').get();
+        if (tempListsDoc.exists) {
+            temporaryLists = tempListsDoc.data().lists || [];
         }
 
         return true;
