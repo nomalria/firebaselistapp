@@ -24,6 +24,10 @@ let currentSortType = 'none'; // 'none', 'newest', 'oldest'
 let clipboardItems = [];
 const MAX_CLIPBOARD_ITEMS = 9;
 
+// 추천 단어 관련 변수
+let suggestions = [];
+let currentSuggestionIndex = -1;
+
 // 시간 형식 변환 함수 추가
 function formatCreatedAt(dateStr) {
     if (!dateStr) return '2025-04-22 09:30';
@@ -1532,8 +1536,25 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 검색 입력 필드에 이벤트 리스너 추가
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', function(e) {
             const query = this.value.trim();
+            const words = query.split(' ');
+            const lastWord = words[words.length - 1].toLowerCase();
+
+            // 마지막 단어가 있을 때만 추천 단어 표시
+            if (lastWord) {
+                // 기존 목록에서 추천 단어 찾기
+                suggestions = Array.from(new Set(lists.concat(temporaryLists)
+                    .map(list => list.title.toLowerCase())
+                    .filter(title => title.includes(lastWord))
+                    .slice(0, 5))); // 최대 5개까지 표시
+
+                showSuggestions(suggestions, words, lastWord);
+            } else {
+                hideSuggestions();
+            }
+
+            // 기존 검색 결과 표시 로직
             if (query) {
                 searchLists(query);
             } else {
@@ -1780,4 +1801,53 @@ function handleClipboardShortcut(event, inputElement) {
             inputElement.focus();
         }
     }
-} 
+}
+
+// 추천 단어 표시 함수
+function showSuggestions(suggestions, words, lastWord) {
+    const suggestionsDiv = document.getElementById('searchResults');
+    if (suggestions.length === 0) {
+        suggestionsDiv.innerHTML = '';
+        return;
+    }
+
+    const suggestionsList = suggestions.map((suggestion, index) => `
+        <div class="suggestion-item" data-index="${index}">
+            ${suggestion}
+        </div>
+    `).join('');
+
+    suggestionsDiv.innerHTML = suggestionsList;
+
+    // 추천 단어 클릭 이벤트
+    document.querySelectorAll('.suggestion-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const selectedSuggestion = suggestions[this.dataset.index];
+            const searchInput = document.getElementById('searchInput');
+            words[words.length - 1] = selectedSuggestion;
+            searchInput.value = words.join(' ');
+            hideSuggestions();
+            searchInput.focus();
+        });
+    });
+}
+
+// 추천 단어 숨기기 함수
+function hideSuggestions() {
+    const suggestionsDiv = document.getElementById('searchResults');
+    suggestionsDiv.innerHTML = '';
+    currentSuggestionIndex = -1;
+}
+
+// 스페이스바 처리
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+    const suggestionsDiv = document.getElementById('searchResults');
+    
+    if (e.key === ' ' && suggestions.length > 0) {
+        e.preventDefault();
+        const words = this.value.trim().split(' ');
+        words[words.length - 1] = suggestions[0]; // 첫 번째 추천 단어 선택
+        this.value = words.join(' ') + ' ';
+        hideSuggestions();
+    }
+}); 
