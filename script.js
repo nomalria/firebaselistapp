@@ -1560,6 +1560,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else {
                 document.getElementById('searchResults').innerHTML = '';
             }
+
+            // 스페이스 입력 감지 및 처리
+            if (e.data === ' ' && suggestions.length > 0) {
+                const words = this.value.trim().split(' ');
+                const lastWord = words[words.length - 1].toLowerCase();
+                
+                // 마지막 단어가 추천 단어와 정확히 일치하지 않을 때만 처리
+                if (!suggestions.includes(lastWord)) {
+                    words[words.length - 1] = suggestions[0];
+                    this.value = words.join(' ') + ' ';
+                    hideSuggestions();
+                }
+            }
         });
 
         // 키보드 이벤트 처리
@@ -1839,15 +1852,18 @@ function hideSuggestions() {
     currentSuggestionIndex = -1;
 }
 
-// 스페이스바 처리
+// 스페이스바 처리 (PC용)
 document.getElementById('searchInput').addEventListener('keydown', function(e) {
-    const suggestionsDiv = document.getElementById('searchResults');
-    
     if (e.key === ' ' && suggestions.length > 0) {
         e.preventDefault();
         const words = this.value.trim().split(' ');
-        words[words.length - 1] = suggestions[0]; // 첫 번째 추천 단어 선택
-        this.value = words.join(' ') + ' ';
-        hideSuggestions();
+        const lastWord = words[words.length - 1].toLowerCase();
+        
+        // 마지막 단어가 추천 단어와 정확히 일치하지 않을 때만 처리
+        if (!suggestions.includes(lastWord)) {
+            words[words.length - 1] = suggestions[0];
+            this.value = words.join(' ') + ' ';
+            hideSuggestions();
+        }
     }
 }); 
