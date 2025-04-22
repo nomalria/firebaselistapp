@@ -2237,16 +2237,40 @@ async function loadBackupFile(file) {
                     
                     if (existingMemoIndex === -1) {
                         // 동일한 메모가 없는 경우 새로 추가
-                        // status를 wins/losses로 변환
-                        const wins = backupMemo.status === 'success' ? 1 : 0;
-                        const losses = backupMemo.status === 'fail' ? 1 : 0;
+                        let wins = 0;
+                        let losses = 0;
+
+                        // status 값을 확인하여 wins/losses 설정
+                        if (backupMemo.status === 'success' || backupMemo.text.startsWith('✅')) {
+                            wins = 1;
+                        } else if (backupMemo.status === 'fail' || backupMemo.text.startsWith('❌')) {
+                            losses = 1;
+                        }
                         
+                        // 메모 텍스트에서 아이콘 제거
+                        let cleanText = backupMemo.text;
+                        if (cleanText.startsWith('✅ ')) {
+                            cleanText = cleanText.substring(2);
+                        } else if (cleanText.startsWith('❌ ')) {
+                            cleanText = cleanText.substring(2);
+                        }
+
                         updatedMemos.push({
                             id: Date.now().toString() + Math.random().toString(16).slice(2),
-                            text: backupMemo.text,
+                            text: cleanText,
                             wins: wins,
                             losses: losses
                         });
+                    } else {
+                        // 기존 메모가 있고 승패가 0인 경우에만 업데이트
+                        const existingMemo = updatedMemos[existingMemoIndex];
+                        if (existingMemo.wins === 0 && existingMemo.losses === 0) {
+                            if (backupMemo.status === 'success' || backupMemo.text.startsWith('✅')) {
+                                existingMemo.wins = 1;
+                            } else if (backupMemo.status === 'fail' || backupMemo.text.startsWith('❌')) {
+                                existingMemo.losses = 1;
+                            }
+                        }
                     }
                 });
                 
@@ -2259,12 +2283,31 @@ async function loadBackupFile(file) {
                     id: Date.now().toString() + Math.random().toString(16).slice(2),
                     title: backupList.title,
                     createdAt: backupList.createdAt || formatCreatedAt(new Date().toISOString()),
-                    memos: backupList.memos.map(memo => ({
-                        id: Date.now().toString() + Math.random().toString(16).slice(2),
-                        text: memo.text,
-                        wins: memo.status === 'success' ? 1 : 0,
-                        losses: memo.status === 'fail' ? 1 : 0
-                    }))
+                    memos: backupList.memos.map(memo => {
+                        let wins = 0;
+                        let losses = 0;
+                        let cleanText = memo.text;
+
+                        // status 값이나 아이콘을 기반으로 wins/losses 설정
+                        if (memo.status === 'success' || memo.text.startsWith('✅')) {
+                            wins = 1;
+                            if (cleanText.startsWith('✅ ')) {
+                                cleanText = cleanText.substring(2);
+                            }
+                        } else if (memo.status === 'fail' || memo.text.startsWith('❌')) {
+                            losses = 1;
+                            if (cleanText.startsWith('❌ ')) {
+                                cleanText = cleanText.substring(2);
+                            }
+                        }
+
+                        return {
+                            id: Date.now().toString() + Math.random().toString(16).slice(2),
+                            text: cleanText,
+                            wins: wins,
+                            losses: losses
+                        };
+                    })
                 };
                 lists.push(newList);
             }
