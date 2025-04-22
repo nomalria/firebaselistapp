@@ -1543,28 +1543,25 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // 마지막 단어가 있을 때만 추천 단어 표시
             if (lastWord) {
-                // 기존 목록에서 추천 단어 찾기
-                suggestions = Array.from(new Set(lists.concat(temporaryLists)
-                    .map(list => list.title.toLowerCase())
-                    .filter(title => title.includes(lastWord))
-                    .slice(0, 5))); // 최대 5개까지 표시
+                // 모든 목록의 제목을 단어로 분리하여 배열 생성
+                const allWords = Array.from(new Set(
+                    lists.concat(temporaryLists)
+                        .map(list => list.title.split(' ')) // 각 제목을 단어로 분리
+                        .flat() // 2차원 배열을 1차원으로 평탄화
+                        .filter(word => word.toLowerCase().includes(lastWord)) // 입력된 단어와 일치하는 것만 필터링
+                ));
 
+                // 최대 5개까지 표시
+                suggestions = allWords.slice(0, 5);
                 showSuggestions(suggestions, words, lastWord);
             } else {
                 hideSuggestions();
             }
 
-            // 기존 검색 결과 표시 로직
-            if (query) {
-                searchLists(query);
-            } else {
-                document.getElementById('searchResults').innerHTML = '';
-            }
-
             // 스페이스 입력 감지 및 처리
             if (e.data === ' ' && suggestions.length > 0) {
                 const words = this.value.trim().split(' ');
-                const lastWord = words[words.length - 1].toLowerCase();
+                const lastWord = words[words.length - 1];
                 
                 // 마지막 단어가 추천 단어와 정확히 일치하지 않을 때만 처리
                 if (!suggestions.includes(lastWord)) {
@@ -1825,7 +1822,7 @@ function showSuggestions(suggestions, words, lastWord) {
     }
 
     const suggestionsList = suggestions.map((suggestion, index) => `
-        <div class="suggestion-item" data-index="${index}">
+        <div class="suggestion-item" data-index="${index}" data-suggestion="${suggestion}">
             ${suggestion}
         </div>
     `).join('');
@@ -1835,10 +1832,10 @@ function showSuggestions(suggestions, words, lastWord) {
     // 추천 단어 클릭 이벤트
     document.querySelectorAll('.suggestion-item').forEach(item => {
         item.addEventListener('click', function() {
-            const selectedSuggestion = suggestions[this.dataset.index];
+            const selectedSuggestion = this.dataset.suggestion;
             const searchInput = document.getElementById('searchInput');
             words[words.length - 1] = selectedSuggestion;
-            searchInput.value = words.join(' ');
+            searchInput.value = words.join(' ') + ' ';
             hideSuggestions();
             searchInput.focus();
         });
@@ -1857,7 +1854,7 @@ document.getElementById('searchInput').addEventListener('keydown', function(e) {
     if (e.key === ' ' && suggestions.length > 0) {
         e.preventDefault();
         const words = this.value.trim().split(' ');
-        const lastWord = words[words.length - 1].toLowerCase();
+        const lastWord = words[words.length - 1];
         
         // 마지막 단어가 추천 단어와 정확히 일치하지 않을 때만 처리
         if (!suggestions.includes(lastWord)) {
