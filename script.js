@@ -2131,7 +2131,9 @@ document.head.appendChild(style);
 async function loadBackupFile(file) {
     try {
         const fileContent = await file.text();
-        const backupData = JSON.parse(fileContent);
+        // JSON 파싱 전에 후행 쉼표 제거
+        const cleanedContent = cleanJsonString(fileContent);
+        const backupData = JSON.parse(cleanedContent);
         
         console.log('백업 파일 로드 시작...');
         
@@ -2143,10 +2145,8 @@ async function loadBackupFile(file) {
         // 백업 데이터 구조 확인
         let listsToProcess = [];
         if (backupData.lists) {
-            // 새로운 형식 (Firebase 문서 형식)
             listsToProcess = backupData.lists;
         } else if (Array.isArray(backupData)) {
-            // 이전 형식 (배열 형식)
             listsToProcess = backupData;
         } else {
             throw new Error('올바르지 않은 백업 파일 형식입니다.');
@@ -2316,4 +2316,12 @@ async function migrateStatusToWinLoss() {
         await db.collection('lists').doc('main').set({ lists });
         renderLists();
     }
+}
+
+function cleanJsonString(jsonString) {
+    // 후행 쉼표 제거
+    return jsonString
+        .replace(/,\s*}/g, '}')  // 객체 끝의 쉼표 제거
+        .replace(/,\s*\]/g, ']') // 배열 끝의 쉼표 제거
+        .replace(/,\s*,/g, ','); // 연속된 쉼표 제거
 }
