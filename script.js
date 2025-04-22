@@ -28,10 +28,14 @@ const MAX_CLIPBOARD_ITEMS = 9;
 let suggestions = [];
 let currentSuggestionIndex = -1;
 
-// 시간 형식 변환 함수 추가
+// 시간 형식 변환 함수 수정
 function formatCreatedAt(dateStr) {
     if (!dateStr) return '2025-04-22 09:30';
-    // 기존 형식(2025-04-22-09-30)을 새 형식(2025-04-22 09:30)으로 변환
+    
+    // 이미 올바른 형식이면 그대로 반환
+    if (dateStr.includes(' ')) return dateStr;
+    
+    // 하이픈 형식을 공백과 콜론 형식으로 변환
     return dateStr.replace(/-(\d{2})-(\d{2})$/, ' $1:$2');
 }
 
@@ -379,14 +383,14 @@ function addNewList() {
     
     // 현재 시간 정보 생성
     const now = new Date();
-    const createdAt = now.toLocaleString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    }).replace(/\. /g, '-').replace(/: /, ':').replace(/.$/, '');
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    // 생성 시간을 공백과 콜론 형식으로 저장
+    const createdAt = `${year}-${month}-${day} ${hours}:${minutes}`;
     
     // 입력된 단어 개수 확인
     const words = title.split(' ').filter(w => w);
@@ -514,17 +518,23 @@ function renderTemporaryLists() {
 
 // 방덱 삭제
 async function deleteList(listId, isTemporary = false) {
+    // 로그인 상태 확인
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert('목록 삭제는 로그인 후 가능합니다.');
+        return;
+    }
+
     const list = isTemporary ? 
         temporaryLists.find(l => l.id.toString() === listId.toString()) :
         lists.find(l => l.id.toString() === listId.toString());
 
     // 권한 체크
-    const user = firebase.auth().currentUser;
-    const isAdmin = user && user.email === 'longway7098@gmail.com';
+    const isAdmin = user.email === 'longway7098@gmail.com';
     const isOldList = list && list.createdAt === '2025-04-22 09:30';
 
     if (!isTemporary && isOldList && !isAdmin) {
-        alert('이전 목록은 관리자(longway7098@gmail.com)만 삭제할 수 있습니다.');
+        alert('이전 목록은 관리자만 삭제할 수 있습니다.');
         return;
     }
 
@@ -689,9 +699,15 @@ function deleteMemo(listId, memoId, isTemporary = false) {
 // 생성 시간으로 목록 정렬하는 함수
 function sortListsByCreatedAt(lists, sortType) {
     return [...lists].sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt.replace(/-/g, '/').replace(' ', 'T')) : new Date(0);
-        const dateB = b.createdAt ? new Date(b.createdAt.replace(/-/g, '/').replace(' ', 'T')) : new Date(0);
-        return sortType === 'newest' ? dateB - dateA : dateA - dateB;
+        const dateA = a.createdAt ? new Date(a.createdAt.replace(' ', 'T')) : new Date(0);
+        const dateB = b.createdAt ? new Date(b.createdAt.replace(' ', 'T')) : new Date(0);
+        
+        if (sortType === 'newest') {
+            return dateB - dateA;
+        } else if (sortType === 'oldest') {
+            return dateA - dateB;
+        }
+        return 0;
     });
 }
 
