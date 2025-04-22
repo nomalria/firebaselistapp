@@ -1539,16 +1539,17 @@ function migrateStatusToWinLoss() {
         // 메모 앞의 아이콘 확인
         const iconStatus = checkMemoIcon(memoText);
         
-        // 승패 값 초기화
-        memo.wins = 0;
-        memo.losses = 0;
-
-        // 아이콘에 따라 승패 설정
+        // 아이콘이 있을 때만 승패 값을 설정하고, 없으면 기존 값 유지
         if (iconStatus === 'success') {
+            memo.status = 'success';
             memo.wins = 1;
+            memo.losses = 0;
         } else if (iconStatus === 'fail') {
+            memo.status = 'fail';
+            memo.wins = 0;
             memo.losses = 1;
         }
+        // 아이콘이 없는 경우 기존 승패 값 유지
     });
 
     // 변경사항 저장
