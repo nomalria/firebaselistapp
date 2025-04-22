@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>방덱 목록 관리 - 도움말</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+
+        .section {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            color: #333;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .back-link:hover {
+            background-color: #e0e0e0;
+        }
+
+        .keyboard-shortcut {
+            background-color: #e8e8e8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>방덱 목록 관리 도움말</h1>
+
+    <div class="section">
+        <h2>기본 기능</h2>
+        <ul>
+            <li>새 목록 추가: 상단의 입력창에 제목을 입력하고 Enter를 누르세요.</li>
+            <li>목록 편집: 목록을 클릭하여 메모를 추가하거나 편집할 수 있습니다.</li>
+            <li>목록 삭제: 목록 우측의 X 버튼을 클릭하세요.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>메모 기능</h2>
+        <ul>
+            <li>메모 추가: 목록을 클릭하고 메모 입력창에 내용을 입력한 후 Enter를 누르세요.</li>
+            <li>메모 편집: 메모를 클릭하여 내용을 수정할 수 있습니다.</li>
+            <li>메모 삭제: 메모 우측의 X 버튼을 클릭하세요.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>클립보드 기능</h2>
+        <ul>
+            <li>클립보드 토글: 상단의 클립보드 버튼을 클릭하여 클립보드를 열고 닫을 수 있습니다.</li>
+            <li>항목 추가: 클립보드가 열린 상태에서 + 버튼을 클릭하여 새 항목을 추가할 수 있습니다.</li>
+            <li>단축키: <span class="keyboard-shortcut">Alt + 1~9</span> 키를 눌러 해당 위치의 클립보드 항목을 입력할 수 있습니다.</li>
+            <li>최대 9개까지 항목을 저장할 수 있습니다.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>데이터 저장</h2>
+        <ul>
+            <li>모든 데이터는 자동으로 저장되며, 브라우저를 닫았다가 다시 열어도 유지됩니다.</li>
+            <li>목록과 메모는 Firebase에 저장되며, 인터넷 연결이 없는 경우 로컬 저장소에 임시 저장됩니다.</li>
+        </ul>
+    </div>
+
+    <a href="index.html" class="back-link">← 메인 페이지로 돌아가기</a>
+</body>
+</html> 

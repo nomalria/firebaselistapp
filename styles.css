@@ -1143,4 +1143,24 @@ h1 {
     .search-input {
         min-width: 300px;
     }
+}
+
+.help-link {
+    text-align: right;
+    margin: -10px 0 15px 0;
+}
+
+.help-btn {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: #f0f0f0;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.help-btn:hover {
+    background-color: #e0e0e0;
 } 
