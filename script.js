@@ -1872,3 +1872,100 @@ function loadClipboardItems() {
         clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
     }
 }
+
+// 클립보드 렌더링
+function renderClipboardItems() {
+    const container = document.querySelector('.clipboard-items');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // 기존 클립보드 아이템 렌더링
+    clipboardItems.forEach((item, index) => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'clipboard-item';
+        itemElement.innerHTML = `
+            <div class="clipboard-item-header">
+                <span class="shortcut">Alt + ${index + 1}</span>
+            </div>
+            <textarea class="clipboard-text" data-index="${index}" 
+                placeholder="클립보드 ${index + 1}번">${item}</textarea>
+        `;
+        container.appendChild(itemElement);
+    });
+
+    // 새 아이템 추가 버튼 (최대 9개까지만)
+    if (clipboardItems.length < MAX_CLIPBOARD_ITEMS) {
+        const addButton = document.createElement('button');
+        addButton.className = 'add-clipboard-item';
+        addButton.textContent = '+ 새 클립보드 추가';
+        addButton.onclick = addNewClipboardItem;
+        container.appendChild(addButton);
+    }
+
+    // 이벤트 리스너 추가
+    attachClipboardEventListeners();
+}
+
+// 클립보드 저장
+function saveClipboardItems() {
+    try {
+        localStorage.setItem('clipboardItems', JSON.stringify(clipboardItems));
+    } catch (error) {
+        console.error('클립보드 저장 중 오류:', error);
+    }
+}
+
+// 새 클립보드 아이템 추가
+function addNewClipboardItem() {
+    if (clipboardItems.length < MAX_CLIPBOARD_ITEMS) {
+        clipboardItems.push('');
+        saveClipboardItems();
+        renderClipboardItems();
+        
+        // 새로 추가된 항목으로 스크롤
+        const container = document.querySelector('.clipboard-items');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+}
+
+// 클립보드 이벤트 리스너 추가
+function attachClipboardEventListeners() {
+    // 텍스트 영역 변경 이벤트만 유지
+    document.querySelectorAll('.clipboard-text').forEach(textarea => {
+        textarea.oninput = function() {
+            const index = parseInt(this.dataset.index);
+            clipboardItems[index] = this.value;
+            saveClipboardItems();
+        };
+    });
+}
+
+// 클립보드 단축키 처리 함수
+function handleClipboardShortcut(event, inputElement) {
+    if (event.altKey && event.key >= '1' && event.key <= '9') {
+        event.preventDefault(); // 기본 동작 방지
+        const index = parseInt(event.key) - 1;
+        if (index < clipboardItems.length && clipboardItems[index]) {
+            const start = inputElement.selectionStart;
+            const end = inputElement.selectionEnd;
+            const text = inputElement.value;
+            inputElement.value = text.substring(0, start) + clipboardItems[index] + text.substring(end);
+            // 커서 위치 조정
+            const newPosition = start + clipboardItems[index].length;
+            inputElement.setSelectionRange(newPosition, newPosition);
+            inputElement.focus();
+        }
+    }
+}
+
+// 클립보드 단축키 이벤트 리스너 추가
+function addClipboardShortcutListener(element) {
+    if (element) {
+        element.addEventListener('keydown', function(event) {
+            handleClipboardShortcut(event, this);
+        });
+    }
+}
