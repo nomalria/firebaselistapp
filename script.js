@@ -35,7 +35,7 @@ function formatCreatedAt(dateStr) {
 async function saveToFirebase() {
     try {
         const db = window.db;
-        const { doc, setDoc, getDoc } = window.firestore;
+        const { doc, setDoc, getDoc, updateDoc } = window.firestore;
         
         if (!db) {
             console.error('Firebase가 초기화되지 않았습니다.');
@@ -53,15 +53,11 @@ async function saveToFirebase() {
         const changedMainLists = lists.filter(list => {
             const currentList = currentMainLists.find(l => l.id === list.id);
             if (!currentList) return true; // 새로 추가된 목록
-
-            // 목록 제목이 변경되었거나 메모가 변경된 경우
             if (currentList.title !== list.title) return true;
-            
-            // 메모 비교
             if (currentList.memos.length !== list.memos.length) return true;
             return list.memos.some(memo => {
                 const currentMemo = currentList.memos.find(m => m.id === memo.id);
-                if (!currentMemo) return true; // 새로 추가된 메모
+                if (!currentMemo) return true;
                 return currentMemo.text !== memo.text || currentMemo.status !== memo.status;
             });
         });
@@ -69,16 +65,12 @@ async function saveToFirebase() {
         // 변경된 임시 목록 찾기
         const changedTempLists = temporaryLists.filter(list => {
             const currentList = currentTempLists.find(l => l.id === list.id);
-            if (!currentList) return true; // 새로 추가된 목록
-
-            // 목록 제목이 변경되었거나 메모가 변경된 경우
+            if (!currentList) return true;
             if (currentList.title !== list.title) return true;
-            
-            // 메모 비교
             if (currentList.memos.length !== list.memos.length) return true;
             return list.memos.some(memo => {
                 const currentMemo = currentList.memos.find(m => m.id === memo.id);
-                if (!currentMemo) return true; // 새로 추가된 메모
+                if (!currentMemo) return true;
                 return currentMemo.text !== memo.text || currentMemo.status !== memo.status;
             });
         });
@@ -92,23 +84,46 @@ async function saveToFirebase() {
             .filter(list => !temporaryLists.some(l => l.id === list.id))
             .map(list => list.id);
 
-        // 변경사항이 있는 경우에만 Firebase 업데이트
+        // 메인 목록 업데이트
         if (changedMainLists.length > 0 || deletedMainListIds.length > 0) {
-            await setDoc(doc(db, 'lists', 'main'), {
-                lists: lists, // 전체 목록 업데이트 (일관성 유지를 위해)
-                updated_at: new Date().toISOString(),
-                changed_lists: changedMainLists.map(list => list.id),
-                deleted_lists: deletedMainListIds
+            const mainDocRef = doc(db, 'lists', 'main');
+            const updates = {};
+
+            // 변경된 목록 각각 업데이트
+            changedMainLists.forEach(list => {
+                updates[`lists.${list.id}`] = list;
             });
+
+            // 삭제된 목록 처리
+            deletedMainListIds.forEach(id => {
+                updates[`lists.${id}`] = null;
+            });
+
+            // 타임스탬프 추가
+            updates.updated_at = new Date().toISOString();
+
+            await updateDoc(mainDocRef, updates);
         }
 
+        // 임시 목록 업데이트
         if (changedTempLists.length > 0 || deletedTempListIds.length > 0) {
-            await setDoc(doc(db, 'lists', 'temporary'), {
-                lists: temporaryLists, // 전체 목록 업데이트 (일관성 유지를 위해)
-                updated_at: new Date().toISOString(),
-                changed_lists: changedTempLists.map(list => list.id),
-                deleted_lists: deletedTempListIds
+            const tempDocRef = doc(db, 'lists', 'temporary');
+            const updates = {};
+
+            // 변경된 임시 목록 각각 업데이트
+            changedTempLists.forEach(list => {
+                updates[`lists.${list.id}`] = list;
             });
+
+            // 삭제된 임시 목록 처리
+            deletedTempListIds.forEach(id => {
+                updates[`lists.${id}`] = null;
+            });
+
+            // 타임스탬프 추가
+            updates.updated_at = new Date().toISOString();
+
+            await updateDoc(tempDocRef, updates);
         }
 
     } catch (error) {
