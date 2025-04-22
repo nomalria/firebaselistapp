@@ -2208,10 +2208,13 @@ async function loadBackupFile(file) {
 
         // 전역 변수 업데이트
         window.lists = currentLists;
+        lists = currentLists;  // 전역 변수 직접 업데이트
+        
+        // 페이지네이션 초기화
+        currentPage = 1;
         
         // UI 업데이트
-        renderLists();
-        updateStats();
+        await loadLists();  // 전체 데이터 다시 로드
         
         console.log('백업 파일 로드 완료');
         
