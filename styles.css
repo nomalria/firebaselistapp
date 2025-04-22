@@ -491,40 +491,17 @@ h1 {
     color: white;
 }
 
-.memo-status-icon {
-    margin-right: 8px;
-    font-size: 1.1em;
-    min-width: 20px;
-    text-align: center;
-    position: relative;
-    line-height: 1.5;
-}
-
-/* 상태 텍스트 (아이콘 위) */
-.memo-status-icon::before {
-    content: '';
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.65em;
-    font-weight: bold;
-    color: #555;
-    white-space: nowrap;
-}
-
-.memo-status-icon.success::before {
-    content: '공격성공';
-    color: #28a745;
-}
-
-.memo-status-icon.fail::before {
-    content: '공격실패';
-    color: #dc3545;
-}
-
-.memo-status-icon.unknown {
-    /* color: #ccc; */
+/* 상태 아이콘 관련 스타일 제거 */
+.memo-status-icon,
+.memo-status-icon::before,
+.memo-status-icon.success::before,
+.memo-status-icon.fail::before,
+.memo-status-icon.unknown,
+.status-btn,
+.status-btn.active,
+.status-btn.success-btn.active,
+.status-btn.fail-btn.active {
+    display: none;
 }
 
 .memo-text.editing {
@@ -806,34 +783,229 @@ h1 {
     cursor: default;
 }
 
-/* 상태 버튼 기본 스타일 */
-.status-btn {
-    padding: 3px 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-    background-color: #f0f0f0;
-    transition: background-color 0.2s, border-color 0.2s;
-    line-height: 1;
+/* 모바일 대응 스타일 수정 */
+@media screen and (max-width: 768px) {
+    .container {
+        margin: 0 auto;
+        width: 100%;
+        padding: 10px;
+    }
+
+    .search-add-section {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .search-add-section .input-group {
+        display: flex;
+        flex-direction: row;
+        flex: 3;
+        width: auto;
+    }
+
+    .search-input {
+        height: 45px;
+        font-size: 16px;
+        flex: 1;
+    }
+
+    #addListBtn {
+        height: 45px;
+        padding: 0 15px;
+        font-size: 16px;
+        flex: 1;
+        min-width: 80px;
+        max-width: 100px;
+    }
+
+    /* 클립보드 설정도 가로 정렬 유지 */
+    .clipboard-settings {
+        position: static;
+        width: 100%;
+        margin: 20px 0;
+    }
+
+    .clipboard-text {
+        width: 100%;
+    }
 }
 
-.status-btn:hover {
+/* 태블릿 크기 대응 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .container {
+        margin: 0 auto;
+        max-width: 700px;
+    }
+
+    .search-input {
+        min-width: 300px;
+    }
+}
+
+.help-link {
+    text-align: right;
+    margin: -10px 0 15px 0;
+}
+
+.help-btn {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: #f0f0f0;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.help-btn:hover {
     background-color: #e0e0e0;
 }
 
-/* 성공/실패 버튼 활성 상태 */
-.status-btn.active {
-    border-width: 2px;
-}
-.status-btn.success-btn.active {
-    border-color: #28a745;
-    background-color: #e9f7ec;
+/* 추천 단어 스타일 */
+.suggestion-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+    font-size: 14px;
+    color: #333;
 }
 
-.status-btn.fail-btn.active {
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background-color: #f5f5f5;
+}
+
+.suggestion-item.selected {
+    background-color: #e3f2fd;
+}
+
+/* 모바일 환경에서의 추천 단어 스타일 */
+@media screen and (max-width: 768px) {
+    .suggestion-item {
+        padding: 12px 15px;
+        font-size: 16px; /* 모바일에서 더 큰 글씨 */
+    }
+
+    #searchResults {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+}
+
+.memo-counter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+.counter-text {
+    font-size: 0.9em;
+    color: #666;
+    min-width: 120px;
+}
+
+.counter-btn {
+    padding: 2px 5px;
+    font-size: 0.8em;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background-color: #f8f8f8;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.counter-btn:hover {
+    background-color: #e8e8e8;
+}
+
+.plus-win {
+    color: #28a745;
+    border-color: #28a745;
+}
+
+.plus-win:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.minus-win {
+    color: #28a745;
+    border-color: #28a745;
+}
+
+.minus-win:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.plus-loss {
+    color: #dc3545;
     border-color: #dc3545;
-    background-color: #fdecea;
+}
+
+.plus-loss:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+.minus-loss {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.minus-loss:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* 메모 아이템 레이아웃 조정 */
+.memo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    margin-bottom: 5px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.memo-text {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.memo-buttons {
+    display: flex;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+/* 편집 모드에서의 상태 버튼 스타일 */
+.edit-section .status-btn {
+    display: inline-block;
+}
+
+/* 일반 모드에서는 상태 버튼 숨김 */
+.memo-buttons .status-btn {
+    display: none;
 }
 
 /* 버튼 컨테이너 */
@@ -1205,4 +1377,104 @@ h1 {
         max-height: 200px;
         overflow-y: auto;
     }
+}
+
+.memo-counter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+.counter-text {
+    font-size: 0.9em;
+    color: #666;
+    min-width: 120px;
+}
+
+.counter-btn {
+    padding: 2px 5px;
+    font-size: 0.8em;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background-color: #f8f8f8;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.counter-btn:hover {
+    background-color: #e8e8e8;
+}
+
+.plus-win {
+    color: #28a745;
+    border-color: #28a745;
+}
+
+.plus-win:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.minus-win {
+    color: #28a745;
+    border-color: #28a745;
+}
+
+.minus-win:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.plus-loss {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.plus-loss:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+.minus-loss {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.minus-loss:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* 메모 아이템 레이아웃 조정 */
+.memo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    margin-bottom: 5px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.memo-text {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.memo-buttons {
+    display: flex;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+/* 편집 모드에서의 상태 버튼 스타일 */
+.edit-section .status-btn {
+    display: inline-block;
+}
+
+/* 일반 모드에서는 상태 버튼 숨김 */
+.memo-buttons .status-btn {
+    display: none;
 } 
