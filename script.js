@@ -1499,151 +1499,6 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// 기존 데이터를 새로운 형식으로 변환
-function migrateExistingData() {
-    // 기존 목록 변환
-    lists = lists.map(list => ({
-        ...list,
-        memos: (list.memos || []).map(memo => ({
-            ...memo,
-            wins: memo.status === 'success' ? 1 : 0,
-            losses: memo.status === 'fail' ? 1 : 0
-        }))
-    }));
-
-    // 임시 목록 변환
-    temporaryLists = temporaryLists.map(list => ({
-        ...list,
-        memos: (list.memos || []).map(memo => ({
-            ...memo,
-            wins: memo.status === 'success' ? 1 : 0,
-            losses: memo.status === 'fail' ? 1 : 0
-        }))
-    }));
-
-    // 변환된 데이터 저장
-    saveLists();
-    saveTemporaryLists();
-}
-
-// 기존 상태를 승패 정보로 마이그레이션하는 함수 수정
-function migrateStatusToWinLoss() {
-    console.log('승패 정보 마이그레이션 시작...');
-
-    // 메모 앞의 아이콘을 확인하는 함수
-    function checkMemoIcon(memoElement) {
-        if (!memoElement) return null;
-        const firstChild = memoElement.firstChild;
-        if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
-            const text = firstChild.textContent.trim();
-            if (text.startsWith('✅')) return 'success';
-            if (text.startsWith('❌')) return 'fail';
-        }
-        return null;
-    }
-
-    // 모든 메모 아이템을 순회하며 아이콘 확인
-    document.querySelectorAll('.memo-item').forEach(memoItem => {
-        const memoText = memoItem.querySelector('.memo-text');
-        const listItem = memoItem.closest('.list-item');
-        if (!listItem) return;
-
-        const listId = listItem.dataset.listId;
-        const memoId = memoItem.dataset.memoId;
-        const isTemporary = listItem.closest('#temporaryLists') !== null;
-
-        const targetLists = isTemporary ? temporaryLists : lists;
-        const list = targetLists.find(l => l.id.toString() === listId);
-        if (!list) return;
-
-        const memo = list.memos.find(m => m.id.toString() === memoId);
-        if (!memo) return;
-
-        // 메모 앞의 아이콘 확인
-        const iconStatus = checkMemoIcon(memoText);
-        
-        // 아이콘이 있을 때만 승패 값을 설정하고, 없으면 기존 값 유지
-        if (iconStatus === 'success') {
-            memo.status = 'success';
-            memo.wins = 1;
-            memo.losses = 0;
-        } else if (iconStatus === 'fail') {
-            memo.status = 'fail';
-            memo.wins = 0;
-            memo.losses = 1;
-        }
-        // 아이콘이 없는 경우 기존 승패 값 유지
-    });
-
-    // 변경사항 저장
-    saveLists();
-    saveTemporaryLists();
-
-    console.log('승패 정보 마이그레이션 완료');
-
-    // 화면 새로고침
-    renderLists(currentPage);
-    renderTemporaryLists();
-}
-
-// 승패 데이터 마이그레이션 함수
-async function preserveWinLossData() {
-    console.log('기존 승패 데이터 저장 시작...');
-    
-    try {
-        // 메인 목록 처리
-        lists = lists.map(list => ({
-            ...list,
-            memos: list.memos.map(memo => {
-                // 승패 데이터가 없는 경우에만 아이콘 기반으로 설정
-                if (typeof memo.wins !== 'number' && typeof memo.losses !== 'number') {
-                    if (memo.text.startsWith('✅')) {
-                        return { ...memo, wins: 1, losses: 0 };
-                    } else if (memo.text.startsWith('❌')) {
-                        return { ...memo, wins: 0, losses: 1 };
-                    }
-                }
-                // 이미 승패 데이터가 있는 경우 그대로 유지
-                return {
-                    ...memo,
-                    wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                    losses: typeof memo.losses === 'number' ? memo.losses : 0
-                };
-            })
-        }));
-
-        // 임시 목록 처리
-        temporaryLists = temporaryLists.map(list => ({
-            ...list,
-            memos: list.memos.map(memo => {
-                // 승패 데이터가 없는 경우에만 아이콘 기반으로 설정
-                if (typeof memo.wins !== 'number' && typeof memo.losses !== 'number') {
-                    if (memo.text.startsWith('✅')) {
-                        return { ...memo, wins: 1, losses: 0 };
-                    } else if (memo.text.startsWith('❌')) {
-                        return { ...memo, wins: 0, losses: 1 };
-                    }
-                }
-                // 이미 승패 데이터가 있는 경우 그대로 유지
-                return {
-                    ...memo,
-                    wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                    losses: typeof memo.losses === 'number' ? memo.losses : 0
-                };
-            })
-        }));
-
-        // Firebase에 저장
-        await saveToFirebase();
-        
-        console.log('승패 데이터 저장 완료');
-        return true;
-    } catch (error) {
-        console.error('승패 데이터 저장 중 오류:', error);
-        return false;
-    }
-}
-
 // 메모에서 아이콘 제거하는 함수
 function removeStatusIcons() {
     console.log('메모 아이콘 제거 시작...');
@@ -1805,22 +1660,6 @@ async function restoreWinLossData() {
 document.addEventListener('DOMContentLoaded', async function() {
     await loadLists();
     
-    // 승패 데이터 복구 실행
-    await restoreWinLossData();
-    
-    // 아이콘 제거 실행
-    removeStatusIcons();
-    
-    // 승패 데이터 마이그레이션 실행
-    await preserveWinLossData();
-    
-    setTimeout(() => {
-        migrateStatusToWinLoss();
-    }, 1000);
-    
-    addCreatedAtToExistingLists();
-    migrateExistingData();
-    
     // 클립보드 토글 버튼 이벤트 리스너 추가
     const toggleClipboardBtn = document.querySelector('.toggle-clipboard-btn');
     const clipboardContent = document.querySelector('.clipboard-content');
@@ -1907,80 +1746,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
     
-    // 추가 버튼 이벤트 리스너
-    const addListBtn = document.getElementById('addListBtn');
-    if (addListBtn) {
-        addListBtn.addEventListener('click', addNewList);
-    }
-    
-    // 정렬 버튼 이벤트 리스너
-    const sortBtn = document.getElementById('sortBtn');
-    if (sortBtn) {
-        sortBtn.addEventListener('click', sortAll);
-    }
-
-    // 통계 항목 클릭 이벤트 리스너 추가
-    document.querySelectorAll('.stats-section .stat-item').forEach(item => {
-        item.addEventListener('click', function() {
-            currentFilterType = this.dataset.filterType;
-            document.querySelectorAll('.stats-section .stat-item').forEach(el => el.classList.remove('selected'));
-            this.classList.add('selected');
-            renderLists(1);
-        });
-    });
-
-    // 초기에 '전체 보기'를 선택된 상태로 설정
-    document.getElementById('stat-item-all')?.classList.add('selected');
-
-    // 통계 섹션을 드롭다운으로 변경
-    const statsSection = document.querySelector('.stats-section');
-    if (statsSection) {
-        statsSection.innerHTML = `
-            <div class="dropdown">
-                <button class="dropdown-btn">표시 기준: 전체보기</button>
-                <div class="dropdown-content"></div>
-            </div>
-        `;
-
-        // 드롭다운 버튼 클릭 이벤트
-        const dropdownBtn = document.querySelector('.dropdown-btn');
-        const dropdownContent = document.querySelector('.dropdown-content');
-        
-        if (dropdownBtn && dropdownContent) {
-            dropdownBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                dropdownContent.classList.toggle('show');
-            });
-
-            // 드롭다운 외부 클릭 시 닫기
-            document.addEventListener('click', function(e) {
-                if (!dropdownContent.contains(e.target) && !dropdownBtn.contains(e.target)) {
-                    dropdownContent.classList.remove('show');
-                }
-            });
-        }
-    }
-
-    // 클립보드 관련 초기화
-    loadClipboardItems();
-
-    // 클립보드 이벤트 리스너 추가
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            mutation.addedNodes.forEach(function(node) {
-                if (node.nodeType === 1) {
-                    const inputs = node.querySelectorAll('input[id^="newMemoInput-"]');
-                    inputs.forEach(input => addClipboardShortcutListener(input));
-                }
-            });
-        });
-    });
-
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-
     // 백업 파일 로드 버튼 이벤트 리스너
     const loadBackupBtn = document.getElementById('loadBackupBtn');
     const backupFileInput = document.getElementById('backupFileInput');
@@ -1994,7 +1759,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             const file = event.target.files[0];
             if (file) {
                 await loadBackupFile(file);
-                // 파일 input 초기화
                 event.target.value = '';
             }
         });
@@ -2220,6 +1984,12 @@ async function loadBackupFile(file) {
             throw new Error('올바르지 않은 백업 파일 형식입니다.');
         }
 
+        // Firebase 초기화 확인
+        const db = window.db;
+        if (!db) {
+            throw new Error('Firebase가 초기화되지 않았습니다.');
+        }
+
         // 백업 데이터의 각 목록을 처리
         backupData.forEach(backupList => {
             // 기존 목록에서 동일한 제목의 목록 찾기
@@ -2313,8 +2083,30 @@ async function loadBackupFile(file) {
             }
         });
 
-        // 변경사항 저장
-        await saveToFirebase();
+        // Firebase에 데이터 저장
+        const batch = db.batch();
+
+        // 메인 목록 저장
+        const mainDocRef = db.collection('lists').doc('main');
+        batch.set(mainDocRef, {
+            lists: lists,
+            updated_at: new Date().toISOString()
+        });
+
+        // 임시 목록 저장
+        const tempDocRef = db.collection('lists').doc('temporary');
+        batch.set(tempDocRef, {
+            lists: temporaryLists,
+            updated_at: new Date().toISOString()
+        });
+
+        // 배치 작업 실행
+        await batch.commit();
+        console.log('Firebase에 데이터 저장 완료');
+
+        // 로컬 스토리지에도 저장
+        localStorage.setItem('lists', JSON.stringify(lists));
+        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
         
         // UI 업데이트
         renderLists(currentPage);
@@ -2324,5 +2116,13 @@ async function loadBackupFile(file) {
         
     } catch (error) {
         console.error('백업 파일 처리 중 오류:', error);
+        
+        // 오류 발생 시에도 로컬 스토리지에는 저장
+        try {
+            localStorage.setItem('lists', JSON.stringify(lists));
+            localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+        } catch (storageError) {
+            console.error('로컬 스토리지 저장 중 오류:', storageError);
+        }
     }
 }
