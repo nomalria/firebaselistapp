@@ -1647,18 +1647,177 @@ async function preserveWinLossData() {
     }
 }
 
-// DOMContentLoaded 이벤트 수정
+// 페이지 로드 시 이벤트 리스너 수정
 document.addEventListener('DOMContentLoaded', async function() {
     await loadLists();
     
     // 승패 데이터 마이그레이션 실행
     await preserveWinLossData();
     
-    // 기존 코드는 그대로 유지
     setTimeout(() => {
         migrateStatusToWinLoss();
     }, 1000);
     
     addCreatedAtToExistingLists();
-    // ... existing code ...
+    migrateExistingData();
+    
+    // 클립보드 토글 버튼 이벤트 리스너 추가
+    const toggleClipboardBtn = document.querySelector('.toggle-clipboard-btn');
+    const clipboardContent = document.querySelector('.clipboard-content');
+    
+    if (toggleClipboardBtn && clipboardContent) {
+        toggleClipboardBtn.addEventListener('click', function() {
+            clipboardContent.classList.toggle('collapsed');
+            this.textContent = clipboardContent.classList.contains('collapsed') ? '펼치기' : '접기';
+        });
+        
+        // 초기 상태 설정
+        toggleClipboardBtn.textContent = clipboardContent.classList.contains('collapsed') ? '펼치기' : '접기';
+    }
+    
+    // 검색 입력 필드에 이벤트 리스너 추가
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const query = this.value.trim();
+            const words = query.split(' ');
+            const lastWord = words[words.length - 1].toLowerCase();
+
+            // 마지막 단어가 있을 때만 추천 단어 표시
+            if (lastWord) {
+                // 모든 목록의 제목을 단어로 분리하여 배열 생성
+                const allWords = Array.from(new Set(
+                    lists.concat(temporaryLists)
+                        .map(list => list.title.split(' ')) // 각 제목을 단어로 분리
+                        .flat() // 2차원 배열을 1차원으로 평탄화
+                        .filter(word => word.toLowerCase().includes(lastWord)) // 입력된 단어와 일치하는 것만 필터링
+                ));
+
+                // 최대 5개까지 표시
+                suggestions = allWords.slice(0, 5);
+                showSuggestions(suggestions, words, lastWord);
+            } else {
+                hideSuggestions();
+            }
+        });
+
+        // 키보드 이벤트 처리
+        searchInput.addEventListener('keydown', function(e) {
+            const searchResults = document.getElementById('searchResults');
+            const items = searchResults.getElementsByClassName('list-item');
+            
+            if (items.length === 0) return;
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex + 1) % items.length;
+                    updateSelectedItem(items);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+                    updateSelectedItem(items);
+                    break;
+                case 'Tab':
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+                    } else {
+                        selectedIndex = (selectedIndex + 1) % items.length;
+                    }
+                    updateSelectedItem(items);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && selectedIndex < items.length) {
+                        const word = items[selectedIndex].dataset.word;
+                        const currentWords = this.value.trim().split(' ');
+                        currentWords[currentWords.length - 1] = word;
+                        this.value = currentWords.join(' ') + ' ';
+                        searchResults.innerHTML = '';
+                        selectedIndex = -1;
+                    }
+                    break;
+                case 'Escape':
+                    searchResults.innerHTML = '';
+                    selectedIndex = -1;
+                    break;
+            }
+        });
+    }
+    
+    // 추가 버튼 이벤트 리스너
+    const addListBtn = document.getElementById('addListBtn');
+    if (addListBtn) {
+        addListBtn.addEventListener('click', addNewList);
+    }
+    
+    // 정렬 버튼 이벤트 리스너
+    const sortBtn = document.getElementById('sortBtn');
+    if (sortBtn) {
+        sortBtn.addEventListener('click', sortAll);
+    }
+
+    // 통계 항목 클릭 이벤트 리스너 추가
+    document.querySelectorAll('.stats-section .stat-item').forEach(item => {
+        item.addEventListener('click', function() {
+            currentFilterType = this.dataset.filterType;
+            document.querySelectorAll('.stats-section .stat-item').forEach(el => el.classList.remove('selected'));
+            this.classList.add('selected');
+            renderLists(1);
+        });
+    });
+
+    // 초기에 '전체 보기'를 선택된 상태로 설정
+    document.getElementById('stat-item-all')?.classList.add('selected');
+
+    // 통계 섹션을 드롭다운으로 변경
+    const statsSection = document.querySelector('.stats-section');
+    if (statsSection) {
+        statsSection.innerHTML = `
+            <div class="dropdown">
+                <button class="dropdown-btn">표시 기준: 전체보기</button>
+                <div class="dropdown-content"></div>
+            </div>
+        `;
+
+        // 드롭다운 버튼 클릭 이벤트
+        const dropdownBtn = document.querySelector('.dropdown-btn');
+        const dropdownContent = document.querySelector('.dropdown-content');
+        
+        if (dropdownBtn && dropdownContent) {
+            dropdownBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdownContent.classList.toggle('show');
+            });
+
+            // 드롭다운 외부 클릭 시 닫기
+            document.addEventListener('click', function(e) {
+                if (!dropdownContent.contains(e.target) && !dropdownBtn.contains(e.target)) {
+                    dropdownContent.classList.remove('show');
+                }
+            });
+        }
+    }
+
+    // 클립보드 관련 초기화
+    loadClipboardItems();
+
+    // 클립보드 이벤트 리스너 추가
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) {
+                    const inputs = node.querySelectorAll('input[id^="newMemoInput-"]');
+                    inputs.forEach(input => addClipboardShortcutListener(input));
+                }
+            });
+        });
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
 });
