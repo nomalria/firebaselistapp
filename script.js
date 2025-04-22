@@ -2333,3 +2333,34 @@ async function exportToJson() {
         alert('데이터 추출 중 오류가 발생했습니다.');
     }
 }
+
+async function migrateStatusToWinLoss() {
+    const lists = await loadFromFirebase();
+    if (!lists) return;
+
+    let hasChanges = false;
+
+    lists.forEach(list => {
+        if (list.memos) {
+            list.memos.forEach(memo => {
+                if (memo.status) {
+                    // 승패 상태에 따라 wins/losses 업데이트
+                    if (memo.status === '✅') {
+                        memo.wins = (memo.wins || 0) + 1;
+                    } else if (memo.status === '❌') {
+                        memo.losses = (memo.losses || 0) + 1;
+                    }
+                    
+                    // status 필드 삭제
+                    delete memo.status;
+                    hasChanges = true;
+                }
+            });
+        }
+    });
+
+    if (hasChanges) {
+        await db.collection('lists').doc('main').set({ lists });
+        renderLists();
+    }
+}
