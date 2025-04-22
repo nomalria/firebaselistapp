@@ -1589,436 +1589,76 @@ function migrateStatusToWinLoss() {
     renderTemporaryLists();
 }
 
-// 페이지 로드 시 이벤트 리스너 수정
+// 승패 데이터 마이그레이션 함수
+async function preserveWinLossData() {
+    console.log('기존 승패 데이터 저장 시작...');
+    
+    try {
+        // 메인 목록 처리
+        lists = lists.map(list => ({
+            ...list,
+            memos: list.memos.map(memo => {
+                // 승패 데이터가 없는 경우에만 아이콘 기반으로 설정
+                if (typeof memo.wins !== 'number' && typeof memo.losses !== 'number') {
+                    if (memo.text.startsWith('✅')) {
+                        return { ...memo, wins: 1, losses: 0 };
+                    } else if (memo.text.startsWith('❌')) {
+                        return { ...memo, wins: 0, losses: 1 };
+                    }
+                }
+                // 이미 승패 데이터가 있는 경우 그대로 유지
+                return {
+                    ...memo,
+                    wins: typeof memo.wins === 'number' ? memo.wins : 0,
+                    losses: typeof memo.losses === 'number' ? memo.losses : 0
+                };
+            })
+        }));
+
+        // 임시 목록 처리
+        temporaryLists = temporaryLists.map(list => ({
+            ...list,
+            memos: list.memos.map(memo => {
+                // 승패 데이터가 없는 경우에만 아이콘 기반으로 설정
+                if (typeof memo.wins !== 'number' && typeof memo.losses !== 'number') {
+                    if (memo.text.startsWith('✅')) {
+                        return { ...memo, wins: 1, losses: 0 };
+                    } else if (memo.text.startsWith('❌')) {
+                        return { ...memo, wins: 0, losses: 1 };
+                    }
+                }
+                // 이미 승패 데이터가 있는 경우 그대로 유지
+                return {
+                    ...memo,
+                    wins: typeof memo.wins === 'number' ? memo.wins : 0,
+                    losses: typeof memo.losses === 'number' ? memo.losses : 0
+                };
+            })
+        }));
+
+        // Firebase에 저장
+        await saveToFirebase();
+        
+        console.log('승패 데이터 저장 완료');
+        return true;
+    } catch (error) {
+        console.error('승패 데이터 저장 중 오류:', error);
+        return false;
+    }
+}
+
+// DOMContentLoaded 이벤트 수정
 document.addEventListener('DOMContentLoaded', async function() {
     await loadLists();
+    
+    // 승패 데이터 마이그레이션 실행
+    await preserveWinLossData();
+    
+    // 기존 코드는 그대로 유지
     setTimeout(() => {
-        migrateStatusToWinLoss(); // 약간의 지연 후 마이그레이션 실행
+        migrateStatusToWinLoss();
     }, 1000);
-    addCreatedAtToExistingLists();
     
-    // 나머지 기존 코드는 그대로 유지
+    addCreatedAtToExistingLists();
     // ... existing code ...
-    migrateExistingData(); // 데이터 변환 실행
-    addCreatedAtToExistingLists();
-    // 초기 데이터 로드
-    loadLists();
-    
-    // 클립보드 토글 버튼 이벤트 리스너 추가
-    const toggleClipboardBtn = document.querySelector('.toggle-clipboard-btn');
-    const clipboardContent = document.querySelector('.clipboard-content');
-    
-    if (toggleClipboardBtn && clipboardContent) {
-        toggleClipboardBtn.addEventListener('click', function() {
-            clipboardContent.classList.toggle('collapsed');
-            this.textContent = clipboardContent.classList.contains('collapsed') ? '펼치기' : '접기';
-        });
-        
-        // 초기 상태 설정
-        toggleClipboardBtn.textContent = clipboardContent.classList.contains('collapsed') ? '펼치기' : '접기';
-    }
-    
-    // 검색 입력 필드에 이벤트 리스너 추가
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            const query = this.value.trim();
-            const words = query.split(' ');
-            const lastWord = words[words.length - 1].toLowerCase();
-
-            // 마지막 단어가 있을 때만 추천 단어 표시
-            if (lastWord) {
-                // 모든 목록의 제목을 단어로 분리하여 배열 생성
-                const allWords = Array.from(new Set(
-                    lists.concat(temporaryLists)
-                        .map(list => list.title.split(' ')) // 각 제목을 단어로 분리
-                        .flat() // 2차원 배열을 1차원으로 평탄화
-                        .filter(word => word.toLowerCase().includes(lastWord)) // 입력된 단어와 일치하는 것만 필터링
-                ));
-
-                // 최대 5개까지 표시
-                suggestions = allWords.slice(0, 5);
-                showSuggestions(suggestions, words, lastWord);
-            } else {
-                hideSuggestions();
-            }
-
-            // 스페이스 입력 감지 및 처리
-            if (e.data === ' ' && suggestions.length > 0) {
-                const words = this.value.trim().split(' ');
-                const lastWord = words[words.length - 1];
-                
-                // 마지막 단어가 추천 단어와 정확히 일치하지 않을 때만 처리
-                if (!suggestions.includes(lastWord)) {
-                    words[words.length - 1] = suggestions[0];
-                    this.value = words.join(' ') + ' ';
-                    hideSuggestions();
-                }
-            }
-        });
-
-        // 키보드 이벤트 처리
-        searchInput.addEventListener('keydown', function(e) {
-            const searchResults = document.getElementById('searchResults');
-            const items = searchResults.getElementsByClassName('list-item');
-            
-            if (items.length === 0) return;
-            
-            switch(e.key) {
-                case 'ArrowDown':
-                    e.preventDefault();
-                    selectedIndex = (selectedIndex + 1) % items.length;
-                    updateSelectedItem(items);
-                    break;
-                case 'ArrowUp':
-                    e.preventDefault();
-                    selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-                    updateSelectedItem(items);
-                    break;
-                case 'Tab':
-                    e.preventDefault();
-                    if (e.shiftKey) {
-                        selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-                    } else {
-                        selectedIndex = (selectedIndex + 1) % items.length;
-                    }
-                    updateSelectedItem(items);
-                    break;
-                case ' ':
-                    e.preventDefault();
-                    if (selectedIndex >= 0 && selectedIndex < items.length) {
-                        const word = items[selectedIndex].dataset.word;
-                        const currentWords = this.value.trim().split(' ');
-                        currentWords[currentWords.length - 1] = word;
-                        this.value = currentWords.join(' ');
-                        searchResults.innerHTML = '';
-                        selectedIndex = -1;
-                    }
-                    break;
-                case 'Escape':
-                    searchResults.innerHTML = '';
-                    selectedIndex = -1;
-                    break;
-            }
-        });
-    }
-    
-    // 추가 버튼 이벤트 리스너
-    const addListBtn = document.getElementById('addListBtn');
-    if (addListBtn) {
-        addListBtn.addEventListener('click', addNewList);
-    }
-    
-    // 정렬 버튼 이벤트 리스너
-    const sortBtn = document.getElementById('sortBtn');
-    if (sortBtn) {
-        sortBtn.addEventListener('click', sortAll);
-    }
-
-    // 통계 항목 클릭 이벤트 리스너 추가 (필터 변경 시 1페이지로)
-    document.querySelectorAll('.stats-section .stat-item').forEach(item => {
-        item.addEventListener('click', function() {
-            currentFilterType = this.dataset.filterType;
-            document.querySelectorAll('.stats-section .stat-item').forEach(el => el.classList.remove('selected'));
-            this.classList.add('selected');
-            renderLists(1); // 필터 변경 시 1페이지로 이동
-        });
-    });
-
-    // 초기에 '전체 보기'를 선택된 상태로 설정
-    document.getElementById('stat-item-all')?.classList.add('selected');
-
-    // 통계 섹션을 드롭다운으로 변경
-    const statsSection = document.querySelector('.stats-section');
-    if (statsSection) {
-        statsSection.innerHTML = `
-            <div class="dropdown">
-                <button class="dropdown-btn">표시 기준: 전체보기</button>
-                <div class="dropdown-content"></div>
-            </div>
-        `;
-
-        // 드롭다운 버튼 클릭 이벤트
-        const dropdownBtn = document.querySelector('.dropdown-btn');
-        const dropdownContent = document.querySelector('.dropdown-content');
-        
-        if (dropdownBtn && dropdownContent) {
-            dropdownBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                dropdownContent.classList.toggle('show');
-            });
-
-            // 드롭다운 외부 클릭 시 닫기
-            document.addEventListener('click', function(e) {
-                if (!dropdownContent.contains(e.target) && !dropdownBtn.contains(e.target)) {
-                    dropdownContent.classList.remove('show');
-        }
-    });
-}
-    }
-
-    // 클립보드 데이터 로드
-    loadClipboardItems();
-
-    // 모든 메모 입력창에 클립보드 단축키 이벤트 리스너 추가
-    function addClipboardShortcutListener(element) {
-        if (element) {
-            element.addEventListener('keydown', function(event) {
-                handleClipboardShortcut(event, this);
-            });
-        }
-    }
-
-    // 기존 메모 입력창에 이벤트 리스너 추가
-    document.querySelectorAll('input[id^="newMemoInput-"]').forEach(input => {
-        addClipboardShortcutListener(input);
-    });
-
-    // 새로 추가되는 메모 입력창 감지 및 이벤트 리스너 추가
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            mutation.addedNodes.forEach(function(node) {
-                if (node.nodeType === 1) { // Element 노드인 경우
-                    const inputs = node.querySelectorAll('input[id^="newMemoInput-"]');
-                    inputs.forEach(input => addClipboardShortcutListener(input));
-                }
-            });
-        });
-    });
-
-    // 전체 문서 변경 감지 설정
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
 });
-
-// 클립보드 로드
-function loadClipboardItems() {
-    try {
-        const saved = localStorage.getItem('clipboardItems');
-        if (saved) {
-            clipboardItems = JSON.parse(saved);
-            if (!Array.isArray(clipboardItems) || clipboardItems.length !== MAX_CLIPBOARD_ITEMS) {
-                clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
-            }
-        }
-        renderClipboardItems();
-    } catch (error) {
-        console.error('클립보드 로드 중 오류:', error);
-        clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
-    }
-}
-
-// 클립보드 저장
-function saveClipboardItems() {
-    try {
-        localStorage.setItem('clipboardItems', JSON.stringify(clipboardItems));
-    } catch (error) {
-        console.error('클립보드 저장 중 오류:', error);
-    }
-}
-
-// 클립보드 아이템 렌더링
-function renderClipboardItems() {
-    const container = document.querySelector('.clipboard-items');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    // 기존 클립보드 아이템 렌더링
-    clipboardItems.forEach((item, index) => {
-        const itemElement = document.createElement('div');
-        itemElement.className = 'clipboard-item';
-        itemElement.innerHTML = `
-            <div class="clipboard-item-header">
-                <span class="shortcut">Alt + ${index + 1}</span>
-            </div>
-            <textarea class="clipboard-text" data-index="${index}" 
-                placeholder="클립보드 ${index + 1}번">${item}</textarea>
-        `;
-        container.appendChild(itemElement);
-    });
-
-    // 새 아이템 추가 버튼 (최대 9개까지만)
-    if (clipboardItems.length < MAX_CLIPBOARD_ITEMS) {
-        const addButton = document.createElement('button');
-        addButton.className = 'add-clipboard-item';
-        addButton.textContent = '+ 새 클립보드 추가';
-        addButton.onclick = addNewClipboardItem;
-        container.appendChild(addButton);
-    }
-
-    // 이벤트 리스너 추가
-    attachClipboardEventListeners();
-}
-
-// 새 클립보드 아이템 추가
-function addNewClipboardItem() {
-    if (clipboardItems.length < MAX_CLIPBOARD_ITEMS) {
-        clipboardItems.push('');
-        saveClipboardItems();
-        renderClipboardItems();
-        
-        // 새로 추가된 항목으로 스크롤
-        const container = document.querySelector('.clipboard-items');
-        if (container) {
-            container.scrollTop = container.scrollHeight;
-        }
-    }
-}
-
-// 클립보드 이벤트 리스너 추가
-function attachClipboardEventListeners() {
-    // 텍스트 영역 변경 이벤트만 유지
-    document.querySelectorAll('.clipboard-text').forEach(textarea => {
-        textarea.oninput = function() {
-            const index = parseInt(this.dataset.index);
-            clipboardItems[index] = this.value;
-            saveClipboardItems();
-        };
-    });
-}
-
-// 클립보드 단축키 처리 함수
-function handleClipboardShortcut(event, inputElement) {
-    if (event.altKey && event.key >= '1' && event.key <= '9') {
-        event.preventDefault(); // 기본 동작 방지
-        const index = parseInt(event.key) - 1;
-        if (index < clipboardItems.length && clipboardItems[index]) {
-            const start = inputElement.selectionStart;
-            const end = inputElement.selectionEnd;
-            const text = inputElement.value;
-            inputElement.value = text.substring(0, start) + clipboardItems[index] + text.substring(end);
-            // 커서 위치 조정
-            const newPosition = start + clipboardItems[index].length;
-            inputElement.setSelectionRange(newPosition, newPosition);
-            inputElement.focus();
-        }
-    }
-}
-
-// 추천 단어 표시 함수
-function showSuggestions(suggestions, words, lastWord) {
-    const suggestionsDiv = document.getElementById('searchResults');
-    if (suggestions.length === 0) {
-        suggestionsDiv.innerHTML = '';
-        return;
-    }
-
-    const suggestionsList = suggestions.map((suggestion, index) => `
-        <div class="suggestion-item" data-index="${index}" data-suggestion="${suggestion}">
-            ${suggestion}
-        </div>
-    `).join('');
-
-    suggestionsDiv.innerHTML = suggestionsList;
-
-    // 추천 단어 클릭 이벤트
-    document.querySelectorAll('.suggestion-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const selectedSuggestion = this.dataset.suggestion;
-            const searchInput = document.getElementById('searchInput');
-            words[words.length - 1] = selectedSuggestion;
-            searchInput.value = words.join(' ') + ' ';
-            hideSuggestions();
-            searchInput.focus();
-        });
-    });
-}
-
-// 추천 단어 숨기기 함수
-function hideSuggestions() {
-    const suggestionsDiv = document.getElementById('searchResults');
-    suggestionsDiv.innerHTML = '';
-    currentSuggestionIndex = -1;
-}
-
-// 스페이스바 처리 (PC용)
-document.getElementById('searchInput').addEventListener('keydown', function(e) {
-    if (e.key === ' ' && suggestions.length > 0) {
-        e.preventDefault();
-        const words = this.value.trim().split(' ');
-        const lastWord = words[words.length - 1];
-        
-        // 마지막 단어가 추천 단어와 정확히 일치하지 않을 때만 처리
-        if (!suggestions.includes(lastWord)) {
-            words[words.length - 1] = suggestions[0];
-            this.value = words.join(' ') + ' ';
-            hideSuggestions();
-        }
-    }
-});
-
-// 카운터 업데이트 함수
-function updateCounter(listId, memoId, type, change, isTemporary) {
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id === listId);
-    if (!list) return;
-
-    const memo = list.memos.find(m => m.id === memoId);
-    if (!memo) return;
-
-    // Initialize counter if undefined
-    if (typeof memo[type] !== 'number') {
-        memo[type] = 0;
-    }
-
-    // Prevent negative values
-    if (memo[type] + change < 0) {
-        alert('카운터는 0 미만이 될 수 없습니다.');
-        return;
-    }
-
-    memo[type] += change;
-
-    // Update display
-    const memoElement = document.querySelector(`[data-memo-id="${memoId}"]`);
-    if (memoElement) {
-        const wins = typeof memo.wins === 'number' ? memo.wins : 0;
-        const losses = typeof memo.losses === 'number' ? memo.losses : 0;
-        const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
-        memoElement.querySelector('.counter-text').textContent = `${wins}승 ${losses}패 (${winRate}%)`;
-    }
-
-    // Save changes
-    if (isTemporary) {
-        saveTemporaryLists();
-    } else {
-        saveLists();
-    }
-}
-
-// 메모 아이템 HTML 생성 함수 수정
-function createMemoItemHTML(memo, listId, isTemporary) {
-    const wins = typeof memo.wins === 'number' ? memo.wins : 0;
-    const losses = typeof memo.losses === 'number' ? memo.losses : 0;
-    const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
-    
-    // 상태 아이콘 결정
-    const statusIcon = memo.status === 'success' ? '✅' : 
-                      memo.status === 'fail' ? '❌' : '';
-
-    return `
-        <div class="memo-item" data-memo-id="${memo.id}">
-            <div class="memo-text">
-                ${statusIcon} ${memo.text}
-            </div>
-            <div class="memo-counter">
-                <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
-                <button class="counter-btn plus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', 1, ${isTemporary})">+승</button>
-                <button class="counter-btn minus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', -1, ${isTemporary})">-승</button>
-                <button class="counter-btn plus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', 1, ${isTemporary})">+패</button>
-                <button class="counter-btn minus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', -1, ${isTemporary})">-패</button>
-                <button class="status-btn success-btn ${memo.status === 'success' ? 'active' : ''}" 
-                    onclick="setMemoStatus('${listId}', '${memo.id}', 'success', ${isTemporary})">✅</button>
-                <button class="status-btn fail-btn ${memo.status === 'fail' ? 'active' : ''}" 
-                    onclick="setMemoStatus('${listId}', '${memo.id}', 'fail', ${isTemporary})">❌</button>
-            </div>
-            <div class="memo-buttons">
-                <button class="edit-btn" onclick="startEditMemo('${listId}', '${memo.id}', ${isTemporary})">수정</button>
-                <button class="delete-btn" onclick="deleteMemo('${listId}', '${memo.id}', ${isTemporary})">삭제</button>
-            </div>
-        </div>
-    `;
-}
