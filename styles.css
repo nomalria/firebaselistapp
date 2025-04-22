@@ -303,29 +303,38 @@ h1 {
     gap: 6px;
 }
 
-.edit-btn, .delete-btn {
+.list-item .button-group .edit-btn,
+.list-item .button-group .delete-btn,
+.memo-item .memo-buttons .edit-btn,
+.memo-item .memo-buttons .delete-btn {
     padding: 4px 8px;
     border: none;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
+    color: #ffffff;
+    min-width: 40px;
+    text-align: center;
+    display: inline-block;
 }
 
-.edit-btn {
+.list-item .button-group .edit-btn,
+.memo-item .memo-buttons .edit-btn {
     background-color: #2196F3;
-    color: white;
 }
 
-.edit-btn:hover {
+.list-item .button-group .edit-btn:hover,
+.memo-item .memo-buttons .edit-btn:hover {
     background-color: #0b7dda;
 }
 
-.delete-btn {
+.list-item .button-group .delete-btn,
+.memo-item .memo-buttons .delete-btn {
     background-color: #f44336;
-    color: white;
 }
 
-.delete-btn:hover {
+.list-item .button-group .delete-btn:hover,
+.memo-item .memo-buttons .delete-btn:hover {
     background-color: #d32f2f;
 }
 
@@ -392,35 +401,117 @@ h1 {
 }
 
 .memo-item {
-    position: relative;
-    padding: 8px 10px;
-    border-bottom: 1px solid #eee;
     display: flex;
-    align-items: center;
-    font-size: 15px;
-    gap: 8px;
+    align-items: flex-start;
+    padding: 4px 8px;
+    margin-bottom: 2px;
     background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
-.memo-item.editing {
-    background-color: #f8f9fa;
-    border-bottom: none;
+.memo-item .memo-content {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.memo-item .memo-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 280px;
+}
+
+.memo-item .memo-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.memo-item .counter-text {
+    font-size: 0.9em;
+    color: #666;
+    white-space: nowrap;
+}
+
+.memo-item .counter-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+
+.memo-item .counter-btn {
+    padding: 2px 5px;
+    font-size: 0.8em;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background-color: #f8f8f8;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.memo-item .memo-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+}
+
+.memo-item .memo-text {
+    word-break: break-all;
+    line-height: 1.4;
 }
 
 .memo-item .edit-section {
-    display: none;
-    width: 100%;
-    padding: 8px 10px;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #eee;
+    margin-top: 8px;
 }
 
-.memo-container .edit-section {
-    display: none;
+.memo-item .edit-section .input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
-.memo-item.editing + .edit-section {
-    display: block;
+.memo-item .edit-section .edit-memo-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 200px;
+}
+
+.memo-item .edit-section .edit-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.memo-item .edit-section .save-btn,
+.memo-item .edit-section .cancel-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: white;
+    min-width: 60px;
+}
+
+.memo-item .edit-section .save-btn {
+    background-color: #4CAF50;
+}
+
+.memo-item .edit-section .save-btn:hover {
+    background-color: #45a049;
+}
+
+.memo-item .edit-section .cancel-btn {
+    background-color: #f44336;
+}
+
+.memo-item .edit-section .cancel-btn:hover {
+    background-color: #d32f2f;
 }
 
 .memo-text {
@@ -479,16 +570,24 @@ h1 {
     font-size: 14px;
     font-weight: 500;
     min-width: 60px;
+    color: white;
+    text-align: center;
 }
 
 .edit-section .save-btn {
     background-color: #4CAF50;
-    color: white;
+}
+
+.edit-section .save-btn:hover {
+    background-color: #45a049;
 }
 
 .edit-section .cancel-btn {
     background-color: #f44336;
-    color: white;
+}
+
+.edit-section .cancel-btn:hover {
+    background-color: #d32f2f;
 }
 
 /* 상태 아이콘 관련 스타일 제거 */
@@ -622,12 +721,13 @@ h1 {
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    transition: background-color 0.2s;
+    color: white;
+    min-width: 40px;
+    text-align: center;
 }
 
 .edit-btn {
     background-color: #2196F3;
-    color: white;
 }
 
 .edit-btn:hover {
@@ -636,7 +736,6 @@ h1 {
 
 .delete-btn {
     background-color: #f44336;
-    color: white;
 }
 
 .delete-btn:hover {
@@ -675,28 +774,27 @@ h1 {
 
 .edit-section .save-btn,
 .edit-section .cancel-btn {
-    padding: 12px 20px;
+    padding: 8px 12px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
-    white-space: nowrap;
-    min-width: 80px;
+    min-width: 60px;
+    color: white;
+    text-align: center;
 }
 
 .edit-section .save-btn {
     background-color: #4CAF50;
-    color: white;
-}
-
-.edit-section .cancel-btn {
-    background-color: #f44336;
-    color: white;
 }
 
 .edit-section .save-btn:hover {
     background-color: #45a049;
+}
+
+.edit-section .cancel-btn {
+    background-color: #f44336;
 }
 
 .edit-section .cancel-btn:hover {
@@ -847,6 +945,10 @@ h1 {
 .help-link {
     text-align: right;
     margin: -10px 0 15px 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    align-items: center;
 }
 
 .help-btn {
@@ -862,6 +964,12 @@ h1 {
 
 .help-btn:hover {
     background-color: #e0e0e0;
+}
+
+.help-link .action-btn {
+    padding: 5px 10px;
+    font-size: 14px;
+    min-width: auto;
 }
 
 /* 추천 단어 스타일 */
@@ -978,24 +1086,116 @@ h1 {
 /* 메모 아이템 레이아웃 조정 */
 .memo-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px;
-    margin-bottom: 5px;
+    align-items: flex-start;
+    padding: 4px 8px;
+    margin-bottom: 2px;
     background-color: #fff;
     border: 1px solid #ddd;
     border-radius: 4px;
 }
 
-.memo-text {
+.memo-item .memo-content {
     flex: 1;
     margin-right: 10px;
 }
 
-.memo-buttons {
+.memo-item .memo-actions {
     display: flex;
-    gap: 5px;
-    margin-left: 10px;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 280px;
+}
+
+.memo-item .memo-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.memo-item .counter-text {
+    font-size: 0.9em;
+    color: #666;
+    white-space: nowrap;
+}
+
+.memo-item .counter-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+
+.memo-item .counter-btn {
+    padding: 2px 5px;
+    font-size: 0.8em;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background-color: #f8f8f8;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.memo-item .memo-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+}
+
+.memo-item .memo-text {
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+.memo-item .edit-section {
+    margin-top: 8px;
+}
+
+.memo-item .edit-section .input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.memo-item .edit-section .edit-memo-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 200px;
+}
+
+.memo-item .edit-section .edit-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.memo-item .edit-section .save-btn,
+.memo-item .edit-section .cancel-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: white;
+    min-width: 60px;
+}
+
+.memo-item .edit-section .save-btn {
+    background-color: #4CAF50;
+}
+
+.memo-item .edit-section .save-btn:hover {
+    background-color: #45a049;
+}
+
+.memo-item .edit-section .cancel-btn {
+    background-color: #f44336;
+}
+
+.memo-item .edit-section .cancel-btn:hover {
+    background-color: #d32f2f;
 }
 
 /* 편집 모드에서의 상태 버튼 스타일 */
@@ -1008,93 +1208,117 @@ h1 {
     display: none;
 }
 
-/* 버튼 컨테이너 */
-.button-container {
+.header-buttons {
     display: flex;
-    justify-content: center; /* 버튼 중앙 정렬 */
-    gap: 15px; /* 버튼 사이 간격 */
-    flex-wrap: wrap; /* 내용이 넘칠 경우 줄바꿈 */
-    margin: 20px 0; /* 위아래 여백 */
-    position: relative; /* 자식 요소 absolute 위치 기준 */
+    gap: 10px;
+    align-items: center;
 }
 
-/* 액션 버튼 공통 스타일 (기존 sort-btn 대체 및 확장) */
-.action-btn {
-    padding: 8px 16px;
+.memo-item .comment-toggle {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 0.85em;
+    padding: 2px 4px;
+    margin-top: 4px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.memo-item .comment-toggle:hover {
+    color: #333;
+    text-decoration: underline;
+}
+
+.memo-item .comment-section {
+    margin-top: 4px;
+    padding: 4px 0;
+}
+
+.memo-item .comments-list {
+    margin-bottom: 8px;
+}
+
+.memo-item .comment-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    margin: 2px 0;
+    background-color: #f8f8f8;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.memo-item .comment-text {
+    flex: 1;
+    margin-right: 8px;
+}
+
+.memo-item .delete-comment {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 1.2em;
+}
+
+.memo-item .delete-comment:hover {
+    color: #f44336;
+}
+
+.memo-item .comment-input-group {
+    display: flex;
+    gap: 4px;
+}
+
+.memo-item .comment-input {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.memo-item .comment-input-group button {
+    padding: 4px 8px;
     background-color: #4CAF50;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
-    margin: 0 5px;
+    font-size: 0.9em;
 }
 
-.action-btn:hover {
+.memo-item .comment-input-group button:hover {
     background-color: #45a049;
 }
 
-/* 액션 상태 메시지 스타일 */
-.action-status {
-    position: absolute; /* 절대 위치 */
-    width: auto; /* 내용에 맞게 너비 조절 */
-    text-align: center; /* 텍스트 중앙 정렬 (필요 시) */
-    bottom: -1.5em; /* 버튼 아래에 위치 (line-height 고려) */
-    left: 50%; /* 임시 위치, JS에서 덮어씀 */
-    transform: translateX(-50%); /* 좌우 중앙 정렬 */
-    display: none; /* 초기에는 숨김 */
-    font-size: 0.85em;
-    color: #666;
-    height: 1.2em; /* 메시지가 없을 때도 공간 차지 (레이아웃 밀림 방지) */
-    line-height: 1.2em;
-    padding: 2px 5px; /* 약간의 내부 여백 */
-    background-color: #f0f0f0; /* 배경색 추가 (옵션) */
-    border-radius: 3px; /* 모서리 둥글게 (옵션) */
-    white-space: nowrap; /* 메시지가 길어도 줄바꿈 방지 */
-    transition: opacity 0.5s ease-out; /* 사라질 때 부드럽게 */
-    z-index: 10; /* 다른 요소 위에 표시 */
-}
-
-/* 기존 .sort-btn 스타일 제거 또는 주석 처리 */
-/*
-.sort-btn {
+.action-btn {
     padding: 10px 20px;
-    background-color: #2196F3;
+    background-color: #4CAF50;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 16px;
     transition: background-color 0.3s;
-    display: block; 
-    margin: 20px auto; 
-}
-.sort-btn:hover {
-    background-color: #1976D2;
-}
-*/
-
-.import-btn {
-    display: none;
+    min-width: 120px;
 }
 
-.import-btn {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    margin: 10px 0;
-    transition: background-color 0.3s;
-}
-
-.import-btn:hover {
+.action-btn:hover {
     background-color: #45a049;
 }
 
-/* 클립보드 설정 스타일 */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+    position: relative;
+}
+
 .clipboard-settings {
     position: fixed;
     top: 20px;
@@ -1103,7 +1327,6 @@ h1 {
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    margin: 0;
     padding: 15px;
     z-index: 1000;
 }
@@ -1128,7 +1351,6 @@ h1 {
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.2s;
-    min-width: 60px;
     font-size: 0.9em;
 }
 
@@ -1137,10 +1359,10 @@ h1 {
 }
 
 .clipboard-content {
-    transition: all 0.3s ease-out;
-    overflow: hidden;
-    max-height: 1000px;
+    max-height: 500px;
     opacity: 1;
+    overflow: hidden;
+    transition: all 0.3s ease-out;
 }
 
 .clipboard-content.collapsed {
@@ -1156,42 +1378,8 @@ h1 {
     font-size: 0.9em;
 }
 
-.clipboard-text {
-    width: 200px;
-    height: 30px;
-    resize: none;
-    padding: 5px;
-    margin: 2px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.add-clipboard-item {
-    background: #f0f0f0;
-    border: 1px dashed #999;
-    border-radius: 4px;
-    padding: 6px;
-    width: 100%;
-    text-align: center;
-    color: #666;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 0.9em;
-    margin-top: 4px;
-}
-
-.add-clipboard-item:hover {
-    background: #e0e0e0;
-    border-color: #666;
-    color: #333;
-}
-
 .clipboard-items {
-    max-height: 400px;
+    max-height: 300px;
     overflow-y: auto;
     padding: 10px;
     border: 1px solid #ddd;
@@ -1200,285 +1388,99 @@ h1 {
 }
 
 .clipboard-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 5px;
-    padding: 2px;
+    margin-bottom: 8px;
 }
 
 .clipboard-item-header {
     display: flex;
     align-items: center;
-    margin-bottom: 2px;
+    justify-content: space-between;
+    margin-bottom: 4px;
 }
 
 .shortcut {
     font-size: 12px;
     color: #666;
-    margin-left: 5px;
 }
 
-.delete-clipboard-item {
-    background: none;
-    border: none;
-    color: #ff4444;
-    cursor: pointer;
-    font-size: 0.8em;
-    padding: 2px 6px;
-}
-
-.delete-clipboard-item:hover {
-    background: #ffe0e0;
-    border-radius: 3px;
-}
-
-/* 스크롤바 스타일링 */
-.clipboard-items::-webkit-scrollbar {
-    width: 6px;
-}
-
-.clipboard-items::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.clipboard-items::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 3px;
-}
-
-.clipboard-items::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-/* 모바일 대응 스타일 수정 */
-@media screen and (max-width: 768px) {
-    .container {
-        margin: 0 auto;
-        width: 100%;
-        padding: 10px;
-    }
-
-    .search-add-section {
-        display: flex;
-        flex-direction: row;
-        gap: 8px;
-        width: 100%;
-    }
-
-    .search-add-section .input-group {
-        display: flex;
-        flex-direction: row;
-        flex: 3;
-        width: auto;
-    }
-
-    .search-input {
-        height: 45px;
-        font-size: 16px;
-        flex: 1;
-    }
-
-    #addListBtn {
-        height: 45px;
-        padding: 0 15px;
-        font-size: 16px;
-        flex: 1;
-        min-width: 80px;
-        max-width: 100px;
-    }
-
-    /* 클립보드 설정도 가로 정렬 유지 */
-    .clipboard-settings {
-        position: static;
-        width: 100%;
-        margin: 20px 0;
-    }
-
-    .clipboard-text {
-        width: 100%;
-    }
-}
-
-/* 태블릿 크기 대응 */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .container {
-        margin: 0 auto;
-        max-width: 700px;
-    }
-
-    .search-input {
-        min-width: 300px;
-    }
-}
-
-.help-link {
-    text-align: right;
-    margin: -10px 0 15px 0;
-}
-
-.help-btn {
-    display: inline-block;
-    padding: 5px 10px;
-    background-color: #f0f0f0;
-    color: #333;
-    text-decoration: none;
+.clipboard-text {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-    transition: background-color 0.2s;
+    resize: none;
 }
 
-.help-btn:hover {
-    background-color: #e0e0e0;
-}
-
-/* 추천 단어 스타일 */
-.suggestion-item {
-    padding: 10px 15px;
+.add-clipboard-item {
+    width: 100%;
+    padding: 8px;
+    margin-top: 8px;
+    background: #f0f0f0;
+    border: 1px dashed #999;
+    border-radius: 4px;
     cursor: pointer;
-    border-bottom: 1px solid #eee;
-    transition: background-color 0.2s;
-    font-size: 14px;
+    font-size: 0.9em;
+    color: #666;
+    text-align: center;
+}
+
+.add-clipboard-item:hover {
+    background: #e0e0e0;
+    border-color: #666;
     color: #333;
 }
 
-.suggestion-item:last-child {
-    border-bottom: none;
+.backup-dropdown {
+    position: relative;
+    display: inline-block;
 }
 
-.suggestion-item:hover {
+.backup-dropdown-content {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff;
+    min-width: 120px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border-radius: 4px;
+    padding: 8px 0;
+    margin-bottom: 8px;
+    z-index: 1000;
+}
+
+.backup-dropdown-content.show {
+    display: block;
+}
+
+.backup-dropdown-content a {
+    display: block;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: #333;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.backup-dropdown-content a:hover {
     background-color: #f5f5f5;
 }
 
-.suggestion-item.selected {
-    background-color: #e3f2fd;
+.backup-section {
+    margin-top: 30px;
+    padding: 20px 0;
+    text-align: center;
+    border-top: 1px solid #eee;
 }
 
-/* 모바일 환경에서의 추천 단어 스타일 */
-@media screen and (max-width: 768px) {
-    .suggestion-item {
-        padding: 12px 15px;
-        font-size: 16px; /* 모바일에서 더 큰 글씨 */
-    }
-
-    #searchResults {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        z-index: 1000;
-        max-height: 200px;
-        overflow-y: auto;
-    }
+.backup-section .action-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #2196F3;
 }
 
-.memo-counter {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-left: 10px;
-}
-
-.counter-text {
-    font-size: 0.9em;
-    color: #666;
-    min-width: 120px;
-}
-
-.counter-btn {
-    padding: 2px 5px;
-    font-size: 0.8em;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    background-color: #f8f8f8;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.counter-btn:hover {
-    background-color: #e8e8e8;
-}
-
-.plus-win {
-    color: #28a745;
-    border-color: #28a745;
-}
-
-.plus-win:hover {
-    background-color: #28a745;
-    color: white;
-}
-
-.minus-win {
-    color: #28a745;
-    border-color: #28a745;
-}
-
-.minus-win:hover {
-    background-color: #28a745;
-    color: white;
-}
-
-.plus-loss {
-    color: #dc3545;
-    border-color: #dc3545;
-}
-
-.plus-loss:hover {
-    background-color: #dc3545;
-    color: white;
-}
-
-.minus-loss {
-    color: #dc3545;
-    border-color: #dc3545;
-}
-
-.minus-loss:hover {
-    background-color: #dc3545;
-    color: white;
-}
-
-/* 메모 아이템 레이아웃 조정 */
-.memo-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px;
-    margin-bottom: 5px;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.memo-text {
-    flex: 1;
-    margin-right: 10px;
-}
-
-.memo-buttons {
-    display: flex;
-    gap: 5px;
-    margin-left: 10px;
-}
-
-/* 편집 모드에서의 상태 버튼 스타일 */
-.edit-section .status-btn {
-    display: inline-block;
-}
-
-/* 일반 모드에서는 상태 버튼 숨김 */
-.memo-buttons .status-btn {
-    display: none;
-}
-
-.header-buttons {
-    display: flex;
-    gap: 10px;
-    align-items: center;
+.backup-section .action-btn:hover {
+    background-color: #1976D2;
 } 

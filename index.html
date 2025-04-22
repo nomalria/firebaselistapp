@@ -50,6 +50,19 @@
     </style>
 </head>
 <body>
+    <div class="clipboard-settings">
+        <div class="clipboard-header">
+            <h3>클립보드 설정</h3>
+            <button class="toggle-clipboard-btn">펼치기</button>
+        </div>
+        <div class="clipboard-content collapsed">
+            <p class="clipboard-description">자주 사용하는 메모를 저장하고 단축키(Alt + 숫자)로 빠르게 입력할 수 있습니다.</p>
+            <div class="clipboard-items">
+                <!-- 클립보드 아이템들은 JavaScript로 동적 생성됩니다 -->
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="title-container">
             <h1 class="main-title">방덱 목록 관리</h1>
@@ -107,27 +120,11 @@
             <div id="paginationControls" class="pagination-controls"></div>
         </div>
 
-        <div class="clipboard-settings">
-            <div class="clipboard-header">
-                <h3>클립보드 설정</h3>
-                <button class="toggle-clipboard-btn">펼치기/접기</button>
-            </div>
-            <div class="clipboard-content collapsed">
-                <p class="clipboard-description">자주 사용하는 메모를 저장하고 단축키(Alt + 숫자)로 빠르게 입력할 수 있습니다.</p>
-                <div class="clipboard-items">
-                    <!-- 클립보드 아이템들은 JavaScript로 동적 생성됩니다 -->
-                </div>
-            </div>
-        </div>
-
-        <div class="header">
-            <div class="title-section">
-                <h1>방덱 목록</h1>
-                <div class="header-buttons">
-                    <input type="file" id="backupFileInput" accept=".json" style="display: none;">
-                    <button id="loadBackupBtn" class="action-btn">백업 파일 불러오기</button>
-                </div>
-            </div>
+        <!-- 백업 파일 영역 -->
+        <div class="backup-section">
+            <input type="file" id="backupFile" accept=".json" style="display: none;">
+            <button onclick="document.getElementById('backupFile').click()">백업 파일 불러오기</button>
+            <button onclick="exportToJson()">추출하기</button>
         </div>
     </div>
 
