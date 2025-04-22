@@ -1086,33 +1086,42 @@ h1 {
 
 /* 모바일 대응 스타일 수정 */
 @media screen and (max-width: 768px) {
+    .container {
+        margin: 0 auto;
+        width: 100%;
+        padding: 10px;
+    }
+
     .search-add-section {
-        flex-direction: column;
+        display: flex;
+        flex-direction: row;
         gap: 8px;
         width: 100%;
     }
 
     .search-add-section .input-group {
-        flex-direction: column;
-        width: 100%;
+        display: flex;
+        flex-direction: row;
+        flex: 3;
+        width: auto;
     }
 
     .search-input {
-        width: 100%;
         height: 45px;
         font-size: 16px;
-        margin: 0;
+        flex: 1;
     }
 
     #addListBtn {
-        width: 100%;
         height: 45px;
-        padding: 0;
-        margin: 0;
+        padding: 0 15px;
         font-size: 16px;
+        flex: 1;
+        min-width: 80px;
+        max-width: 100px;
     }
 
-    /* 클립보드 설정 모바일 대응 */
+    /* 클립보드 설정도 가로 정렬 유지 */
     .clipboard-settings {
         position: static;
         width: 100%;
