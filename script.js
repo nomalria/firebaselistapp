@@ -1980,6 +1980,25 @@ document.addEventListener('DOMContentLoaded', async function() {
         childList: true,
         subtree: true
     });
+
+    // 백업 파일 로드 버튼 이벤트 리스너
+    const loadBackupBtn = document.getElementById('loadBackupBtn');
+    const backupFileInput = document.getElementById('backupFileInput');
+    
+    if (loadBackupBtn && backupFileInput) {
+        loadBackupBtn.addEventListener('click', () => {
+            backupFileInput.click();
+        });
+        
+        backupFileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                await loadBackupFile(file);
+                // 파일 input 초기화
+                event.target.value = '';
+            }
+        });
+    }
 });
 
 // 메모 아이템 HTML 생성 함수
@@ -2188,3 +2207,77 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// 백업 파일 로드 및 처리 함수
+async function loadBackupFile(file) {
+    try {
+        const fileContent = await file.text();
+        const backupData = JSON.parse(fileContent);
+        
+        console.log('백업 파일 로드 시작...');
+        
+        if (!Array.isArray(backupData)) {
+            throw new Error('올바르지 않은 백업 파일 형식입니다.');
+        }
+
+        // 백업 데이터의 각 목록을 처리
+        backupData.forEach(backupList => {
+            // 기존 목록에서 동일한 제목의 목록 찾기
+            const existingList = lists.find(list => isSameList(list.title, backupList.title));
+            
+            if (existingList) {
+                // 기존 목록이 있는 경우, 메모 병합
+                backupList.memos.forEach(backupMemo => {
+                    // 동일한 텍스트의 메모가 있는지 확인
+                    const existingMemo = existingList.memos.find(memo => 
+                        memo.text === backupMemo.text
+                    );
+                    
+                    if (existingMemo) {
+                        // 기존 메모가 있고 승패 데이터가 0인 경우에만 백업 데이터로 업데이트
+                        if (existingMemo.wins === 0 && existingMemo.losses === 0) {
+                            existingMemo.wins = backupMemo.wins || 0;
+                            existingMemo.losses = backupMemo.losses || 0;
+                        }
+                    } else {
+                        // 동일한 메모가 없는 경우 새로 추가
+                        existingList.memos.push({
+                            id: Date.now().toString() + Math.random().toString(16).slice(2),
+                            text: backupMemo.text,
+                            wins: backupMemo.wins || 0,
+                            losses: backupMemo.losses || 0
+                        });
+                    }
+                });
+            } else {
+                // 기존 목록이 없는 경우 새로운 목록으로 추가
+                const newList = {
+                    id: Date.now().toString() + Math.random().toString(16).slice(2),
+                    title: backupList.title,
+                    createdAt: backupList.createdAt || formatCreatedAt(new Date().toISOString()),
+                    memos: backupList.memos.map(memo => ({
+                        id: Date.now().toString() + Math.random().toString(16).slice(2),
+                        text: memo.text,
+                        wins: memo.wins || 0,
+                        losses: memo.losses || 0
+                    }))
+                };
+                lists.push(newList);
+            }
+        });
+
+        // 변경사항 저장
+        await saveToFirebase();
+        
+        // UI 업데이트
+        renderLists(currentPage);
+        updateStats();
+        
+        console.log('백업 파일 로드 완료');
+        alert('백업 데이터가 성공적으로 복원되었습니다.');
+        
+    } catch (error) {
+        console.error('백업 파일 처리 중 오류:', error);
+        alert('백업 파일 처리 중 오류가 발생했습니다: ' + error.message);
+    }
+}

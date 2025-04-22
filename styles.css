@@ -1020,20 +1020,18 @@ h1 {
 
 /* 액션 버튼 공통 스타일 (기존 sort-btn 대체 및 확장) */
 .action-btn {
-    padding: 10px 20px;
-    background-color: #2196F3; /* 기본 파란색 계열 */
+    padding: 8px 16px;
+    background-color: #4CAF50;
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s, box-shadow 0.3s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    margin: 0 5px;
 }
 
 .action-btn:hover {
-    background-color: #1976D2;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    background-color: #45a049;
 }
 
 /* 액션 상태 메시지 스타일 */
@@ -1477,4 +1475,10 @@ h1 {
 /* 일반 모드에서는 상태 버튼 숨김 */
 .memo-buttons .status-btn {
     display: none;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
 } 
