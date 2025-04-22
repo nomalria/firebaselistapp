@@ -36,6 +36,11 @@
             position: absolute;
             right: 0;
             bottom: 0;
+            cursor: pointer;
+        }
+
+        .login-status:hover {
+            text-decoration: underline;
         }
 
         .help-link {
@@ -47,8 +52,8 @@
 <body>
     <div class="container">
         <div class="title-container">
-            <h1 class="main-title" onclick="handleLogin()">방덱 목록 관리</h1>
-            <span class="login-status" id="loginStatus"></span>
+            <h1 class="main-title">방덱 목록 관리</h1>
+            <span class="login-status" id="loginStatus" onclick="handleLoginStatus()"></span>
         </div>
         <div class="help-link">
             <a href="help.html" class="help-btn">도움말 보기</a>
@@ -148,20 +153,25 @@
             firebase.auth().onAuthStateChanged((user) => {
                 const loginStatus = document.getElementById('loginStatus');
                 if (user) {
-                    loginStatus.textContent = '로그인됨';
+                    loginStatus.textContent = user.email;
                 } else {
-                    loginStatus.textContent = '';
+                    loginStatus.textContent = '로그인하기';
                 }
             });
             
-            // 로그인 처리 함수
-            window.handleLogin = async () => {
+            // 로그인/로그아웃 처리 함수
+            window.handleLoginStatus = async () => {
                 try {
-                    if (!firebase.auth().currentUser) {
+                    const user = firebase.auth().currentUser;
+                    if (user) {
+                        // 로그아웃
+                        await firebase.auth().signOut();
+                    } else {
+                        // 로그인
                         await firebase.auth().signInWithPopup(provider);
                     }
                 } catch (error) {
-                    console.error('로그인 오류:', error);
+                    console.error('로그인/로그아웃 오류:', error);
                 }
             };
 

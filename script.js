@@ -521,33 +521,32 @@ async function deleteList(listId, isTemporary = false) {
     // 권한 체크
     const user = firebase.auth().currentUser;
     const isAdmin = user && user.email === 'longway7098@gmail.com';
-    const isOldList = list && list.createdAt === '2025-04-22-09:30';
+    const isOldList = list && list.createdAt === '2025-04-22 09:30';
 
     if (!isTemporary && isOldList && !isAdmin) {
-        alert('이전 목록은 관리자만 삭제할 수 있습니다.');
+        alert('이전 목록은 관리자(longway7098@gmail.com)만 삭제할 수 있습니다.');
         return;
     }
 
     if (confirm('해당 목록을 삭제하시겠습니까?')) {
         try {
             const db = window.db;
-            const { doc, setDoc } = window.firestore;
-
+            
             // Firebase에서 해당 목록 삭제
             if (db) {
                 const collectionName = isTemporary ? 'temporary' : 'main';
-                const docRef = doc(db, 'lists', collectionName);
+                const docRef = db.collection('lists').doc(collectionName);
                 
                 // 해당 목록을 제외한 나머지 목록만 Firebase에 저장
                 if (isTemporary) {
                     temporaryLists = temporaryLists.filter(list => list.id.toString() !== listId.toString());
-                    await setDoc(docRef, {
+                    await docRef.set({
                         lists: temporaryLists,
                         updated_at: new Date().toISOString()
                     });
                 } else {
                     lists = lists.filter(list => list.id.toString() !== listId.toString());
-                    await setDoc(docRef, {
+                    await docRef.set({
                         lists: lists,
                         updated_at: new Date().toISOString()
                     });
