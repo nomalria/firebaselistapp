@@ -2321,10 +2321,8 @@ async function loadBackupFile(file) {
         updateStats();
         
         console.log('백업 파일 로드 완료');
-        alert('백업 데이터가 성공적으로 복원되었습니다.');
         
     } catch (error) {
         console.error('백업 파일 처리 중 오류:', error);
-        alert('백업 파일 처리 중 오류가 발생했습니다: ' + error.message);
     }
 }
