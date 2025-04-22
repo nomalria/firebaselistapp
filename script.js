@@ -2227,28 +2227,32 @@ async function loadBackupFile(file) {
             
             if (existingList) {
                 // 기존 목록이 있는 경우, 메모 병합
+                const updatedMemos = [...existingList.memos]; // 기존 메모 복사
+                
                 backupList.memos.forEach(backupMemo => {
                     // 동일한 텍스트의 메모가 있는지 확인
-                    const existingMemo = existingList.memos.find(memo => 
+                    const existingMemoIndex = updatedMemos.findIndex(memo => 
                         memo.text === backupMemo.text
                     );
                     
-                    if (existingMemo) {
-                        // 기존 메모가 있고 승패 데이터가 0인 경우에만 백업 데이터로 업데이트
-                        if (existingMemo.wins === 0 && existingMemo.losses === 0) {
-                            existingMemo.wins = backupMemo.wins || 0;
-                            existingMemo.losses = backupMemo.losses || 0;
-                        }
-                    } else {
+                    if (existingMemoIndex === -1) {
                         // 동일한 메모가 없는 경우 새로 추가
-                        existingList.memos.push({
+                        // status를 wins/losses로 변환
+                        const wins = backupMemo.status === 'success' ? 1 : 0;
+                        const losses = backupMemo.status === 'fail' ? 1 : 0;
+                        
+                        updatedMemos.push({
                             id: Date.now().toString() + Math.random().toString(16).slice(2),
                             text: backupMemo.text,
-                            wins: backupMemo.wins || 0,
-                            losses: backupMemo.losses || 0
+                            wins: wins,
+                            losses: losses
                         });
                     }
                 });
+                
+                // 업데이트된 메모 배열로 교체
+                existingList.memos = updatedMemos;
+                
             } else {
                 // 기존 목록이 없는 경우 새로운 목록으로 추가
                 const newList = {
@@ -2258,8 +2262,8 @@ async function loadBackupFile(file) {
                     memos: backupList.memos.map(memo => ({
                         id: Date.now().toString() + Math.random().toString(16).slice(2),
                         text: memo.text,
-                        wins: memo.wins || 0,
-                        losses: memo.losses || 0
+                        wins: memo.status === 'success' ? 1 : 0,
+                        losses: memo.status === 'fail' ? 1 : 0
                     }))
                 };
                 lists.push(newList);
