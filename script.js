@@ -65,7 +65,11 @@ async function saveToFirebase() {
             return list.memos.some(memo => {
                 const currentMemo = currentList.memos.find(m => m.id === memo.id);
                 if (!currentMemo) return true;
-                return currentMemo.text !== memo.text || currentMemo.status !== memo.status;
+                // 승패 데이터도 비교에 포함
+                return currentMemo.text !== memo.text || 
+                       currentMemo.status !== memo.status ||
+                       currentMemo.wins !== memo.wins ||
+                       currentMemo.losses !== memo.losses;
             });
         });
 
@@ -78,7 +82,11 @@ async function saveToFirebase() {
             return list.memos.some(memo => {
                 const currentMemo = currentList.memos.find(m => m.id === memo.id);
                 if (!currentMemo) return true;
-                return currentMemo.text !== memo.text || currentMemo.status !== memo.status;
+                // 승패 데이터도 비교에 포함
+                return currentMemo.text !== memo.text || 
+                       currentMemo.status !== memo.status ||
+                       currentMemo.wins !== memo.wins ||
+                       currentMemo.losses !== memo.losses;
             });
         });
 
@@ -95,7 +103,14 @@ async function saveToFirebase() {
         if (changedMainLists.length > 0 || deletedMainListIds.length > 0) {
             const mainDocRef = db.collection('lists').doc('main');
             await mainDocRef.set({
-                lists: lists,
+                lists: lists.map(list => ({
+                    ...list,
+                    memos: list.memos.map(memo => ({
+                        ...memo,
+                        wins: typeof memo.wins === 'number' ? memo.wins : 0,
+                        losses: typeof memo.losses === 'number' ? memo.losses : 0
+                    }))
+                })),
                 updated_at: new Date().toISOString()
             });
         }
@@ -104,16 +119,27 @@ async function saveToFirebase() {
         if (changedTempLists.length > 0 || deletedTempListIds.length > 0) {
             const tempDocRef = db.collection('lists').doc('temporary');
             await tempDocRef.set({
-                lists: temporaryLists,
+                lists: temporaryLists.map(list => ({
+                    ...list,
+                    memos: list.memos.map(memo => ({
+                        ...memo,
+                        wins: typeof memo.wins === 'number' ? memo.wins : 0,
+                        losses: typeof memo.losses === 'number' ? memo.losses : 0
+                    }))
+                })),
                 updated_at: new Date().toISOString()
             });
         }
+
+        console.log('Firebase 저장 완료');
+        return true;
 
     } catch (error) {
         console.error('Firebase 저장 오류:', error);
         // 오류 발생 시 로컬 스토리지에 저장
         localStorage.setItem('lists', JSON.stringify(lists));
         localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+        return false;
     }
 }
 
