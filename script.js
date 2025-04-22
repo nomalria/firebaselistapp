@@ -1711,9 +1711,102 @@ function removeStatusIcons() {
     console.log('메모 아이콘 제거 완료');
 }
 
-// 페이지 로드 시 이벤트 리스너 수정
+// 승패 데이터 복구 함수
+async function restoreWinLossData() {
+    console.log('승패 데이터 복구 시작...');
+
+    try {
+        // Firebase에서 데이터 가져오기
+        const db = window.db;
+        if (!db) {
+            console.error('Firebase가 초기화되지 않았습니다.');
+            return;
+        }
+
+        // 메인 목록 데이터 가져오기
+        const mainListsDoc = await db.collection('lists').doc('main').get();
+        if (mainListsDoc.exists) {
+            const mainData = mainListsDoc.data();
+            if (mainData && mainData.lists) {
+                lists = mainData.lists.map(list => ({
+                    ...list,
+                    memos: list.memos.map(memo => {
+                        // 텍스트에서 아이콘 확인
+                        let wins = typeof memo.wins === 'number' ? memo.wins : 0;
+                        let losses = typeof memo.losses === 'number' ? memo.losses : 0;
+                        
+                        // 아이콘이 있고 승패 데이터가 0인 경우에만 아이콘 기반으로 설정
+                        if (wins === 0 && losses === 0) {
+                            if (memo.text.startsWith('✅')) {
+                                wins = 1;
+                            } else if (memo.text.startsWith('❌')) {
+                                losses = 1;
+                            }
+                        }
+                        
+                        return {
+                            ...memo,
+                            wins: wins,
+                            losses: losses
+                        };
+                    })
+                }));
+            }
+        }
+
+        // 임시 목록 데이터 가져오기
+        const tempListsDoc = await db.collection('lists').doc('temporary').get();
+        if (tempListsDoc.exists) {
+            const tempData = tempListsDoc.data();
+            if (tempData && tempData.lists) {
+                temporaryLists = tempData.lists.map(list => ({
+                    ...list,
+                    memos: list.memos.map(memo => {
+                        // 텍스트에서 아이콘 확인
+                        let wins = typeof memo.wins === 'number' ? memo.wins : 0;
+                        let losses = typeof memo.losses === 'number' ? memo.losses : 0;
+                        
+                        // 아이콘이 있고 승패 데이터가 0인 경우에만 아이콘 기반으로 설정
+                        if (wins === 0 && losses === 0) {
+                            if (memo.text.startsWith('✅')) {
+                                wins = 1;
+                            } else if (memo.text.startsWith('❌')) {
+                                losses = 1;
+                            }
+                        }
+                        
+                        return {
+                            ...memo,
+                            wins: wins,
+                            losses: losses
+                        };
+                    })
+                }));
+            }
+        }
+
+        // 변경사항 저장
+        await saveToFirebase();
+        
+        // UI 업데이트
+        renderLists(currentPage);
+        renderTemporaryLists();
+        
+        console.log('승패 데이터 복구 완료');
+        alert('승패 데이터가 복구되었습니다.');
+        
+    } catch (error) {
+        console.error('승패 데이터 복구 중 오류:', error);
+        alert('승패 데이터 복구 중 오류가 발생했습니다.');
+    }
+}
+
+// DOMContentLoaded 이벤트 리스너 수정
 document.addEventListener('DOMContentLoaded', async function() {
     await loadLists();
+    
+    // 승패 데이터 복구 실행
+    await restoreWinLossData();
     
     // 아이콘 제거 실행
     removeStatusIcons();
