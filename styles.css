@@ -123,7 +123,7 @@ h1 {
     display: none; /* 기존 통계 버튼 숨기기 */
 }
 
-/* 통합 검색/추가 섹션 */
+/* 통합 검색/추가 섹션 기본 스타일 */
 .search-add-section {
     margin: 20px 0;
     position: relative;
@@ -144,7 +144,6 @@ h1 {
     border: 2px solid #4CAF50;
     border-radius: 4px;
     font-size: 16px;
-    min-width: 200px;
 }
 
 #addListBtn {
@@ -157,11 +156,6 @@ h1 {
     font-size: 16px;
     white-space: nowrap;
     transition: background-color 0.3s;
-    min-width: 100px;
-}
-
-#addListBtn:hover {
-    background-color: #45a049;
 }
 
 /* 검색 결과 */
@@ -1091,35 +1085,31 @@ h1 {
 }
 
 /* 모바일 대응 스타일 수정 */
-@media (max-width: 768px) {
-    .container {
-        margin: 0 auto;
-        width: 100%;
-        max-width: 700px;
-        padding: 10px;
-    }
-
+@media screen and (max-width: 768px) {
     .search-add-section {
         flex-direction: column;
         gap: 8px;
+        width: 100%;
     }
 
     .search-add-section .input-group {
+        flex-direction: column;
         width: 100%;
     }
 
     .search-input {
         width: 100%;
-        font-size: 16px;
-        padding: 12px;
         height: 45px;
+        font-size: 16px;
+        margin: 0;
     }
 
     #addListBtn {
         width: 100%;
         height: 45px;
+        padding: 0;
+        margin: 0;
         font-size: 16px;
-        padding: 10px;
     }
 
     /* 클립보드 설정 모바일 대응 */
