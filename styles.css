@@ -1759,4 +1759,148 @@ h1 {
     color: #1976D2;
     margin-bottom: 15px;
     text-align: center;
+}
+
+/* 알림 메시지 스타일 */
+.notification-message {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    animation: fadeIn 0.3s ease-in-out;
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 정렬 드롭다운 메뉴 추가 스타일 */
+#sortDropdown {
+    min-width: 150px;
+    right: 0;
+    left: auto;
+}
+
+/* 댓글 섹션 스타일 */
+.comment-section {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.comment-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+.no-comments {
+    color: #888;
+    text-align: center;
+    padding: 10px;
+    font-style: italic;
+}
+
+.comment-item {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.comment-item:last-child {
+    border-bottom: none;
+}
+
+.comment-text {
+    flex-grow: 1;
+    margin-right: 10px;
+    word-break: break-word;
+}
+
+.comment-date {
+    color: #888;
+    font-size: 0.8em;
+    margin-right: 10px;
+    white-space: nowrap;
+}
+
+.delete-comment-btn {
+    background-color: transparent;
+    color: #ff6b6b;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+.delete-comment-btn:hover {
+    background-color: #ffeeee;
+}
+
+.comment-input-group {
+    display: flex;
+    margin-top: 8px;
+}
+
+.comment-input-group input {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+    outline: none;
+}
+
+.comment-input-group button {
+    padding: 8px 15px;
+    background-color: #4a6ee0;
+    color: white;
+    border: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+}
+
+.comment-input-group button:hover {
+    background-color: #3a5ec0;
+}
+
+.comment-btn {
+    background-color: #f0f4ff;
+    color: #4a6ee0;
+    border: 1px solid #dae0f2;
+    border-radius: 4px;
+    padding: 3px 8px;
+    margin-right: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.comment-btn:hover {
+    background-color: #e0e8ff;
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+    .memo-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .memo-buttons {
+        margin-top: 8px;
+    }
+    
+    .comment-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .comment-date, .delete-comment-btn {
+        margin-top: 5px;
+    }
 } 

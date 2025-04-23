@@ -839,6 +839,38 @@ function sortListsByCreatedAt(lists, sortType) {
     });
 }
 
+// 글자순으로 목록 정렬하는 함수 추가
+function sortListsByAlphabetical(lists) {
+    return [...lists].sort((a, b) => {
+        return a.title.localeCompare(b.title, 'ko');
+    });
+}
+
+// 알림 메시지 표시 함수
+function showNotification(message, elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    // 기존 알림 메시지 제거
+    const existingNotification = element.nextElementSibling;
+    if (existingNotification && existingNotification.classList.contains('notification-message')) {
+        existingNotification.remove();
+    }
+    
+    // 새 알림 메시지 추가
+    const notification = document.createElement('div');
+    notification.className = 'notification-message';
+    notification.textContent = message;
+    
+    // 요소 뒤에 알림 메시지 삽입
+    element.parentNode.insertBefore(notification, element.nextSibling);
+    
+    // 3초 후 알림 메시지 제거
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
 // 목록 렌더링 (페이지네이션 적용)
 function renderLists(page = 1) {
     currentPage = page;
@@ -1538,40 +1570,268 @@ function createMemoItemHTML(memo, listId, isTemporary) {
     // 상태 아이콘에 대한 CSS 클래스 결정
     const statusClass = memo.status === 'success' ? 'status-success' : 
                        memo.status === 'fail' ? 'status-fail' : '';
+    
+    // 댓글 수를 표시하기 위한 변수
+    const commentCount = memo.comments ? memo.comments.length : 0;
+    const commentButtonText = commentCount > 0 ? `댓글 (${commentCount})` : '댓글';
 
     return `
         <div class="memo-item" data-memo-id="${memo.id}">
             <div class="memo-content">
-            <div class="memo-text">
+                <div class="memo-text">
                     ${memo.text}
-            </div>
+                </div>
                 <div class="memo-stats">
-                <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
+                    <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
                 </div>
             </div>
             <div class="memo-actions">
                 <div class="memo-status-display">
                     ${statusIcon ? `<span class="status-icon ${statusClass}">${statusIcon}</span>` : ''}
                 </div>
+                <div class="memo-buttons">
+                    <button class="comment-btn" onclick="toggleCommentSection('${listId}', '${memo.id}', ${isTemporary})">${commentButtonText}</button>
+                </div>
                 <div class="memo-counter">
-                <button class="counter-btn plus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', 1, ${isTemporary})">+승</button>
-                <button class="counter-btn minus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', -1, ${isTemporary})">-승</button>
-                <button class="counter-btn plus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', 1, ${isTemporary})">+패</button>
-                <button class="counter-btn minus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', -1, ${isTemporary})">-패</button>
+                    <button class="counter-btn plus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', 1, ${isTemporary})">+승</button>
+                    <button class="counter-btn minus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', -1, ${isTemporary})">-승</button>
+                    <button class="counter-btn plus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', 1, ${isTemporary})">+패</button>
+                    <button class="counter-btn minus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', -1, ${isTemporary})">-패</button>
                 </div>
                 <div class="memo-status-buttons">
-                <button class="status-btn success-btn ${memo.status === 'success' ? 'active' : ''}" 
-                    onclick="setMemoStatus('${listId}', '${memo.id}', 'success', ${isTemporary})">✅</button>
-                <button class="status-btn fail-btn ${memo.status === 'fail' ? 'active' : ''}" 
-                    onclick="setMemoStatus('${listId}', '${memo.id}', 'fail', ${isTemporary})">❌</button>
+                    <button class="status-btn success-btn ${memo.status === 'success' ? 'active' : ''}" 
+                        onclick="setMemoStatus('${listId}', '${memo.id}', 'success', ${isTemporary})">✅</button>
+                    <button class="status-btn fail-btn ${memo.status === 'fail' ? 'active' : ''}" 
+                        onclick="setMemoStatus('${listId}', '${memo.id}', 'fail', ${isTemporary})">❌</button>
+                </div>
+                <div class="memo-buttons">
+                    <button class="edit-btn" onclick="startEditMemo('${listId}', '${memo.id}', ${isTemporary})">수정</button>
+                    <button class="delete-btn" onclick="deleteMemo('${listId}', '${memo.id}', ${isTemporary})">삭제</button>
+                </div>
             </div>
-            <div class="memo-buttons">
-                <button class="edit-btn" onclick="startEditMemo('${listId}', '${memo.id}', ${isTemporary})">수정</button>
-                <button class="delete-btn" onclick="deleteMemo('${listId}', '${memo.id}', ${isTemporary})">삭제</button>
+            <div class="comment-section" id="commentSection-${memo.id}" style="display: none;">
+                <div class="comment-list">
+                    ${renderComments(memo)}
+                </div>
+                <div class="comment-input-group">
+                    <input type="text" id="commentInput-${memo.id}" placeholder="댓글을 입력하세요..." onkeypress="if(event.key === 'Enter') addComment('${listId}', '${memo.id}', ${isTemporary})">
+                    <button onclick="addComment('${listId}', '${memo.id}', ${isTemporary})">등록</button>
                 </div>
             </div>
         </div>
     `;
+}
+
+// 댓글 목록 렌더링 함수
+function renderComments(memo) {
+    if (!memo.comments || memo.comments.length === 0) {
+        return '<div class="no-comments">댓글이 없습니다.</div>';
+    }
+    
+    return memo.comments.map(comment => `
+        <div class="comment-item" data-comment-id="${comment.id}">
+            <div class="comment-text">${comment.text}</div>
+            <div class="comment-date">${formatCommentDate(comment.createdAt)}</div>
+            <button class="delete-comment-btn" onclick="deleteComment('${memo.id}', '${comment.id}')">삭제</button>
+        </div>
+    `).join('');
+}
+
+// 댓글 날짜 포맷팅 함수
+function formatCommentDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // 날짜 차이 계산 (밀리초)
+    const diff = now - date;
+    
+    // 1시간 이내
+    if (diff < 60 * 60 * 1000) {
+        const minutes = Math.floor(diff / (60 * 1000));
+        return `${minutes}분 전`;
+    }
+    
+    // 오늘 이내
+    if (diff < 24 * 60 * 60 * 1000) {
+        const hours = Math.floor(diff / (60 * 60 * 1000));
+        return `${hours}시간 전`;
+    }
+    
+    // 1주일 이내
+    if (diff < 7 * 24 * 60 * 60 * 1000) {
+        const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+        return `${days}일 전`;
+    }
+    
+    // 그 외의 경우는 년-월-일 형식으로 표시
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
+// 댓글 섹션 토글 함수
+function toggleCommentSection(listId, memoId, isTemporary = false) {
+    const commentSection = document.getElementById(`commentSection-${memoId}`);
+    if (!commentSection) return;
+    
+    const isVisible = commentSection.style.display !== 'none';
+    
+    // 현재 열린 댓글 섹션들 닫기
+    document.querySelectorAll('.comment-section').forEach(section => {
+        if (section.id !== `commentSection-${memoId}`) {
+            section.style.display = 'none';
+        }
+    });
+    
+    // 현재 선택된 댓글 섹션 토글
+    commentSection.style.display = isVisible ? 'none' : 'block';
+    
+    // 댓글 섹션이 열릴 때 입력창에 포커스
+    if (!isVisible) {
+        const commentInput = document.getElementById(`commentInput-${memoId}`);
+        if (commentInput) {
+            setTimeout(() => {
+                commentInput.focus();
+            }, 100);
+        }
+    }
+}
+
+// 댓글 추가 함수
+function addComment(listId, memoId, isTemporary = false) {
+    const commentInput = document.getElementById(`commentInput-${memoId}`);
+    if (!commentInput) return;
+    
+    const commentText = commentInput.value.trim();
+    if (!commentText) return;
+    
+    // 대상 목록 배열 결정
+    const targetLists = isTemporary ? temporaryLists : lists;
+    
+    // 목록 찾기
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    if (!list) return;
+    
+    // 메모 찾기
+    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    if (!memo) return;
+    
+    // 댓글 배열이 없으면 생성
+    if (!memo.comments) {
+        memo.comments = [];
+    }
+    
+    // 새 댓글 객체 생성
+    const newComment = {
+        id: Date.now().toString() + Math.random().toString(16).slice(2),
+        text: commentText,
+        createdAt: new Date().toISOString()
+    };
+    
+    // 댓글 추가
+    memo.comments.push(newComment);
+    
+    // 변경 사항 저장
+    if (isTemporary) {
+        saveTemporaryLists();
+    } else {
+        saveLists();
+    }
+    
+    // UI 업데이트
+    const commentList = document.querySelector(`#commentSection-${memoId} .comment-list`);
+    if (commentList) {
+        // 댓글이 없다는 메시지 제거
+        const noComments = commentList.querySelector('.no-comments');
+        if (noComments) {
+            noComments.remove();
+        }
+        
+        // 새 댓글 추가
+        const commentHTML = `
+            <div class="comment-item" data-comment-id="${newComment.id}">
+                <div class="comment-text">${newComment.text}</div>
+                <div class="comment-date">방금 전</div>
+                <button class="delete-comment-btn" onclick="deleteComment('${memoId}', '${newComment.id}')">삭제</button>
+            </div>
+        `;
+        commentList.insertAdjacentHTML('beforeend', commentHTML);
+    }
+    
+    // 입력 필드 초기화
+    commentInput.value = '';
+    
+    // 댓글 버튼 텍스트 업데이트
+    const commentBtn = document.querySelector(`.memo-item[data-memo-id="${memoId}"] .comment-btn`);
+    if (commentBtn) {
+        const commentCount = memo.comments.length;
+        commentBtn.textContent = `댓글 (${commentCount})`;
+    }
+}
+
+// 댓글 삭제 함수
+function deleteComment(memoId, commentId) {
+    // 현재 보이는 모든 목록(임시 목록 포함)에서 해당 메모 찾기
+    let memo = null;
+    let isTemporary = false;
+    let parentList = null;
+    
+    // 일반 목록에서 먼저 찾기
+    for (const list of lists) {
+        memo = list.memos.find(m => m.id.toString() === memoId.toString());
+        if (memo) {
+            parentList = list;
+            break;
+        }
+    }
+    
+    // 일반 목록에서 찾지 못했다면 임시 목록에서 찾기
+    if (!memo) {
+        for (const list of temporaryLists) {
+            memo = list.memos.find(m => m.id.toString() === memoId.toString());
+            if (memo) {
+                parentList = list;
+                isTemporary = true;
+                break;
+            }
+        }
+    }
+    
+    if (!memo || !parentList || !memo.comments) return;
+    
+    // 댓글 삭제
+    const commentIndex = memo.comments.findIndex(c => c.id.toString() === commentId.toString());
+    if (commentIndex === -1) return;
+    
+    memo.comments.splice(commentIndex, 1);
+    
+    // 변경 사항 저장
+    if (isTemporary) {
+        saveTemporaryLists();
+    } else {
+        saveLists();
+    }
+    
+    // UI 업데이트
+    const commentItem = document.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+    if (commentItem) {
+        commentItem.remove();
+        
+        // 댓글이 없으면 메시지 표시
+        const commentList = document.querySelector(`#commentSection-${memoId} .comment-list`);
+        if (commentList && memo.comments.length === 0) {
+            commentList.innerHTML = '<div class="no-comments">댓글이 없습니다.</div>';
+        }
+    }
+    
+    // 댓글 버튼 텍스트 업데이트
+    const commentBtn = document.querySelector(`.memo-item[data-memo-id="${memoId}"] .comment-btn`);
+    if (commentBtn) {
+        const commentCount = memo.comments.length;
+        commentBtn.textContent = commentCount > 0 ? `댓글 (${commentCount})` : '댓글';
+    }
 }
 
 // 클립보드 관련 함수들
@@ -1922,18 +2182,92 @@ window.deleteMemo = deleteMemo;
     
     // 정렬 함수
     window.sortAll = function() {
-        if (currentSortType === 'none' || currentSortType === 'oldest') {
-            currentSortType = 'newest';
-        } else {
-            currentSortType = 'oldest';
+        const sortBtn = document.getElementById('sortBtn');
+        
+        // 정렬 드롭다운 메뉴 생성 또는 표시/숨김 토글
+        let sortDropdown = document.getElementById('sortDropdown');
+        
+        // 이미 드롭다운이 존재하면 표시/숨김 토글
+        if (sortDropdown) {
+            sortDropdown.classList.toggle('show');
+            return;
         }
         
-        lists = sortListsByCreatedAt(lists, currentSortType);
-        renderLists(currentPage);
+        // 새 드롭다운 생성
+        sortDropdown = document.createElement('div');
+        sortDropdown.id = 'sortDropdown';
+        sortDropdown.className = 'dropdown-content';
+        sortDropdown.style.position = 'absolute';
+        sortDropdown.style.zIndex = '1000';
         
-        // alert 메시지 제거
-        const message = currentSortType === 'newest' ? '최신순으로 정렬됨' : '과거순으로 정렬됨';
-        // alert(message); - 제거
+        // 드롭다운 항목 추가
+        const sortOptions = [
+            { type: 'none', label: '일반 상태' },
+            { type: 'newest', label: '최신순' },
+            { type: 'alphabetical', label: '가나다순' },
+            { type: 'oldest', label: '과거순' }
+        ];
+        
+        sortDropdown.innerHTML = sortOptions.map(option => {
+            const isSelected = currentSortType === option.type;
+            return `
+                <div class="dropdown-item ${isSelected ? 'selected' : ''}" data-sort-type="${option.type}">
+                    <span>${option.label}</span>
+                </div>
+            `;
+        }).join('');
+        
+        // 드롭다운을 버튼 아래에 배치
+        const buttonWrapper = sortBtn.closest('.button-wrapper');
+        buttonWrapper.style.position = 'relative';
+        buttonWrapper.appendChild(sortDropdown);
+        
+        // 정렬 옵션 클릭 이벤트 리스너 추가
+        sortDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const type = this.dataset.sortType;
+                
+                // 선택된 항목 표시
+                sortDropdown.querySelectorAll('.dropdown-item').forEach(el => {
+                    el.classList.toggle('selected', el.dataset.sortType === type);
+                });
+                
+                // 정렬 유형 설정 및 정렬 적용
+                currentSortType = type;
+                
+                if (type === 'newest') {
+                    lists = sortListsByCreatedAt(lists, type);
+                    showNotification('최신순으로 정렬되었습니다', 'sortBtn');
+                } else if (type === 'alphabetical') {
+                    lists = sortListsByAlphabetical(lists);
+                    showNotification('가나다순으로 정렬되었습니다', 'sortBtn');
+                } else if (type === 'oldest') {
+                    lists = sortListsByCreatedAt(lists, type);
+                    showNotification('과거순으로 정렬되었습니다', 'sortBtn');
+                } else {
+                    // 기본 상태로 복원 (정렬 취소)
+                    currentSortType = 'none';
+                    showNotification('정렬이 해제되었습니다', 'sortBtn');
+                }
+                
+                // 목록 다시 렌더링
+                renderLists(currentPage);
+                
+                // 드롭다운 닫기
+                sortDropdown.classList.remove('show');
+            });
+        });
+        
+        // 드롭다운 표시
+        sortDropdown.classList.add('show');
+        
+        // 드롭다운 외부 클릭 시 닫기
+        document.addEventListener('click', function closeDropdown(e) {
+            if (!sortBtn.contains(e.target) && !sortDropdown.contains(e.target)) {
+                sortDropdown.classList.remove('show');
+                document.removeEventListener('click', closeDropdown);
+            }
+        });
     };
     
     console.log('모든 함수들이 전역 스코프에 등록되었습니다.');
@@ -2124,11 +2458,8 @@ function migrateStatusToWinLoss() {
 // 임시 목록을 정규 목록으로 추가하는 함수
 function addTemporaryToLists() {
     if (temporaryLists.length === 0) {
-        // alert("추가할 임시 목록이 없습니다."); - 제거
         return;
     }
-    
-    // confirm 창 제거하고 바로 실행
     
     // 임시 목록을 정규 목록에 추가
     temporaryLists.forEach(list => {
@@ -2152,7 +2483,8 @@ function addTemporaryToLists() {
     renderLists();
     renderTemporaryLists();
     
-    // alert("임시 목록이 정규 목록으로 추가되었습니다."); - 제거
+    // 알림 메시지 표시
+    showNotification('기존 목록에 추가되었습니다', 'addTemporaryBtn');
     
     // 통계 업데이트
     updateStats();
