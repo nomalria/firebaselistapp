@@ -70,20 +70,11 @@
         
         <!-- 통계 섹션 -->
         <div class="stats-section">
-            <div class="stat-item" id="stat-item-4" data-filter-type="4방덱">
-                <span class="stat-label">4방덱:</span>
-                <span id="stat-4" class="stat-value">0</span>
-            </div>
-            <div class="stat-item" id="stat-item-5" data-filter-type="5방덱">
-                <span class="stat-label">5방덱:</span>
-                <span id="stat-5" class="stat-value">0</span>
-            </div>
-            <div class="stat-item" id="stat-item-other" data-filter-type="기타">
-                <span class="stat-label">기타:</span>
-                <span id="stat-other" class="stat-value">0</span>
-            </div>
-            <div class="stat-item all-items" id="stat-item-all" data-filter-type="all">
-                <span class="stat-label">전체 보기</span>
+            <div class="category-buttons">
+                <button class="category-btn" id="cat-all" data-filter-type="all">전체보기</button>
+                <button class="category-btn" id="cat-4deck" data-filter-type="4방덱">4방덱 (<span id="stat-4">0</span>)</button>
+                <button class="category-btn" id="cat-5deck" data-filter-type="5방덱">5방덱 (<span id="stat-5">0</span>)</button>
+                <button class="category-btn" id="cat-other" data-filter-type="기타">기타 (<span id="stat-other">0</span>)</button>
             </div>
         </div>
         

@@ -318,9 +318,51 @@ async function loadLists() {
         renderLists(currentPage);
         updateStats();
         
+        // 드롭다운 버튼 이벤트 리스너 설정
+        const filterDropdown = document.getElementById('filterDropdown');
+        if (filterDropdown) {
+            filterDropdown.addEventListener('click', function() {
+                const dropdownContent = document.querySelector('.dropdown-content');
+                if (dropdownContent) {
+                    dropdownContent.classList.toggle('show');
+                }
+            });
+            
+            // 드롭다운 외부 클릭 시 닫기
+            document.addEventListener('click', function(e) {
+                if (!filterDropdown.contains(e.target)) {
+                    const dropdownContent = document.querySelector('.dropdown-content');
+                    if (dropdownContent && dropdownContent.classList.contains('show')) {
+                        dropdownContent.classList.remove('show');
+                    }
+                }
+            });
+        }
+        
         // 클립보드 렌더링 및 이벤트 리스너 설정
         renderClipboardItems();
         attachClipboardEventListeners();
+        
+        // 카테고리 버튼에 이벤트 리스너 추가
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filterType = this.dataset.filterType;
+                currentFilterType = filterType;
+                
+                // 버튼 활성화 상태 업데이트
+                document.querySelectorAll('.category-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.filterType === filterType);
+                });
+                
+                // 목록 다시 렌더링
+                renderLists(1);
+            });
+            
+            // 초기 '전체보기' 버튼 활성화
+            if (btn.dataset.filterType === 'all') {
+                btn.classList.add('active');
+            }
+        });
         
         // 모든 메모 입력창에 클립보드 단축키 이벤트 리스너 추가
         document.querySelectorAll('[id^="newMemoInput-"]').forEach(input => {
@@ -852,18 +894,26 @@ function showNotification(message, elementId) {
     if (!element) return;
     
     // 기존 알림 메시지 제거
-    const existingNotification = element.nextElementSibling;
-    if (existingNotification && existingNotification.classList.contains('notification-message')) {
+    const existingNotification = document.getElementById(`notification-${elementId}`);
+    if (existingNotification) {
         existingNotification.remove();
+    }
+    
+    // 버튼 래퍼 요소의 position 확인
+    const buttonWrapper = element.closest('.button-wrapper');
+    if (buttonWrapper && getComputedStyle(buttonWrapper).position === 'static') {
+        buttonWrapper.style.position = 'relative';
     }
     
     // 새 알림 메시지 추가
     const notification = document.createElement('div');
     notification.className = 'notification-message';
+    notification.id = `notification-${elementId}`;
     notification.textContent = message;
     
-    // 요소 뒤에 알림 메시지 삽입
-    element.parentNode.insertBefore(notification, element.nextSibling);
+    // 버튼 래퍼에 알림 메시지 추가
+    const parent = buttonWrapper || element.parentNode;
+    parent.appendChild(notification);
     
     // 3초 후 알림 메시지 제거
     setTimeout(() => {
@@ -1155,8 +1205,10 @@ function updateStats() {
         }
     });
     
-    // 드롭다운 메뉴 아이템 업데이트
-    updateDropdownItems(stats);
+    // 통계 숫자 업데이트
+    document.getElementById('stat-4').textContent = stats['4deck'];
+    document.getElementById('stat-5').textContent = stats['5deck'];
+    document.getElementById('stat-other').textContent = stats['other'];
 }
 
 // 드롭다운 메뉴 아이템 업데이트
@@ -2182,92 +2234,12 @@ window.deleteMemo = deleteMemo;
     
     // 정렬 함수
     window.sortAll = function() {
-        const sortBtn = document.getElementById('sortBtn');
+        // 가나다순으로 정렬
+        lists = sortListsByAlphabetical(lists);
+        showNotification('가나다순으로 정렬되었습니다', 'sortBtn');
         
-        // 정렬 드롭다운 메뉴 생성 또는 표시/숨김 토글
-        let sortDropdown = document.getElementById('sortDropdown');
-        
-        // 이미 드롭다운이 존재하면 표시/숨김 토글
-        if (sortDropdown) {
-            sortDropdown.classList.toggle('show');
-            return;
-        }
-        
-        // 새 드롭다운 생성
-        sortDropdown = document.createElement('div');
-        sortDropdown.id = 'sortDropdown';
-        sortDropdown.className = 'dropdown-content';
-        sortDropdown.style.position = 'absolute';
-        sortDropdown.style.zIndex = '1000';
-        
-        // 드롭다운 항목 추가
-        const sortOptions = [
-            { type: 'none', label: '일반 상태' },
-            { type: 'newest', label: '최신순' },
-            { type: 'alphabetical', label: '가나다순' },
-            { type: 'oldest', label: '과거순' }
-        ];
-        
-        sortDropdown.innerHTML = sortOptions.map(option => {
-            const isSelected = currentSortType === option.type;
-            return `
-                <div class="dropdown-item ${isSelected ? 'selected' : ''}" data-sort-type="${option.type}">
-                    <span>${option.label}</span>
-                </div>
-            `;
-        }).join('');
-        
-        // 드롭다운을 버튼 아래에 배치
-        const buttonWrapper = sortBtn.closest('.button-wrapper');
-        buttonWrapper.style.position = 'relative';
-        buttonWrapper.appendChild(sortDropdown);
-        
-        // 정렬 옵션 클릭 이벤트 리스너 추가
-        sortDropdown.querySelectorAll('.dropdown-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const type = this.dataset.sortType;
-                
-                // 선택된 항목 표시
-                sortDropdown.querySelectorAll('.dropdown-item').forEach(el => {
-                    el.classList.toggle('selected', el.dataset.sortType === type);
-                });
-                
-                // 정렬 유형 설정 및 정렬 적용
-                currentSortType = type;
-                
-                if (type === 'newest') {
-                    lists = sortListsByCreatedAt(lists, type);
-                    showNotification('최신순으로 정렬되었습니다', 'sortBtn');
-                } else if (type === 'alphabetical') {
-                    lists = sortListsByAlphabetical(lists);
-                    showNotification('가나다순으로 정렬되었습니다', 'sortBtn');
-                } else if (type === 'oldest') {
-                    lists = sortListsByCreatedAt(lists, type);
-                    showNotification('과거순으로 정렬되었습니다', 'sortBtn');
-                } else {
-                    // 기본 상태로 복원 (정렬 취소)
-                    currentSortType = 'none';
-                    showNotification('정렬이 해제되었습니다', 'sortBtn');
-                }
-                
-                // 목록 다시 렌더링
-                renderLists(currentPage);
-                
-                // 드롭다운 닫기
-                sortDropdown.classList.remove('show');
-            });
-        });
-        
-        // 드롭다운 표시
-        sortDropdown.classList.add('show');
-        
-        // 드롭다운 외부 클릭 시 닫기
-        document.addEventListener('click', function closeDropdown(e) {
-            if (!sortBtn.contains(e.target) && !sortDropdown.contains(e.target)) {
-                sortDropdown.classList.remove('show');
-                document.removeEventListener('click', closeDropdown);
-            }
-        });
+        // 목록 다시 렌더링
+        renderLists(currentPage);
     };
     
     console.log('모든 함수들이 전역 스코프에 등록되었습니다.');
