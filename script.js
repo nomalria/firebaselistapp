@@ -307,8 +307,8 @@ async function loadLists() {
             // Firebase 오류 시 이미 로컬 데이터로 초기화되어 있으므로 아무것도 안 함
         }
         
-        // 클립보드 아이템 로드
-        loadClipboardItems();
+        // 클립보드 초기화 (기존 코드 대체)
+        initializeClipboard();
         
         // 최종 목록 렌더링
         renderTemporaryLists();
@@ -1546,14 +1546,19 @@ function loadClipboardItems() {
         const saved = localStorage.getItem('clipboardItems');
         if (saved) {
             clipboardItems = JSON.parse(saved);
-            if (!Array.isArray(clipboardItems) || clipboardItems.length !== MAX_CLIPBOARD_ITEMS) {
+            if (!Array.isArray(clipboardItems)) {
                 clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
             }
+        } else {
+            // 저장된 데이터가 없는 경우 기본값으로 초기화
+            clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
+            saveClipboardItems(); // 초기 상태 저장
         }
         renderClipboardItems();
     } catch (error) {
         console.error('클립보드 로드 중 오류:', error);
         clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
+        saveClipboardItems(); // 오류 발생 시에도 초기 상태 저장
     }
 }
 
@@ -1924,6 +1929,12 @@ function toggleClipboardContent() {
     const clipboardContent = document.querySelector('.clipboard-content');
     if (clipboardContent) {
         clipboardContent.classList.toggle('collapsed');
+        
+        // 토글 버튼 텍스트 업데이트
+        const toggleBtn = document.querySelector('.toggle-clipboard-btn');
+        if (toggleBtn) {
+            toggleBtn.textContent = clipboardContent.classList.contains('collapsed') ? '펼치기' : '접기';
+        }
     }
 }
 
@@ -2133,5 +2144,31 @@ function checkMemoIcon(memoElement) {
         } else {
             statusDisplay.innerHTML = '';
         }
+    }
+}
+
+// 페이지 로드 시 클립보드 초기화 함수
+function initializeClipboard() {
+    // 클립보드 컨텐츠 초기 상태를 펼친 상태로 설정
+    const clipboardContent = document.querySelector('.clipboard-content');
+    if (clipboardContent) {
+        clipboardContent.classList.remove('collapsed');
+        
+        // 토글 버튼 텍스트 설정
+        const toggleBtn = document.querySelector('.toggle-clipboard-btn');
+        if (toggleBtn) {
+            toggleBtn.textContent = '접기';
+        }
+    }
+    
+    // 클립보드 아이템 로드
+    loadClipboardItems();
+    
+    // 클립보드 토글 버튼 이벤트 리스너 추가
+    const toggleClipboardBtn = document.querySelector('.toggle-clipboard-btn');
+    if (toggleClipboardBtn) {
+        // 기존 이벤트 리스너 제거 후 다시 추가
+        toggleClipboardBtn.removeEventListener('click', toggleClipboardContent);
+        toggleClipboardBtn.addEventListener('click', toggleClipboardContent);
     }
 }

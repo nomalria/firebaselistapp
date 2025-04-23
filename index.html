@@ -129,9 +129,9 @@
         <div class="clipboard-settings">
             <div class="clipboard-header">
                 <h3>클립보드 설정</h3>
-                <button class="toggle-clipboard-btn">펼치기/접기</button>
+                <button class="toggle-clipboard-btn">접기</button>
             </div>
-            <div class="clipboard-content collapsed">
+            <div class="clipboard-content">
                 <p class="clipboard-description">자주 사용하는 메모를 저장하고 단축키(Alt + 숫자)로 빠르게 입력할 수 있습니다.</p>
                 <div class="clipboard-items">
                     <!-- 클립보드 아이템들은 JavaScript로 동적 생성됩니다 -->
@@ -237,12 +237,6 @@
             
             // 정렬 버튼 이벤트 리스너 (함수는 그대로 sortAll 호출)
             document.getElementById('sortBtn').addEventListener('click', sortAll);
-            
-            // 클립보드 토글 버튼 이벤트 리스너 추가
-            document.querySelector('.toggle-clipboard-btn').addEventListener('click', function() {
-                const clipboardContent = document.querySelector('.clipboard-content');
-                clipboardContent.classList.toggle('collapsed');
-            });
             
             // JSON 관련 버튼 이벤트 리스너
             document.getElementById('importJsonBtn').addEventListener('click', importJsonFile);
