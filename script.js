@@ -310,6 +310,9 @@ async function loadLists() {
         // 클립보드 초기화 (기존 코드 대체)
         initializeClipboard();
         
+        // 검색창 이벤트 리스너 설정
+        setupSearchInputEvents();
+        
         // 최종 목록 렌더링
         renderTemporaryLists();
         renderLists(currentPage);
@@ -418,6 +421,13 @@ function searchLists(query) {
     const currentWords = query.split(' ').filter(w => w);
     const lastWord = currentWords[currentWords.length - 1];
 
+    // 마지막 단어가 없으면 추천 결과 표시하지 않음
+    if (!lastWord) {
+        searchResults.innerHTML = '';
+        selectedIndex = -1;
+        return;
+    }
+
     // 모든 방덱의 단어들을 추출
     const allWords = new Set();
     lists.forEach(list => {
@@ -474,9 +484,23 @@ function selectWord(word) {
         currentWords.push(word);
     }
     
-    searchInput.value = currentWords.join(' ');
+    searchInput.value = currentWords.join(' ') + ' '; // 단어 선택 후 스페이스 추가
     document.getElementById('searchResults').innerHTML = '';
     selectedIndex = -1;
+    
+    // 커서 위치 조정
+    searchInput.focus();
+    searchInput.selectionStart = searchInput.selectionEnd = searchInput.value.length;
+}
+
+// 선택된 추천 단어 아이템 업데이트
+function updateSelectedItem(items) {
+    if (!items || items.length === 0) return;
+    
+    // 모든 아이템의 선택 상태 초기화
+    Array.from(items).forEach((item, index) => {
+        item.classList.toggle('selected', index === selectedIndex);
+    });
 }
 
 // 방덱이 동일한지 확인하는 함수
@@ -1881,6 +1905,11 @@ window.deleteMemo = deleteMemo;
     window.addTemporaryToLists = addTemporaryToLists;
     window.checkMemoIcon = checkMemoIcon;
     
+    // 추천 단어 관련 함수들
+    window.selectWord = selectWord;
+    window.updateSelectedItem = updateSelectedItem;
+    window.setupSearchInputEvents = setupSearchInputEvents;
+    
     // 정렬 함수
     window.sortAll = function() {
         if (currentSortType === 'none' || currentSortType === 'oldest') {
@@ -2171,4 +2200,60 @@ function initializeClipboard() {
         toggleClipboardBtn.removeEventListener('click', toggleClipboardContent);
         toggleClipboardBtn.addEventListener('click', toggleClipboardContent);
     }
+}
+
+// 페이지 로드 시 이벤트 리스너를 등록하는 함수 (DOMContentLoaded에서 호출될 예정)
+function setupSearchInputEvents() {
+    const searchInput = document.getElementById('searchInput');
+    if (!searchInput) return;
+    
+    // 키보드 이벤트 리스너 추가
+    searchInput.addEventListener('keydown', function(e) {
+        const searchResults = document.getElementById('searchResults');
+        const items = searchResults.getElementsByClassName('list-item');
+        
+        if (items.length === 0) return;
+        
+        // 위/아래 화살표 키로 추천 단어 이동
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex + 1) % items.length;
+            updateSelectedItem(items);
+        } 
+        else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+            updateSelectedItem(items);
+        }
+        // Tab 키로 다음 추천 단어로 이동
+        else if (e.key === 'Tab') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                // Shift + Tab: 이전 단어로 이동
+                selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+            } else {
+                // Tab: 다음 단어로 이동
+                selectedIndex = (selectedIndex + 1) % items.length;
+            }
+            updateSelectedItem(items);
+        }
+        // 엔터 키로 선택한 단어 적용
+        else if (e.key === 'Enter' && selectedIndex >= 0) {
+            e.preventDefault();
+            const word = items[selectedIndex].dataset.word;
+            selectWord(word);
+        }
+        // 스페이스바로 첫 번째 추천 단어 선택
+        else if (e.key === ' ' && items.length > 0) {
+            // 입력창이 비어있지 않고, 커서 위치가 끝인 경우에만 스페이스바로 단어 선택
+            const cursorAtEnd = this.selectionStart === this.value.length;
+            const hasText = this.value.trim().length > 0;
+            
+            if (hasText && cursorAtEnd && selectedIndex >= 0) {
+                e.preventDefault();
+                const word = items[selectedIndex].dataset.word;
+                selectWord(word);
+            }
+        }
+    });
 }
