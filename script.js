@@ -810,6 +810,35 @@ function addMemo(listId, isTemporary = false) {
         return;
     }
 
+    // 중복 메모 검사
+    const isDuplicate = findDuplicateMemo(list.memos, memoText);
+    if (isDuplicate) {
+        // 중복된 메모를 맨 위로 이동
+        const existingMemoIndex = list.memos.findIndex(memo => isSimilarMemo(memo.text, memoText));
+        if (existingMemoIndex > -1) {
+            const existingMemo = list.memos.splice(existingMemoIndex, 1)[0];
+            list.memos.unshift(existingMemo);
+            
+            // 변경사항 저장
+            if (isTemporary) {
+                saveTemporaryLists();
+            } else {
+                saveLists();
+            }
+            
+            // UI 업데이트 - 전체 메모 목록 다시 렌더링
+            updateMemoListUI(listId, list.memos, isTemporary);
+            
+            // 입력 필드 초기화
+            memoInput.value = '';
+            
+            // 알림 표시
+            showNotification(`이미 존재하는 메모입니다. '${existingMemo.text}'를 목록 맨 위로 이동했습니다.`, 'addMemoNotification');
+            
+            return;
+        }
+    }
+
     // 새 메모 객체 생성
     const newMemo = {
         id: Date.now().toString() + Math.random().toString(16).slice(2),
@@ -820,7 +849,7 @@ function addMemo(listId, isTemporary = false) {
     };
 
     // 메모 추가
-    list.memos.push(newMemo);
+    list.memos.unshift(newMemo);  // 맨 앞에 추가
 
     // 변경사항 저장
     if (isTemporary) {
@@ -829,24 +858,71 @@ function addMemo(listId, isTemporary = false) {
         saveLists();
     }
 
-    // UI 업데이트
-    const memoListContainer = document.querySelector(`#memoSection-${listId} .memo-list`);
-    if (memoListContainer) {
-        const memoHTML = createMemoItemHTML(newMemo, listId, isTemporary);
-        memoListContainer.insertAdjacentHTML('beforeend', memoHTML);
-    }
-
-    // 메모 카운트 업데이트
-    const memoCountElement = document.querySelector(`.list-item[data-list-id="${listId}"] .memo-count`);
-    if (memoCountElement) {
-        memoCountElement.textContent = `${list.memos.length}/50`;
-    }
+    // UI 업데이트 - 전체 메모 목록 다시 렌더링
+    updateMemoListUI(listId, list.memos, isTemporary);
 
     // 입력 필드 초기화
     memoInput.value = '';
     
     // 클립보드 단축키 이벤트 리스너 재등록
     addClipboardShortcutListener(memoInput);
+}
+
+// 메모 중복 체크 함수
+function findDuplicateMemo(memos, newMemoText) {
+    return memos.some(memo => isSimilarMemo(memo.text, newMemoText));
+}
+
+// 유사한 메모인지 확인하는 함수
+function isSimilarMemo(memo1, memo2) {
+    // 공백 기준으로 분리
+    const words1 = memo1.trim().split(/\s+/);
+    const words2 = memo2.trim().split(/\s+/);
+    
+    // 첫 번째 단어가 다르면 유사하지 않음
+    if (words1[0] !== words2[0]) {
+        return false;
+    }
+    
+    // 단어 수가 다르면 유사하지 않음
+    if (words1.length !== words2.length) {
+        return false;
+    }
+    
+    // 첫 번째 단어를 제외한 나머지 단어들을 정렬하여 비교
+    const remainingWords1 = words1.slice(1).sort();
+    const remainingWords2 = words2.slice(1).sort();
+    
+    // 정렬된 단어 배열이 일치하는지 확인
+    return JSON.stringify(remainingWords1) === JSON.stringify(remainingWords2);
+}
+
+// 메모 목록 UI 업데이트 함수
+function updateMemoListUI(listId, memos, isTemporary) {
+    const memoSection = document.getElementById(`memoSection-${listId}`);
+    if (!memoSection) return;
+    
+    const memoListContainer = memoSection.querySelector('.memo-list');
+    if (!memoListContainer) return;
+    
+    // 메모 목록 비우기
+    memoListContainer.innerHTML = '';
+    
+    // 메모 목록 다시 렌더링
+    if (memos.length === 0) {
+        memoListContainer.innerHTML = '<div class="no-memos">메모가 없습니다.</div>';
+    } else {
+        memos.forEach(memo => {
+            const memoHTML = createMemoItemHTML(memo, listId, isTemporary);
+            memoListContainer.insertAdjacentHTML('beforeend', memoHTML);
+        });
+    }
+    
+    // 메모 카운트 업데이트
+    const memoCountElement = document.querySelector(`.list-item[data-list-id="${listId}"] .memo-count`);
+    if (memoCountElement) {
+        memoCountElement.textContent = `${memos.length}/50`;
+    }
 }
 
 // 메모 삭제
@@ -1389,122 +1465,89 @@ function cancelListEdit(listId, isTemporary = false) {
 
 // 메모 편집 시작
 function startEditMemo(listId, memoId, isTemporary = false) {
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
-    if (!list) return;
-
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
-    if (!memo) return;
-
-    // 기존에 편집 중인 메모가 있다면 편집 취소
-    const editingMemos = document.querySelectorAll('.memo-item.editing');
-    editingMemos.forEach(editingMemo => {
-        const editingMemoId = editingMemo.dataset.memoId;
-        cancelMemoEdit(listId, editingMemoId, isTemporary);
-    });
-
-    const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-    if (memoItem) {
-        memoItem.classList.add('editing');
-        const memoContent = memoItem.querySelector('.memo-content');
+    try {
+        console.log(`메모 편집 시작: listId=${listId}, memoId=${memoId}, isTemporary=${isTemporary}`);
         
-        if (!memoContent) return;
+        // 현재 편집 중인 다른 메모가 있으면 취소
+        const existingEditSection = document.querySelector('.memo-edit-section');
+        if (existingEditSection) {
+            const currentMemoId = existingEditSection.closest('.memo-item').dataset.memoId;
+            cancelMemoEdit(listId, currentMemoId, isTemporary);
+        }
         
-        // 편집 섹션 생성 및 추가
+        // 메모 찾기
+        const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
+        if (!memoItem) {
+            console.error(`메모 항목을 찾을 수 없음: memoId=${memoId}`);
+            alert('편집할 메모를 찾을 수 없습니다.');
+            return;
+        }
+        
+        // 메모 텍스트 요소 찾기
+        const memoTextElement = memoItem.querySelector('.memo-text');
+        if (!memoTextElement) {
+            console.error('메모 텍스트 요소를 찾을 수 없음');
+            alert('메모 텍스트를 찾을 수 없습니다.');
+            return;
+        }
+        
+        // 현재 메모 텍스트 가져오기 및 공백 정리
+        let currentText = memoTextElement.textContent;
+        // 다중 공백을 단일 공백으로 변환
+        currentText = currentText.replace(/\s+/g, ' ').trim();
+        
+        // 편집 화면 만들기
         const editSection = document.createElement('div');
-        editSection.className = 'edit-section';
-        editSection.id = `editMemoSection-${memoId}`;
-        editSection.innerHTML = `
-            <div class="input-group">
-                <textarea id="editMemoInput-${memoId}" rows="2" class="memo-edit-textarea">${memo.text}</textarea>
-                <div class="edit-buttons">
-                    <button onclick="saveMemoEdit('${listId}', '${memoId}', ${isTemporary})">저장</button>
-                    <button onclick="cancelMemoEdit('${listId}', '${memoId}', ${isTemporary})">취소</button>
-                </div>
-            </div>
-        `;
+        editSection.className = 'memo-edit-section';
         
-        // 기존 메모 내용 숨기고 편집 섹션 추가
-        memoContent.style.display = 'none';
-        memoContent.insertAdjacentElement('afterend', editSection);
+        // 텍스트 입력 영역
+        const textInput = document.createElement('textarea');
+        textInput.id = `editMemoInput-${memoId}`;
+        textInput.className = 'edit-memo-input';
+        textInput.value = currentText;
+        editSection.appendChild(textInput);
         
-        // 입력 필드에 포커스 및 자동 크기 조정
-        const textarea = editSection.querySelector('textarea');
-        textarea.focus();
-        textarea.select();
-        
-        // 클립보드 단축키 이벤트 리스너 추가
-        addClipboardShortcutListener(textarea);
-    }
-    
-    editingMemoId = memoId;
-}
-
-// 메모 편집 저장
-function saveMemoEdit(listId, memoId, isTemporary = false) {
-    const input = document.getElementById(`editMemoInput-${memoId}`);
-    if (!input) return;
-
-    const newText = input.value.trim();
-    if (!newText) {
-        alert('메모 내용을 입력해주세요.');
-        return;
-    }
-
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
-    if (!list) return;
-
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
-    if (!memo) return;
-
-    memo.text = newText;
-
-    // UI 업데이트
-    const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-    if (memoItem) {
-        const memoText = memoItem.querySelector('.memo-text');
-        const memoContent = memoItem.querySelector('.memo-content');
-        const statusDisplay = memoItem.querySelector('.memo-status-display');
-        
-        if (memoText && memoContent) {
-            // 메모 텍스트만 업데이트
-            memoText.textContent = newText;
-            memoContent.style.display = ''; // 메모 내용 다시 표시
-        }
-        
-        // 상태 아이콘 업데이트
-        if (statusDisplay) {
-            const statusIcon = memo.status === 'success' ? '✅' : 
-                             memo.status === 'fail' ? '❌' : '';
-            
-            if (statusIcon) {
-                // CSS 클래스를 포함하여 상태 아이콘 업데이트
-                const statusClass = memo.status === 'success' ? 'status-success' : 
-                                   memo.status === 'fail' ? 'status-fail' : '';
-                statusDisplay.innerHTML = `<span class="status-icon ${statusClass}">${statusIcon}</span>`;
-            } else {
-                statusDisplay.innerHTML = '';
+        // 엔터 키 이벤트 리스너 추가
+        textInput.addEventListener('keydown', function(event) {
+            // Shift+Enter는 줄바꿈, Enter만 누르면 저장
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault(); // 기본 동작 방지 (줄바꿈)
+                saveMemoEdit(listId, memoId, isTemporary);
             }
-        }
+        });
         
-        memoItem.classList.remove('editing');
+        // 버튼 컨테이너
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'edit-buttons';
         
-        // 편집 섹션 제거
-        const editSection = document.getElementById(`editMemoSection-${memoId}`);
-        if (editSection) {
-            editSection.remove();
-        }
+        // 저장 버튼
+        const saveButton = document.createElement('button');
+        saveButton.className = 'save-edit-btn';
+        saveButton.innerHTML = '<i class="fas fa-check"></i> 저장';
+        saveButton.onclick = () => saveMemoEdit(listId, memoId, isTemporary);
+        buttonContainer.appendChild(saveButton);
+        
+        // 취소 버튼
+        const cancelButton = document.createElement('button');
+        cancelButton.className = 'cancel-edit-btn';
+        cancelButton.innerHTML = '<i class="fas fa-times"></i> 취소';
+        cancelButton.onclick = () => cancelMemoEdit(listId, memoId, isTemporary);
+        buttonContainer.appendChild(cancelButton);
+        
+        editSection.appendChild(buttonContainer);
+        
+        // 편집 섹션 삽입
+        memoItem.querySelector('.memo-content').style.display = 'none';
+        memoItem.querySelector('.memo-buttons').style.display = 'none';
+        memoItem.appendChild(editSection);
+        
+        // 텍스트 입력 영역에 포커스
+        textInput.focus();
+        
+    } catch (error) {
+        console.error('메모 편집 시작 중 오류 발생:', error, error.stack);
+        alert('메모 편집을 시작하는 중 오류가 발생했습니다.');
     }
-
-    // 변경사항 저장
-    if (!isTemporary) {
-        saveLists();
-    } else {
-        saveTemporaryLists();
-    }
-
-    editingMemoId = null;
 }
 
 // 승패 비율에 따라 메모 상태를 자동으로 설정하는 함수
@@ -2342,22 +2385,39 @@ function setMemoStatus(listId, memoId, status, isTemporary = false) {
 
 // 메모 편집 취소 함수 추가
 function cancelMemoEdit(listId, memoId, isTemporary = false) {
-    const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-    if (memoItem) {
-        memoItem.classList.remove('editing');
-        const memoContent = memoItem.querySelector('.memo-content');
-        if (memoContent) {
-            memoContent.style.display = ''; // 메모 내용 다시 표시
+    try {
+        console.log(`메모 편집 취소: listId=${listId}, memoId=${memoId}, isTemporary=${isTemporary}`);
+        
+        // DOM에서 메모 찾기
+        const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
+        if (!memoItem) {
+            console.error('메모 항목 DOM 요소를 찾을 수 없습니다:', memoId);
+            editingMemoId = null;
+            return;
         }
         
-        // 편집 섹션 제거
-        const editSection = document.getElementById(`editMemoSection-${memoId}`);
+        // 1. 메모 내용 다시 표시
+        const memoContent = memoItem.querySelector('.memo-content');
+        if (memoContent) {
+            memoContent.style.display = '';
+        }
+        
+        // 2. 편집 섹션 제거
+        const editSection = memoItem.querySelector('.memo-edit-section');
         if (editSection) {
             editSection.remove();
         }
+        
+        // 3. 편집 모드 클래스 제거
+        memoItem.classList.remove('editing');
+        
+        // 전역 편집 상태 초기화
+        editingMemoId = null;
+        console.log('메모 편집 취소 완료');
+        
+    } catch (error) {
+        console.error('메모 편집 취소 중 오류 발생:', error);
     }
-    
-    editingMemoId = null;
 }
 
 // 기존 데이터 마이그레이션 함수 추가
@@ -2574,4 +2634,372 @@ function setupSearchInputEvents() {
             }
         }
     });
+}
+
+// 문서 로드 시 CSS 스타일 추가
+document.addEventListener('DOMContentLoaded', function() {
+    // 메모 편집 관련 스타일 추가
+    const style = document.createElement('style');
+    style.textContent = `
+        /* 메모 편집 관련 스타일 */
+        .memo-item.editing {
+            position: relative;
+            /* 편집 모드에서 배경색 살짝 변경 */
+            background-color: #f8f8f8;
+        }
+        
+        .edit-section {
+            background-color: #f0f8ff; /* 연한 파란색 배경 */
+            border-radius: 4px;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #cfe8fc;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .edit-section textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px 12px;
+            border: 2px solid #4CAF50;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            font-family: inherit;
+            background-color: white;
+        }
+        
+        .edit-section textarea:focus {
+            outline: none;
+            border-color: #2E7D32;
+            box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+        }
+        
+        .edit-section .input-group {
+            margin-bottom: 8px;
+        }
+        
+        .edit-section button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            margin-left: 8px;
+        }
+        
+        .edit-section button[onclick*="saveMemoEdit"] {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .edit-section button[onclick*="saveMemoEdit"]:hover {
+            background-color: #3d8b40;
+        }
+        
+        .edit-section button[onclick*="cancelMemoEdit"] {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .edit-section button[onclick*="cancelMemoEdit"]:hover {
+            background-color: #d32f2f;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    console.log('메모 편집 스타일 로드 완료');
+});
+
+// 메모 편집 저장
+function saveMemoEdit(listId, memoId, isTemporary = false) {
+    try {
+        console.log(`메모 편집 저장: listId=${listId}, memoId=${memoId}, isTemporary=${isTemporary}`);
+        
+        // 입력 필드 찾기
+        const inputElement = document.getElementById(`editMemoInput-${memoId}`);
+        if (!inputElement) {
+            console.error('편집 입력 필드를 찾을 수 없습니다');
+            return;
+        }
+        
+        // 새 텍스트 가져오기
+        const newText = inputElement.value.trim();
+        if (!newText) {
+            alert('메모 내용을 입력해주세요');
+            inputElement.focus();
+            return;
+        }
+        
+        // 데이터에서 메모 찾기
+        const targetLists = isTemporary ? temporaryLists : lists;
+        const list = targetLists.find(l => l.id.toString() === listId.toString());
+        if (!list) {
+            console.error('목록을 찾을 수 없습니다:', listId);
+            return;
+        }
+        
+        const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+        if (!memo) {
+            console.error('메모를 찾을 수 없습니다:', memoId);
+            return;
+        }
+        
+        // 메모 텍스트 업데이트
+        memo.text = newText;
+        
+        // DOM에서 메모 요소 찾기
+        let memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
+        if (!memoItem) {
+            console.error('메모 항목 DOM 요소를 찾을 수 없습니다:', memoId);
+            return;
+        }
+        
+        // 메모 텍스트 요소 찾기
+        const memoTextElement = memoItem.querySelector('.memo-text');
+        if (memoTextElement) {
+            memoTextElement.textContent = newText;
+        }
+        
+        // 편집 섹션 제거 및 원래 요소 표시
+        const editSection = memoItem.querySelector('.memo-edit-section');
+        if (editSection) {
+            editSection.remove();
+        }
+        
+        // 원래 요소 표시
+        memoItem.querySelector('.memo-content').style.display = '';
+        memoItem.querySelector('.memo-buttons').style.display = '';
+        
+        // 변경사항 저장
+        if (isTemporary) {
+            saveTemporaryLists();
+        } else {
+            saveLists();
+        }
+        
+        console.log('메모 편집 완료');
+        
+    } catch (error) {
+        console.error('메모 편집 저장 중 오류 발생:', error, error.stack);
+        alert('메모 편집을 저장하는 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+}
+
+// 메모 편집 취소
+function cancelMemoEdit(listId, memoId, isTemporary = false) {
+    try {
+        console.log(`메모 편집 취소: listId=${listId}, memoId=${memoId}, isTemporary=${isTemporary}`);
+        
+        // DOM에서 메모 요소 찾기
+        let memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
+        if (!memoItem) {
+            console.error('메모 항목 DOM 요소를 찾을 수 없습니다:', memoId);
+            return;
+        }
+        
+        // 편집 섹션 제거
+        const editSection = memoItem.querySelector('.memo-edit-section');
+        if (editSection) {
+            editSection.remove();
+        }
+        
+        // 원래 요소 표시
+        memoItem.querySelector('.memo-content').style.display = '';
+        memoItem.querySelector('.memo-buttons').style.display = '';
+        
+        console.log('메모 편집 취소 완료');
+        
+    } catch (error) {
+        console.error('메모 편집 취소 중 오류 발생:', error, error.stack);
+    }
+}
+
+// 메모 편집 UI 스타일 추가
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .memo-edit-section {
+            margin-top: 6px;
+            margin-bottom: 6px;
+            padding: 8px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            width: calc(100% + 20px);
+            margin-left: -10px;
+            margin-right: -10px;
+            box-sizing: border-box;
+        }
+        
+        .edit-memo-input {
+            width: 100%;
+            height: 36px;
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.4;
+            font-family: inherit;
+            overflow-y: auto;
+            resize: none;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        
+        .edit-memo-input:focus {
+            border-color: #4CAF50;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+        
+        .edit-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .save-edit-btn, .cancel-edit-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        
+        .save-edit-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .save-edit-btn:hover {
+            background-color: #3d8b40;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .cancel-edit-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .cancel-edit-btn:hover {
+            background-color: #d32f2f;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .memo-edit-section {
+                width: calc(100% + 16px);
+                margin-left: -8px;
+                margin-right: -8px;
+                padding: 6px;
+            }
+            
+            .edit-buttons {
+                justify-content: space-between;
+            }
+            
+            .save-edit-btn, .cancel-edit-btn {
+                flex: 1;
+                justify-content: center;
+                font-size: 13px;
+                padding: 5px 8px;
+            }
+            
+            .edit-memo-input {
+                height: 30px;
+                padding: 4px 8px;
+                font-size: 13px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+});
+
+// 메모 목록 렌더링
+function renderMemos(listElement, memos, listId, isTemporary = false) {
+    try {
+        console.log(`메모 렌더링: listId=${listId}, isTemporary=${isTemporary}, memos=`, memos);
+        const memosContainer = listElement.querySelector('.memos-container');
+        if (!memosContainer) {
+            console.error('메모 컨테이너를 찾을 수 없습니다');
+            return;
+        }
+        
+        memosContainer.innerHTML = '';
+        
+        if (!memos || memos.length === 0) {
+            memosContainer.innerHTML = '<div class="no-memos">메모가 없습니다.</div>';
+            return;
+        }
+        
+        memos.forEach(memo => {
+            try {
+                const memoItem = document.createElement('div');
+                memoItem.className = 'memo-item';
+                memoItem.dataset.memoId = memo.id;
+                
+                // 메모 내용 컨테이너
+                const memoContent = document.createElement('div');
+                memoContent.className = 'memo-content';
+                
+                // 메모 텍스트
+                const memoText = document.createElement('div');
+                memoText.className = 'memo-text';
+                memoText.textContent = memo.text;
+                memoContent.appendChild(memoText);
+                
+                // 메모 작성 시간 표시
+                if (memo.timestamp) {
+                    const memoTime = document.createElement('div');
+                    memoTime.className = 'memo-time';
+                    memoTime.textContent = formatTimestamp(memo.timestamp);
+                    memoContent.appendChild(memoTime);
+                }
+                
+                memoItem.appendChild(memoContent);
+                
+                // 메모 버튼 컨테이너
+                const memoButtons = document.createElement('div');
+                memoButtons.className = 'memo-buttons';
+                
+                // 편집 버튼
+                const editButton = document.createElement('button');
+                editButton.className = 'edit-memo-btn';
+                editButton.innerHTML = '<i class="fas fa-edit"></i>';
+                editButton.title = '메모 편집';
+                editButton.onclick = () => startEditMemo(listId, memo.id, isTemporary);
+                memoButtons.appendChild(editButton);
+                
+                // 삭제 버튼
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'delete-memo-btn';
+                deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteButton.title = '메모 삭제';
+                deleteButton.onclick = () => deleteMemo(listId, memo.id, isTemporary);
+                memoButtons.appendChild(deleteButton);
+                
+                memoItem.appendChild(memoButtons);
+                
+                memosContainer.appendChild(memoItem);
+            } catch (error) {
+                console.error('메모 항목 렌더링 중 오류 발생:', error, error.stack);
+            }
+        });
+        
+    } catch (error) {
+        console.error('메모 렌더링 중 오류 발생:', error, error.stack);
+    }
 }
