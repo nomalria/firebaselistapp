@@ -1075,24 +1075,32 @@ function toggleMemos(listId) {
         const memoInput = document.getElementById(`newMemoInput-${listId}`);
         if (memoInput) {
             addClipboardShortcutListener(memoInput);
-            // 메모 입력창으로 포커싱 추가
-            memoInput.focus();
+            
+            // 메모 입력창으로 포커싱 (더 확실하게 지연 적용)
+            setTimeout(() => {
+                memoInput.focus();
+            }, 100);
         }
         
-        // 스크롤 위치 조정
+        // 스크롤 위치 조정 - 메모 입력창이 화면 중앙에 오도록 수정
         const listItem = memoSection.closest('.list-item');
         if (listItem) {
             setTimeout(() => {
-                const listItemRect = listItem.getBoundingClientRect();
-                const viewportHeight = window.innerHeight;
-                
-                if (listItemRect.bottom + 300 > viewportHeight) {
+                // 메모 입력창의 위치 가져오기
+                const memoInput = document.getElementById(`newMemoInput-${listId}`);
+                if (memoInput) {
+                    const inputRect = memoInput.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    
+                    // 입력창이 화면 중앙에 오도록 스크롤 조정
+                    const targetScrollTop = window.scrollY + inputRect.top - (viewportHeight / 2) + (inputRect.height / 2);
+                    
                     window.scrollTo({
-                        top: window.scrollY + (listItemRect.bottom + 300 - viewportHeight),
+                        top: targetScrollTop,
                         behavior: 'smooth'
                     });
                 }
-            }, 300); // 애니메이션 완료 후 스크롤 조정
+            }, 150);
         }
     }
 }
@@ -2116,7 +2124,7 @@ function migrateStatusToWinLoss() {
 // 임시 목록을 정규 목록으로 추가하는 함수
 function addTemporaryToLists() {
     if (temporaryLists.length === 0) {
-        alert('추가할 임시 목록이 없습니다.');
+        // alert("추가할 임시 목록이 없습니다."); - 제거
         return;
     }
     
@@ -2136,14 +2144,18 @@ function addTemporaryToLists() {
     // 임시 목록 초기화
     temporaryLists = [];
     
-    // 저장 및 UI 업데이트
+    // 변경사항 저장
     saveLists();
     saveTemporaryLists();
-    renderLists(currentPage);
-    renderTemporaryLists();
-    updateStats();
     
-    alert('임시 목록이 정규 목록으로 추가되었습니다.');
+    // UI 업데이트
+    renderLists();
+    renderTemporaryLists();
+    
+    // alert("임시 목록이 정규 목록으로 추가되었습니다."); - 제거
+    
+    // 통계 업데이트
+    updateStats();
 }
 
 // 메모 아이콘 확인 함수
