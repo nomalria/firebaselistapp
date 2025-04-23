@@ -96,13 +96,13 @@ async function saveToFirebase() {
         });
 
         // 삭제된 목록 찾기
-        const deletedMainListIds = currentMainLists
-            .filter(list => !lists.some(l => l.id === list.id))
-            .map(list => list.id);
+        const deletedMainListIds = currentMainLists ? 
+            currentMainLists.filter(list => !lists.some(l => l.id === list.id)).map(list => list.id) : 
+            [];
 
-        const deletedTempListIds = currentTempLists
-            .filter(list => !temporaryLists.some(l => l.id === list.id))
-            .map(list => list.id);
+        const deletedTempListIds = currentTempLists ? 
+            currentTempLists.filter(list => !temporaryLists.some(l => l.id === list.id)).map(list => list.id) : 
+            [];
 
         // 메인 목록 업데이트
         if (changedMainLists.length > 0 || deletedMainListIds.length > 0) {
