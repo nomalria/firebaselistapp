@@ -61,7 +61,8 @@ async function saveToFirebase() {
 
         // 변경된 메인 목록 찾기
         const changedMainLists = lists.filter(list => {
-            const currentList = currentMainLists.find(l => l.id === list.id);
+            if (!currentMainLists) return true; // currentMainLists가 undefined인 경우 처리
+            const currentList = currentMainLists.find(l => l && l.id === list.id);
             if (!currentList) return true; // 새로 추가된 목록
             if (currentList.title !== list.title) return true;
             if (currentList.memos.length !== list.memos.length) return true;
@@ -70,15 +71,16 @@ async function saveToFirebase() {
                 if (!currentMemo) return true;
                 // 승패 데이터도 비교에 포함
                 return currentMemo.text !== memo.text || 
-                       currentMemo.status !== memo.status ||
-                       currentMemo.wins !== memo.wins ||
-                       currentMemo.losses !== memo.losses;
+                        currentMemo.status !== memo.status ||
+                        currentMemo.wins !== memo.wins ||
+                        currentMemo.losses !== memo.losses;
             });
         });
 
         // 변경된 임시 목록 찾기
         const changedTempLists = temporaryLists.filter(list => {
-            const currentList = currentTempLists.find(l => l.id === list.id);
+            if (!currentTempLists) return true; // currentTempLists가 undefined인 경우 처리
+            const currentList = currentTempLists.find(l => l && l.id === list.id);
             if (!currentList) return true;
             if (currentList.title !== list.title) return true;
             if (currentList.memos.length !== list.memos.length) return true;
@@ -87,9 +89,9 @@ async function saveToFirebase() {
                 if (!currentMemo) return true;
                 // 승패 데이터도 비교에 포함
                 return currentMemo.text !== memo.text || 
-                       currentMemo.status !== memo.status ||
-                       currentMemo.wins !== memo.wins ||
-                       currentMemo.losses !== memo.losses;
+                        currentMemo.status !== memo.status ||
+                        currentMemo.wins !== memo.wins ||
+                        currentMemo.losses !== memo.losses;
             });
         });
 
@@ -1869,6 +1871,25 @@ window.deleteMemo = deleteMemo;
     // 새로 추가한 함수들
     window.updateMemoStatusByWinRate = updateMemoStatusByWinRate;
     window.updateAllMemoStatuses = updateAllMemoStatuses;
+    window.migrateExistingData = migrateExistingData;
+    window.migrateStatusToWinLoss = migrateStatusToWinLoss;
+    window.addTemporaryToLists = addTemporaryToLists;
+    window.checkMemoIcon = checkMemoIcon;
+    
+    // 정렬 함수
+    window.sortAll = function() {
+        if (currentSortType === 'none' || currentSortType === 'oldest') {
+            currentSortType = 'newest';
+        } else {
+            currentSortType = 'oldest';
+        }
+        
+        lists = sortListsByCreatedAt(lists, currentSortType);
+        renderLists(currentPage);
+        
+        const message = currentSortType === 'newest' ? '최신순으로 정렬됨' : '과거순으로 정렬됨';
+        alert(message);
+    };
     
     console.log('모든 함수들이 전역 스코프에 등록되었습니다.');
 })();
@@ -1958,6 +1979,159 @@ function setMemoStatus(listId, memoId, status, isTemporary = false) {
         
         if (failBtn) {
             failBtn.classList.toggle('active', memo.status === 'fail');
+        }
+    }
+}
+
+// 메모 편집 취소 함수 추가
+function cancelMemoEdit(listId, memoId, isTemporary = false) {
+    const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
+    if (memoItem) {
+        memoItem.classList.remove('editing');
+        const memoContent = memoItem.querySelector('.memo-content');
+        if (memoContent) {
+            memoContent.style.display = ''; // 메모 내용 다시 표시
+        }
+        
+        // 편집 섹션 제거
+        const editSection = document.getElementById(`editMemoSection-${memoId}`);
+        if (editSection) {
+            editSection.remove();
+        }
+    }
+    
+    editingMemoId = null;
+}
+
+// 기존 데이터 마이그레이션 함수 추가
+function migrateExistingData() {
+    // 생성 시간이 없는 목록에 시간 추가
+    lists.forEach(list => {
+        if (!list.createdAt) {
+            list.createdAt = new Date().toISOString();
+        }
+    });
+    
+    temporaryLists.forEach(list => {
+        if (!list.createdAt) {
+            list.createdAt = new Date().toISOString();
+        }
+    });
+    
+    saveLists();
+    saveTemporaryLists();
+}
+
+// 상태를 승패 정보로 마이그레이션하는 함수 추가
+function migrateStatusToWinLoss() {
+    let migrationCount = 0;
+    
+    // 모든 메모를 순회하며 승패 정보가 없는 경우 상태에 따라 기본값 설정
+    lists.forEach(list => {
+        list.memos.forEach(memo => {
+            if (!memo.hasOwnProperty('wins') || !memo.hasOwnProperty('losses')) {
+                if (memo.status === 'success') {
+                    memo.wins = 1;
+                    memo.losses = 0;
+                } else if (memo.status === 'fail') {
+                    memo.wins = 0;
+                    memo.losses = 1;
+                } else {
+                    memo.wins = 0;
+                    memo.losses = 0;
+                }
+                migrationCount++;
+            }
+        });
+    });
+    
+    temporaryLists.forEach(list => {
+        list.memos.forEach(memo => {
+            if (!memo.hasOwnProperty('wins') || !memo.hasOwnProperty('losses')) {
+                if (memo.status === 'success') {
+                    memo.wins = 1;
+                    memo.losses = 0;
+                } else if (memo.status === 'fail') {
+                    memo.wins = 0;
+                    memo.losses = 1;
+                } else {
+                    memo.wins = 0;
+                    memo.losses = 0;
+                }
+                migrationCount++;
+            }
+        });
+    });
+    
+    if (migrationCount > 0) {
+        console.log(`${migrationCount}개의 메모에 승패 정보 마이그레이션 완료`);
+        saveLists();
+        saveTemporaryLists();
+    }
+}
+
+// 임시 목록을 정규 목록으로 추가하는 함수
+function addTemporaryToLists() {
+    if (temporaryLists.length === 0) {
+        alert('추가할 임시 목록이 없습니다.');
+        return;
+    }
+    
+    const confirmMessage = `${temporaryLists.length}개의 임시 목록을 정규 목록으로 추가하시겠습니까?`;
+    if (!confirm(confirmMessage)) return;
+    
+    // 임시 목록을 정규 목록에 추가
+    temporaryLists.forEach(list => {
+        // ID 재생성하여 중복 방지
+        const newList = {
+            ...list,
+            id: Date.now().toString() + Math.random().toString(16).slice(2),
+            createdAt: new Date().toISOString()
+        };
+        lists.push(newList);
+    });
+    
+    // 임시 목록 초기화
+    temporaryLists = [];
+    
+    // 저장 및 UI 업데이트
+    saveLists();
+    saveTemporaryLists();
+    renderLists(currentPage);
+    renderTemporaryLists();
+    updateStats();
+    
+    alert('임시 목록이 정규 목록으로 추가되었습니다.');
+}
+
+// 메모 아이콘 확인 함수
+function checkMemoIcon(memoElement) {
+    if (!memoElement) return;
+    
+    const memoId = memoElement.dataset.memoId;
+    const listId = memoElement.closest('.list-item').dataset.listId;
+    const isTemporary = memoElement.closest('.temporary-section') !== null;
+    
+    const targetLists = isTemporary ? temporaryLists : lists;
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    if (!list) return;
+    
+    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    if (!memo) return;
+    
+    // 상태 아이콘 업데이트
+    const statusDisplay = memoElement.querySelector('.memo-status-display');
+    if (statusDisplay) {
+        const statusIcon = memo.status === 'success' ? '✅' : 
+                         memo.status === 'fail' ? '❌' : '';
+        
+        if (statusIcon) {
+            // CSS 클래스를 포함하여 상태 아이콘 업데이트
+            const statusClass = memo.status === 'success' ? 'status-success' : 
+                              memo.status === 'fail' ? 'status-fail' : '';
+            statusDisplay.innerHTML = `<span class="status-icon ${statusClass}">${statusIcon}</span>`;
+        } else {
+            statusDisplay.innerHTML = '';
         }
     }
 }
