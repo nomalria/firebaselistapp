@@ -1075,20 +1075,22 @@ function toggleMemos(listId) {
         const memoInput = document.getElementById(`newMemoInput-${listId}`);
         if (memoInput) {
             addClipboardShortcutListener(memoInput);
+            // 메모 입력창으로 포커싱 추가
+            memoInput.focus();
         }
         
         // 스크롤 위치 조정
         const listItem = memoSection.closest('.list-item');
         if (listItem) {
             setTimeout(() => {
-        const listItemRect = listItem.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        
+                const listItemRect = listItem.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
                 if (listItemRect.bottom + 300 > viewportHeight) {
-            window.scrollTo({
+                    window.scrollTo({
                         top: window.scrollY + (listItemRect.bottom + 300 - viewportHeight),
-                behavior: 'smooth'
-            });
+                        behavior: 'smooth'
+                    });
                 }
             }, 300); // 애니메이션 완료 후 스크롤 조정
         }
@@ -1921,8 +1923,9 @@ window.deleteMemo = deleteMemo;
         lists = sortListsByCreatedAt(lists, currentSortType);
         renderLists(currentPage);
         
+        // alert 메시지 제거
         const message = currentSortType === 'newest' ? '최신순으로 정렬됨' : '과거순으로 정렬됨';
-        alert(message);
+        // alert(message); - 제거
     };
     
     console.log('모든 함수들이 전역 스코프에 등록되었습니다.');
@@ -2117,8 +2120,7 @@ function addTemporaryToLists() {
         return;
     }
     
-    const confirmMessage = `${temporaryLists.length}개의 임시 목록을 정규 목록으로 추가하시겠습니까?`;
-    if (!confirm(confirmMessage)) return;
+    // confirm 창 제거하고 바로 실행
     
     // 임시 목록을 정규 목록에 추가
     temporaryLists.forEach(list => {
