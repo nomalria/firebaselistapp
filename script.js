@@ -46,7 +46,10 @@ async function saveToFirebase() {
         
         if (!db) {
             console.error('Firebase가 초기화되지 않았습니다.');
-            return;
+            // Firebase가 초기화되지 않은 경우 로컬 스토리지에만 저장
+            localStorage.setItem('lists', JSON.stringify(lists));
+            localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+            return false;
         }
 
         // 현재 Firebase에 저장된 데이터 가져오기
@@ -132,6 +135,12 @@ async function saveToFirebase() {
         }
 
         console.log('Firebase 저장 완료');
+        
+        // Firebase 저장이 성공했더라도 로컬 스토리지에도 저장 (백업용)
+        localStorage.setItem('lists', JSON.stringify(lists));
+        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+        console.log('로컬 스토리지 백업 완료');
+        
         return true;
 
     } catch (error) {
@@ -139,6 +148,7 @@ async function saveToFirebase() {
         // 오류 발생 시 로컬 스토리지에 저장
         localStorage.setItem('lists', JSON.stringify(lists));
         localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+        console.log('오류 발생으로 로컬 스토리지에 저장됨');
         return false;
     }
 }
@@ -153,21 +163,31 @@ async function loadFromFirebase() {
             return false;
         }
 
+        // 현재 메모리에 있는 데이터 길이 확인 (비교용)
+        const currentListsLength = lists.length;
+        const currentTempListsLength = temporaryLists.length;
+
         // 메인 목록 로드
         const mainListsDoc = await db.collection('lists').doc('main').get();
+        let firebaseLists = [];
         if (mainListsDoc.exists) {
-            lists = mainListsDoc.data().lists || [];
-        } else {
-            lists = [];
+            firebaseLists = mainListsDoc.data().lists || [];
         }
 
         // 임시 목록 로드
         const tempListsDoc = await db.collection('lists').doc('temporary').get();
+        let firebaseTempLists = [];
         if (tempListsDoc.exists) {
-            temporaryLists = tempListsDoc.data().lists || [];
-        } else {
-            temporaryLists = [];
+            firebaseTempLists = tempListsDoc.data().lists || [];
         }
+        
+        // Firebase 데이터가 비어있고 로컬 데이터가 있으면 로컬 데이터 유지
+        if (firebaseLists.length === 0 && currentListsLength > 0) {
+            console.log('Firebase 목록이 비어있지만 로컬 데이터가 있습니다. 로컬 데이터 유지.');
+            // 로컬 데이터 유지, lists 배열 그대로 두기
+        } else {
+            // Firebase 데이터 사용
+            lists = firebaseLists;
 
         // 데이터 구조 확인 및 수정
         lists = lists.map(list => ({
@@ -181,7 +201,17 @@ async function loadFromFirebase() {
                 losses: typeof memo.losses === 'number' ? memo.losses : 0
             }))
         }));
-
+        }
+        
+        // 임시 목록도 같은 로직 적용
+        if (firebaseTempLists.length === 0 && currentTempListsLength > 0) {
+            console.log('Firebase 임시 목록이 비어있지만 로컬 데이터가 있습니다. 로컬 데이터 유지.');
+            // 로컬 데이터 유지, temporaryLists 배열 그대로 두기
+        } else {
+            // Firebase 데이터 사용
+            temporaryLists = firebaseTempLists;
+            
+            // 데이터 구조 확인 및 수정
         temporaryLists = temporaryLists.map(list => ({
             ...list,
             id: list.id || Date.now().toString(),
@@ -193,6 +223,14 @@ async function loadFromFirebase() {
                 losses: typeof memo.losses === 'number' ? memo.losses : 0
             }))
         }));
+        }
+
+        console.log(`Firebase에서 ${lists.length}개의 목록과 ${temporaryLists.length}개의 임시 목록 로드됨`);
+        
+        // 로컬 스토리지에도 백업
+        localStorage.setItem('lists', JSON.stringify(lists));
+        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+        console.log('Firebase 데이터 로컬 스토리지에 백업 완료');
 
         return true;
     } catch (error) {
@@ -204,85 +242,136 @@ async function loadFromFirebase() {
 // 방덱 목록 불러오기 (메모 구조 변환 로직 추가)
 async function loadLists() {
     try {
-        // 먼저 Firebase에서 데이터 로드 시도
-        const loadSuccess = await loadFromFirebase();
+        console.log('목록 로드 시작...');
         
-        if (loadSuccess) {
-            // Firebase에서 데이터를 성공적으로 불러왔을 때
-            lists = lists.map(list => ({
-                ...list,
-                memos: (list.memos || []).map(memo => ({
-                    ...memo,
-                    wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                    losses: typeof memo.losses === 'number' ? memo.losses : 0
-                }))
-            }));
-
-            temporaryLists = temporaryLists.map(list => ({
-                ...list,
-                memos: (list.memos || []).map(memo => ({
-                    ...memo,
-                    wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                    losses: typeof memo.losses === 'number' ? memo.losses : 0
-                }))
-            }));
-
-            renderLists(1);
-            renderTemporaryLists();
-            updateStats();
-            return;
-        }
+        // 1. 먼저 로컬 스토리지에서 데이터 로드
+        const savedLists = localStorage.getItem('lists');
+        const savedTempLists = localStorage.getItem('temporaryLists');
         
-        // Firebase 로드 실패시 로컬 스토리지에서 로드
-    const savedLists = localStorage.getItem('lists');
-    if (savedLists) {
-        try {
-            const parsedLists = JSON.parse(savedLists);
-            lists = parsedLists.map(list => ({
-                ...list,
-                    memos: (list.memos || []).map(memo => ({
-                        id: memo.id || Date.now().toString() + Math.random().toString(16).slice(2),
-                        text: memo.text,
-                        status: memo.status || null,
-                        wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                        losses: typeof memo.losses === 'number' ? memo.losses : 0
-                    }))
-                }));
-        } catch (e) {
-            console.error("기존 목록 로딩/파싱 오류:", e);
-                localStorage.removeItem('lists');
+        let localDataExists = false;
+        
+        if (savedLists) {
+            lists = JSON.parse(savedLists);
+            console.log(`로컬 스토리지에서 ${lists.length}개의 목록 로드됨`);
+            localDataExists = lists.length > 0;
+        } else {
             lists = [];
         }
-    }
-
-    const savedTemporaryLists = localStorage.getItem('temporaryLists');
-    if (savedTemporaryLists) {
-        try {
-            const parsedTempLists = JSON.parse(savedTemporaryLists);
-            temporaryLists = parsedTempLists.map(list => ({
-                ...list,
-                    memos: (list.memos || []).map(memo => ({
-                        id: memo.id || Date.now().toString() + Math.random().toString(16).slice(2),
-                        text: memo.text,
-                        status: memo.status || null,
-                        wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                        losses: typeof memo.losses === 'number' ? memo.losses : 0
-                    }))
-                }));
-        } catch (e) {
-            console.error("임시 목록 로딩/파싱 오류:", e);
-            localStorage.removeItem('temporaryLists');
+        
+        if (savedTempLists) {
+            temporaryLists = JSON.parse(savedTempLists);
+            console.log(`로컬 스토리지에서 ${temporaryLists.length}개의 임시 목록 로드됨`);
+            localDataExists = localDataExists || temporaryLists.length > 0;
+        } else {
             temporaryLists = [];
         }
-    }
         
-        // 로컬 스토리지에서 데이터를 불러온 후에도 화면 업데이트
-    renderLists(1);
-    renderTemporaryLists();
-    updateStats();
+        // 모든 메모의 상태 자동 업데이트
+        updateAllMemoStatuses();
+        
+        // 2. 로컬 데이터 존재하면 일단 화면에 표시
+        if (localDataExists) {
+            renderTemporaryLists();
+            renderLists(currentPage);
+            updateStats();
+        }
+        
+        // 3. Firebase에서 데이터 로드 시도 (로컬 데이터가 없거나, 더 많은 데이터가 Firebase에 있을 수 있음)
+        let firebaseSuccess = false;
+        try {
+            // 로컬 데이터 백업 (Firebase에서 빈 데이터가 로드되는 경우를 대비)
+            const localListsBackup = JSON.parse(JSON.stringify(lists));
+            const localTempListsBackup = JSON.parse(JSON.stringify(temporaryLists));
+            
+            // Firebase에서 데이터 로드 시도
+            firebaseSuccess = await loadFromFirebase();
+            
+            // Firebase에서 데이터를 불러왔는데 로컬 데이터보다 적으면 로컬 데이터 복원
+            if (firebaseSuccess) {
+                if (localDataExists && lists.length < localListsBackup.length) {
+                    console.log('Firebase 데이터가 로컬 데이터보다 적습니다. 로컬 데이터 유지.');
+                    lists = localListsBackup;
+                    localStorage.setItem('lists', JSON.stringify(lists));
+        }
+        
+                if (localDataExists && temporaryLists.length < localTempListsBackup.length) {
+                    console.log('Firebase 임시 데이터가 로컬 데이터보다 적습니다. 로컬 데이터 유지.');
+                    temporaryLists = localTempListsBackup;
+                    localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+                }
+            }
+        } catch (error) {
+            console.error('Firebase 로드 오류:', error);
+            // Firebase 오류 시 이미 로컬 데이터로 초기화되어 있으므로 아무것도 안 함
+        }
+        
+        // 클립보드 아이템 로드
+        loadClipboardItems();
+        
+        // 최종 목록 렌더링
+        renderTemporaryLists();
+        renderLists(currentPage);
+        updateStats();
+        
+        // 클립보드 렌더링 및 이벤트 리스너 설정
+        renderClipboardItems();
+        attachClipboardEventListeners();
+        
+        // 모든 메모 입력창에 클립보드 단축키 이벤트 리스너 추가
+        document.querySelectorAll('[id^="newMemoInput-"]').forEach(input => {
+            addClipboardShortcutListener(input);
+        });
+        
+        // 클립보드 토글 버튼 이벤트 리스너 추가
+        const toggleClipboardBtn = document.querySelector('.toggle-clipboard-btn');
+        if (toggleClipboardBtn) {
+            // 기존 이벤트 리스너 제거 후 다시 추가
+            toggleClipboardBtn.removeEventListener('click', toggleClipboardContent);
+            toggleClipboardBtn.addEventListener('click', toggleClipboardContent);
+        }
+        
+        // 첫 로드 시 기존 데이터 구조 마이그레이션
+        migrateExistingData();
+        migrateStatusToWinLoss();
+        
+        // 조건부 토글 설정
+        setTimeout(() => {
+            // 상태 아이콘 체크
+            document.querySelectorAll('.memo-item').forEach(memoElement => {
+                checkMemoIcon(memoElement);
+            });
+            
+            // 초기 필터 설정
+            updateStats();
+            
+            // 초기화 상태 표시
+            console.log('초기화 완료: 모든 데이터 정상 로드됨');
+        }, 500);
+        
     } catch (error) {
-        console.error('데이터 로드 중 오류 발생:', error);
-        alert('데이터를 불러오는 중 오류가 발생했습니다.');
+        console.error('초기화 오류:', error);
+        
+        // 오류 발생 시 로컬 스토리지에서 마지막으로 다시 시도
+        const savedLists = localStorage.getItem('lists');
+        const savedTempLists = localStorage.getItem('temporaryLists');
+        
+        if (savedLists) {
+            lists = JSON.parse(savedLists);
+            console.log(`오류 발생, 로컬 스토리지에서 ${lists.length}개의 목록 복구됨`);
+        } else {
+                lists = [];
+            }
+        
+        if (savedTempLists) {
+            temporaryLists = JSON.parse(savedTempLists);
+            console.log(`오류 발생, 로컬 스토리지에서 ${temporaryLists.length}개의 임시 목록 복구됨`);
+        } else {
+                temporaryLists = [];
+        }
+        
+        renderTemporaryLists();
+        renderLists(currentPage);
+        updateStats();
     }
 }
 
@@ -510,7 +599,7 @@ function renderTemporaryLists() {
                 <span class="list-title-text">${list.title}</span>
                 <span class="memo-count">${list.memos.length}/50</span>
                 <div class="button-group">
-                    <button class="edit-btn" onclick="startEditList('${list.id}', true)">수정</button>
+                    <button class="edit-btn" onclick="startEditList('${list.id}', true)">편집</button>
                     <button class="delete-btn" onclick="deleteList('${list.id}', true)">삭제</button>
                 </div>
             </div>
@@ -544,6 +633,14 @@ function renderTemporaryLists() {
                 toggleMemos(listId);
             }
         });
+    });
+    
+    // 클립보드 단축키 이벤트 리스너 추가
+    temporaryLists.forEach(list => {
+        const memoInput = document.getElementById(`newMemoInput-${list.id}`);
+        if (memoInput) {
+            addClipboardShortcutListener(memoInput);
+        }
     });
 }
 
@@ -579,8 +676,8 @@ async function deleteList(listId, isTemporary = false) {
                 const docRef = db.collection('lists').doc(collectionName);
                 
                 // 해당 목록을 제외한 나머지 목록만 Firebase에 저장
-        if (isTemporary) {
-            temporaryLists = temporaryLists.filter(list => list.id.toString() !== listId.toString());
+                if (isTemporary) {
+                    temporaryLists = temporaryLists.filter(list => list.id.toString() !== listId.toString());
                     await docRef.set({
                         lists: temporaryLists,
                         updated_at: new Date().toISOString()
@@ -596,29 +693,29 @@ async function deleteList(listId, isTemporary = false) {
 
             // 로컬 데이터 업데이트 및 화면 갱신
             if (isTemporary) {
-            renderTemporaryLists();
-            saveTemporaryLists();
-        } else {
-            // 삭제 후 현재 페이지에 아이템이 남아있는지 확인
-            const totalItems = lists.filter(list => {
-                if (currentFilterType === 'all') return true;
-                if (currentFilterType === '4방덱') return list.title.startsWith('4방덱');
-                if (currentFilterType === '5방덱') return list.title.startsWith('5방덱');
-                if (currentFilterType === '기타') return !list.title.startsWith('4방덱') && !list.title.startsWith('5방덱');
-                return true;
-            }).length;
-                
-            const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-            // 현재 페이지가 삭제 후 존재하지 않으면 이전 페이지나 1페이지로 이동
-            if (currentPage > totalPages && totalPages > 0) {
-                renderLists(totalPages);
-            } else if (totalItems === 0) {
-                renderLists(1); // 아이템이 없으면 1페이지 (빈 화면)
+                renderTemporaryLists();
+                saveTemporaryLists();
             } else {
-                 renderLists(currentPage); // 현재 페이지 다시 로드
-            }
-            updateStats();
+                // 삭제 후 현재 페이지에 아이템이 남아있는지 확인
+                const totalItems = lists.filter(list => {
+                    if (currentFilterType === 'all') return true;
+                    if (currentFilterType === '4방덱') return list.title.startsWith('4방덱');
+                    if (currentFilterType === '5방덱') return list.title.startsWith('5방덱');
+                    if (currentFilterType === '기타') return !list.title.startsWith('4방덱') && !list.title.startsWith('5방덱');
+                    return true;
+                }).length;
+                
+                const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+                // 현재 페이지가 삭제 후 존재하지 않으면 이전 페이지나 1페이지로 이동
+                if (currentPage > totalPages && totalPages > 0) {
+                    renderLists(totalPages);
+                } else if (totalItems === 0) {
+                    renderLists(1); // 아이템이 없으면 1페이지 (빈 화면)
+                } else {
+                    renderLists(currentPage); // 현재 페이지 다시 로드
+                }
+                updateStats();
                 saveLists();
             }
         } catch (error) {
@@ -635,49 +732,53 @@ function addMemo(listId, isTemporary = false) {
 
     if (!memoText) return;
 
-        const targetLists = isTemporary ? temporaryLists : lists;
-        const list = targetLists.find(l => l.id.toString() === listId.toString());
+    const targetLists = isTemporary ? temporaryLists : lists;
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
     
     if (!list) return;
 
-             if (list.memos.length >= 50) {
-                alert('한 방덱에는 최대 50개의 메모만 추가할 수 있습니다.');
-                return;
-            }
+    if (list.memos.length >= 50) {
+        alert('한 방덱에는 최대 50개의 메모만 추가할 수 있습니다.');
+        return;
+    }
 
-    // 새 메모 객체 생성 (status 제거)
-            const newMemo = {
-                id: Date.now().toString() + Math.random().toString(16).slice(2),
+    // 새 메모 객체 생성
+    const newMemo = {
+        id: Date.now().toString() + Math.random().toString(16).slice(2),
         text: memoText,
+        status: null,
         wins: 0,
         losses: 0
-            };
+    };
 
     // 메모 추가
-            list.memos.push(newMemo);
-            
+    list.memos.push(newMemo);
+
     // 변경사항 저장
     if (isTemporary) {
-                saveTemporaryLists();
+        saveTemporaryLists();
     } else {
         saveLists();
-            }
+    }
 
     // UI 업데이트
-            const memoListContainer = document.querySelector(`#memoSection-${listId} .memo-list`);
-            if (memoListContainer) {
+    const memoListContainer = document.querySelector(`#memoSection-${listId} .memo-list`);
+    if (memoListContainer) {
         const memoHTML = createMemoItemHTML(newMemo, listId, isTemporary);
         memoListContainer.insertAdjacentHTML('beforeend', memoHTML);
     }
 
     // 메모 카운트 업데이트
-            const memoCountElement = document.querySelector(`.list-item[data-list-id="${listId}"] .memo-count`);
-            if (memoCountElement) {
-                memoCountElement.textContent = `${list.memos.length}/50`;
-            }
-            
+    const memoCountElement = document.querySelector(`.list-item[data-list-id="${listId}"] .memo-count`);
+    if (memoCountElement) {
+        memoCountElement.textContent = `${list.memos.length}/50`;
+    }
+
     // 입력 필드 초기화
-            memoInput.value = '';
+    memoInput.value = '';
+    
+    // 클립보드 단축키 이벤트 리스너 재등록
+    addClipboardShortcutListener(memoInput);
 }
 
 // 메모 삭제
@@ -715,6 +816,7 @@ function sortListsByCreatedAt(lists, sortType) {
 // 목록 렌더링 (페이지네이션 적용)
 function renderLists(page = 1) {
     currentPage = page;
+    
     const listsContainer = document.getElementById('lists');
     if (!listsContainer) return;
 
@@ -745,7 +847,7 @@ function renderLists(page = 1) {
                 <span class="list-title-text">${list.title}</span>
                 <span class="memo-count">${list.memos.length}/50</span>
                 <div class="button-group">
-                    <button class="edit-btn" onclick="startEditList('${list.id}')">수정</button>
+                    <button class="edit-btn" onclick="startEditList('${list.id}')">편집</button>
                     <button class="delete-btn" onclick="deleteList('${list.id}')">삭제</button>
                 </div>
             </div>
@@ -783,6 +885,14 @@ function renderLists(page = 1) {
 
     // 5. 페이지네이션 컨트롤 렌더링
     renderPaginationControls(filteredLists.length);
+    
+    // 6. 클립보드 단축키 이벤트 리스너 추가
+    paginatedLists.forEach(list => {
+        const memoInput = document.getElementById(`newMemoInput-${list.id}`);
+        if (memoInput) {
+            addClipboardShortcutListener(memoInput);
+        }
+    });
 }
 
 // 페이지네이션 컨트롤 렌더링 함수 (개선된 버전: 처음/끝 페이지 버튼 추가)
@@ -934,8 +1044,14 @@ function toggleMemos(listId) {
     // 현재 선택된 섹션 토글
     memoSection.classList.toggle('expanded');
     
-    // 스크롤 위치 조정 (섹션이 열릴 때만)
+    // 메모 섹션이 열릴 때 클립보드 단축키 이벤트 리스너 추가
     if (!isExpanded) {
+        const memoInput = document.getElementById(`newMemoInput-${listId}`);
+        if (memoInput) {
+            addClipboardShortcutListener(memoInput);
+        }
+        
+        // 스크롤 위치 조정
         const listItem = memoSection.closest('.list-item');
         if (listItem) {
             setTimeout(() => {
@@ -1153,40 +1269,63 @@ function cancelListEdit(listId, isTemporary = false) {
 
 // 메모 편집 시작
 function startEditMemo(listId, memoId, isTemporary = false) {
-    const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-    if (!memoItem) return;
+    const targetLists = isTemporary ? temporaryLists : lists;
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    if (!list) return;
+
+    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    if (!memo) return;
 
     // 기존에 편집 중인 메모가 있다면 편집 취소
     const editingMemos = document.querySelectorAll('.memo-item.editing');
     editingMemos.forEach(editingMemo => {
-        if (editingMemo.dataset.memoId !== memoId) {
-            cancelMemoEdit(listId, editingMemo.dataset.memoId, isTemporary);
-        }
+        const editingMemoId = editingMemo.dataset.memoId;
+        cancelMemoEdit(listId, editingMemoId, isTemporary);
     });
 
-    const memoText = memoItem.querySelector('.memo-text');
-    const editSection = memoItem.querySelector('.edit-section');
-    const editInput = memoItem.querySelector('.edit-memo-input');
-
-    if (memoText && editSection && editInput) {
+    const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
+    if (memoItem) {
         memoItem.classList.add('editing');
-        memoText.style.display = 'none';
-    editSection.style.display = 'block';
-        editInput.value = memoText.textContent;
-        editInput.focus();
-        editInput.select();
+        const memoContent = memoItem.querySelector('.memo-content');
+        
+        if (!memoContent) return;
+        
+        // 편집 섹션 생성 및 추가
+        const editSection = document.createElement('div');
+        editSection.className = 'edit-section';
+        editSection.id = `editMemoSection-${memoId}`;
+        editSection.innerHTML = `
+            <div class="input-group">
+                <textarea id="editMemoInput-${memoId}" rows="2" class="memo-edit-textarea">${memo.text}</textarea>
+                <div class="edit-buttons">
+                    <button onclick="saveMemoEdit('${listId}', '${memoId}', ${isTemporary})">저장</button>
+                    <button onclick="cancelMemoEdit('${listId}', '${memoId}', ${isTemporary})">취소</button>
+                </div>
+            </div>
+        `;
+        
+        // 기존 메모 내용 숨기고 편집 섹션 추가
+        memoContent.style.display = 'none';
+        memoContent.insertAdjacentElement('afterend', editSection);
+        
+        // 입력 필드에 포커스 및 자동 크기 조정
+        const textarea = editSection.querySelector('textarea');
+        textarea.focus();
+        textarea.select();
+        
+        // 클립보드 단축키 이벤트 리스너 추가
+        addClipboardShortcutListener(textarea);
     }
+    
+    editingMemoId = memoId;
 }
 
 // 메모 편집 저장
 function saveMemoEdit(listId, memoId, isTemporary = false) {
-    const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-    if (!memoItem) return;
+    const input = document.getElementById(`editMemoInput-${memoId}`);
+    if (!input) return;
 
-    const editInput = memoItem.querySelector('.edit-memo-input');
-    if (!editInput) return;
-
-    const newText = editInput.value.trim();
+    const newText = input.value.trim();
     if (!newText) {
         alert('메모 내용을 입력해주세요.');
         return;
@@ -1196,216 +1335,46 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
     const list = targetLists.find(l => l.id.toString() === listId.toString());
     if (!list) return;
 
-        const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
     if (!memo) return;
 
     memo.text = newText;
 
-    const memoText = memoItem.querySelector('.memo-text');
-    const editSection = memoItem.querySelector('.edit-section');
-
-    if (memoText && editSection) {
-        memoText.textContent = newText;
-        memoText.style.display = 'block';
-        editSection.style.display = 'none';
-        memoItem.classList.remove('editing');
-    }
-
-    if (isTemporary) {
-        saveTemporaryLists();
-        } else {
-        saveLists();
-    }
-}
-
-// 메모 편집 취소
-function cancelMemoEdit(listId, memoId, isTemporary = false) {
+    // UI 업데이트
     const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-    if (!memoItem) return;
-
-    const memoText = memoItem.querySelector('.memo-text');
-    const editSection = memoItem.querySelector('.edit-section');
-
-    if (memoText && editSection) {
-        memoText.style.display = 'block';
-        editSection.style.display = 'none';
-        memoItem.classList.remove('editing');
-    }
-}
-
-// 상태 메시지 업데이트 (버튼 아래에 표시되도록 수정)
-// triggerElement: 메시지를 유발한 버튼 요소
-function updateActionStatus(triggerElement, message, duration = 3000) {
-    const statusElement = document.getElementById('actionStatus');
-    if (!statusElement || !triggerElement) return;
-
-    // 기존 타임아웃 제거
-    if (statusTimeoutId) {
-        clearTimeout(statusTimeoutId);
-    }
-
-    // 버튼 위치 계산 (부모 컨테이너 기준)
-    const buttonRect = triggerElement.getBoundingClientRect();
-    const containerRect = triggerElement.parentElement.getBoundingClientRect();
-
-    const topOffset = buttonRect.bottom - containerRect.top + 5; // 버튼 아래 5px
-    const leftOffset = buttonRect.left - containerRect.left + buttonRect.width / 2; // 버튼 가로 중앙
-
-    // 상태 메시지 위치 및 내용 설정
-    statusElement.style.top = `${topOffset}px`;
-    statusElement.style.left = `${leftOffset}px`;
-    statusElement.textContent = message;
-    statusElement.style.opacity = 1;
-    statusElement.style.display = 'block'; // 보이도록 설정
-
-    // 일정 시간 후 메시지 숨기기
-    statusTimeoutId = setTimeout(() => {
-        statusElement.style.opacity = 0;
-        // 트랜지션 완료 후 display none 처리 (선택 사항)
-        setTimeout(() => {
-            if (statusElement.style.opacity === '0') { // opacity가 0일 때만 숨김
-                 statusElement.style.display = 'none';
+    if (memoItem) {
+        const memoText = memoItem.querySelector('.memo-text');
+        const memoContent = memoItem.querySelector('.memo-content');
+        const statusDisplay = memoItem.querySelector('.memo-status-display');
+        
+        if (memoText && memoContent) {
+            // 메모 텍스트만 업데이트
+            memoText.textContent = newText;
+            memoContent.style.display = ''; // 메모 내용 다시 표시
+        }
+        
+        // 상태 아이콘 업데이트
+        if (statusDisplay) {
+            const statusIcon = memo.status === 'success' ? '✅' : 
+                             memo.status === 'fail' ? '❌' : '';
+            
+            if (statusIcon) {
+                // CSS 클래스를 포함하여 상태 아이콘 업데이트
+                const statusClass = memo.status === 'success' ? 'status-success' : 
+                                   memo.status === 'fail' ? 'status-fail' : '';
+                statusDisplay.innerHTML = `<span class="status-icon ${statusClass}">${statusIcon}</span>`;
+            } else {
+                statusDisplay.innerHTML = '';
             }
-        }, 500); // transition 시간과 일치시킴
-    }, duration);
-}
-
-// 방덱 타입을 반환하는 함수 (4방덱, 5방덱, 기타)
-function getDeckType(title) {
-    if (title.startsWith('4방덱')) {
-        return '4방덱';
-    } else if (title.startsWith('5방덱')) {
-        return '5방덱';
-    } else {
-        return '기타';
-    }
-}
-
-// 임시 목록의 모든 항목을 기존 목록으로 이동 (1페이지로 이동)
-function addTemporaryToLists(event) {
-    if (temporaryLists.length === 0) {
-        updateActionStatus(event.currentTarget, "임시 목록이 비어 있습니다.", 2000);
-        return;
-    }
-
-    // 임시 목록의 항목들을 기존 목록의 시작 부분에 추가
-    lists = [...temporaryLists, ...lists];
-    
-    // 임시 목록 비우기
-    const addedCount = temporaryLists.length; // 추가된 개수 저장 (메시지 변경으로 실제 사용은 안 함)
-    temporaryLists = [];
-    
-    // 변경사항 저장
-    saveLists();
-    saveTemporaryLists();
-    
-    // 화면 다시 렌더링
-    renderLists(1);
-    renderTemporaryLists();
-    updateStats(); // 통계 업데이트
-    
-    // 성공 메시지 표시
-    updateActionStatus(event.currentTarget, "기존 목록에 추가됨", 3000);
-}
-
-// 목록 및 메모 정렬 함수 (1페이지로 이동)
-function sortAll(event) {
-    // 기존 목록 정렬
-    lists.sort((a, b) => {
-        // 먼저 4방덱, 5방덱, 기타 순으로 정렬
-        const typeA = getDeckType(a.title);
-        const typeB = getDeckType(b.title);
-        
-        if (typeA !== typeB) {
-            const order = { '4방덱': 1, '5방덱': 2, '기타': 3 };
-            return order[typeA] - order[typeB];
         }
         
-        // 같은 타입 내에서는 이름순 정렬
-        return a.title.localeCompare(b.title, 'ko');
-    });
-
-    // 기존 목록 내 메모 정렬
-    lists.forEach(list => {
-        if (list.memos && list.memos.length > 0) {
-            list.memos.sort((a, b) => {
-                const textA = a.text || '';
-                const textB = b.text || '';
-                const firstWordA = textA.split(' ')[0];
-                const firstWordB = textB.split(' ')[0];
-                return firstWordA.localeCompare(firstWordB, 'ko');
-            });
+        memoItem.classList.remove('editing');
+        
+        // 편집 섹션 제거
+        const editSection = document.getElementById(`editMemoSection-${memoId}`);
+        if (editSection) {
+            editSection.remove();
         }
-    });
-
-    // 임시 목록 정렬
-    temporaryLists.sort((a, b) => {
-        const typeA = getDeckType(a.title);
-        const typeB = getDeckType(b.title);
-        if (typeA !== typeB) {
-            const order = { '4방덱': 1, '5방덱': 2, '기타': 3 };
-            return order[typeA] - order[typeB];
-        }
-        return a.title.localeCompare(b.title, 'ko');
-    });
-
-    // 임시 목록 내 메모 정렬
-    temporaryLists.forEach(list => {
-         if (list.memos && list.memos.length > 0) {
-            list.memos.sort((a, b) => {
-                const textA = a.text || '';
-                const textB = b.text || '';
-                const firstWordA = textA.split(' ')[0];
-                const firstWordB = textB.split(' ')[0];
-                return firstWordA.localeCompare(firstWordB, 'ko');
-            });
-        }
-    });
-
-    // 변경 사항 저장
-    saveLists();
-    saveTemporaryLists();
-    
-    // 화면 다시 렌더링
-    renderLists(1);
-    
-    // 정렬 완료 메시지 표시
-    updateActionStatus(event.currentTarget, '모든 목록과 메모가 정렬되었습니다.', 3000);
-}
-
-// 선택된 항목 업데이트
-function updateSelectedItem(items) {
-    Array.from(items).forEach((item, index) => {
-        if (index === selectedIndex) {
-            item.classList.add('selected');
-            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        } else {
-            item.classList.remove('selected');
-        }
-    });
-}
-
-// 메모 상태 설정 함수 (UI 부분 업데이트로 수정)
-function setMemoStatus(listId, memoId, newStatus, isTemporary = false) {
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
-    if (!list) return;
-
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
-    if (!memo) return;
-
-    const previousStatus = memo.status;
-    
-    // 같은 상태를 다시 클릭하면 상태 제거
-    if (previousStatus === newStatus) {
-        memo.status = null;
-        memo.wins = 0;
-        memo.losses = 0;
-    } else {
-        // 새로운 상태 설정 및 승패 초기화
-        memo.status = newStatus;
-        memo.wins = newStatus === 'success' ? 1 : 0;
-        memo.losses = newStatus === 'fail' ? 1 : 0;
     }
 
     // 변경사항 저장
@@ -1415,540 +1384,158 @@ function setMemoStatus(listId, memoId, newStatus, isTemporary = false) {
         saveTemporaryLists();
     }
 
+    editingMemoId = null;
+}
+
+// 승패 비율에 따라 메모 상태를 자동으로 설정하는 함수
+function updateMemoStatusByWinRate(memo) {
+    // 승패가 없는 경우 상태 없음
+    if (memo.wins === 0 && memo.losses === 0) {
+        memo.status = null;
+        return;
+    }
+
+    const total = memo.wins + memo.losses;
+    const winRate = (memo.wins / total) * 100;
+    
+    // 승률이 51% 이상이면 성공 상태로 설정
+    if (winRate >= 51) {
+        memo.status = 'success';
+    }
+    // 패배율이 51% 이상이면 실패 상태로 설정
+    else if ((memo.losses / total) * 100 >= 51) {
+        memo.status = 'fail';
+    }
+    // 그 외의 경우(50:50)는 상태 없음
+    else {
+        memo.status = null;
+    }
+}
+
+// 메모의 승패 카운터 업데이트 함수
+function updateCounter(listId, memoId, counterType, change, isTemporary = false) {
+    // 대상 목록 배열 결정
+    const targetLists = isTemporary ? temporaryLists : lists;
+    
+    // 목록 찾기
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    if (!list) return;
+
+    // 메모 찾기
+    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    if (!memo) return;
+
+    // 승수 또는 패수 업데이트
+    if (counterType === 'wins') {
+        memo.wins = (typeof memo.wins === 'number' ? memo.wins : 0) + change;
+        // 음수가 되지 않도록 처리
+        if (memo.wins < 0) memo.wins = 0;
+    } else if (counterType === 'losses') {
+        memo.losses = (typeof memo.losses === 'number' ? memo.losses : 0) + change;
+        // 음수가 되지 않도록 처리
+        if (memo.losses < 0) memo.losses = 0;
+    }
+    
+    // 승패 비율에 따라 상태 자동 업데이트
+    updateMemoStatusByWinRate(memo);
+    
+    // 변경 사항 저장
+    if (isTemporary) {
+        saveTemporaryLists();
+    } else {
+        saveLists();
+    }
+
     // UI 업데이트
     const memoElement = document.querySelector(`.list-item[data-list-id="${listId}"] .memo-item[data-memo-id="${memoId}"]`);
     if (memoElement) {
-        // 상태 아이콘 업데이트
-        const memoText = memoElement.querySelector('.memo-text');
-        if (memoText) {
-            const statusIcon = memo.status === 'success' ? '✅' : 
-                             memo.status === 'fail' ? '❌' : '';
-            memoText.innerHTML = `${statusIcon} ${memo.text}`;
-        }
-
-        // 승률 계산 및 표시
+        // 승률 계산
         const winRate = (memo.wins + memo.losses) > 0 ? 
             ((memo.wins / (memo.wins + memo.losses)) * 100).toFixed(1) : 0;
+        
+        // 카운터 텍스트 업데이트
         const counterText = memoElement.querySelector('.counter-text');
         if (counterText) {
             counterText.textContent = `${memo.wins}승 ${memo.losses}패 (${winRate}%)`;
         }
 
+        // 상태 아이콘 업데이트
+        const statusDisplay = memoElement.querySelector('.memo-status-display');
+        if (statusDisplay) {
+            const statusIcon = memo.status === 'success' ? '✅' : 
+                             memo.status === 'fail' ? '❌' : '';
+            
+            if (statusIcon) {
+                // CSS 클래스를 포함하여 상태 아이콘 업데이트
+                const statusClass = memo.status === 'success' ? 'status-success' : 
+                                   memo.status === 'fail' ? 'status-fail' : '';
+                statusDisplay.innerHTML = `<span class="status-icon ${statusClass}">${statusIcon}</span>`;
+            } else {
+                statusDisplay.innerHTML = '';
+            }
+        }
+        
         // 상태 버튼 활성화 상태 업데이트
         const successBtn = memoElement.querySelector('.success-btn');
         const failBtn = memoElement.querySelector('.fail-btn');
-        if (successBtn) successBtn.classList.toggle('active', memo.status === 'success');
-        if (failBtn) failBtn.classList.toggle('active', memo.status === 'fail');
+        
+        if (successBtn) {
+            successBtn.classList.toggle('active', memo.status === 'success');
+        }
+        
+        if (failBtn) {
+            failBtn.classList.toggle('active', memo.status === 'fail');
+        }
     }
 }
-
-// 백틱 키로 열린 메모 섹션 닫기
-document.addEventListener('keydown', function(event) {
-    // 입력 필드(input, textarea)에 포커스가 있을 때는 작동하지 않음
-    const activeElement = document.activeElement;
-    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-        return;
-    }
-
-    if (event.key === '`') { // 백틱 키 확인
-        console.log('Backtick key pressed');
-        // 현재 열려있는 메모 섹션을 찾음
-        const expandedMemoSection = document.querySelector('.memo-section.expanded');
-        
-        if (expandedMemoSection) {
-            // 해당 메모 섹션의 부모 list-item에서 listId를 가져옴
-            const listItem = expandedMemoSection.closest('.list-item');
-            if (listItem) {
-                const listId = listItem.dataset.listId;
-                console.log(`Closing memo section for list ID: ${listId}`);
-                toggleMemos(listId); // 기존 토글 함수를 사용하여 닫음
-            }
-        }
-    }
-});
-
-// 메모에서 아이콘 제거하는 함수
-function removeStatusIcons() {
-    console.log('메모 아이콘 제거 시작...');
-
-    // 메인 목록 처리
-    lists = lists.map(list => ({
-        ...list,
-        memos: list.memos.map(memo => {
-            // 승패 데이터 보존
-            const wins = typeof memo.wins === 'number' ? memo.wins : 0;
-            const losses = typeof memo.losses === 'number' ? memo.losses : 0;
-            
-            // 텍스트에서 아이콘 제거
-            let cleanText = memo.text;
-            if (cleanText.startsWith('✅ ')) {
-                cleanText = cleanText.substring(2);
-            } else if (cleanText.startsWith('❌ ')) {
-                cleanText = cleanText.substring(2);
-            }
-            
-            return {
-                ...memo,
-                text: cleanText,
-                wins: wins,
-                losses: losses,
-                status: null // status 필드 제거
-            };
-        })
-    }));
-
-    // 임시 목록 처리
-    temporaryLists = temporaryLists.map(list => ({
-        ...list,
-        memos: list.memos.map(memo => {
-            // 승패 데이터 보존
-            const wins = typeof memo.wins === 'number' ? memo.wins : 0;
-            const losses = typeof memo.losses === 'number' ? memo.losses : 0;
-            
-            // 텍스트에서 아이콘 제거
-            let cleanText = memo.text;
-            if (cleanText.startsWith('✅ ')) {
-                cleanText = cleanText.substring(2);
-            } else if (cleanText.startsWith('❌ ')) {
-                cleanText = cleanText.substring(2);
-            }
-            
-            return {
-                ...memo,
-                text: cleanText,
-                wins: wins,
-                losses: losses,
-                status: null // status 필드 제거
-            };
-        })
-    }));
-
-    // 변경사항 저장
-    saveLists();
-    saveTemporaryLists();
-    
-    // UI 업데이트
-    renderLists(currentPage);
-    renderTemporaryLists();
-    
-    console.log('메모 아이콘 제거 완료');
-}
-
-// 승패 데이터 복구 함수
-async function restoreWinLossData() {
-    console.log('승패 데이터 복구 시작...');
-
-    try {
-        // Firebase에서 데이터 가져오기
-        const db = window.db;
-        if (!db) {
-            console.error('Firebase가 초기화되지 않았습니다.');
-            return;
-        }
-
-        // 메인 목록 데이터 가져오기
-        const mainListsDoc = await db.collection('lists').doc('main').get();
-        if (mainListsDoc.exists) {
-            const mainData = mainListsDoc.data();
-            if (mainData && mainData.lists) {
-                lists = mainData.lists.map(list => ({
-                    ...list,
-                    memos: list.memos.map(memo => {
-                        // 텍스트에서 아이콘 확인
-                        let wins = typeof memo.wins === 'number' ? memo.wins : 0;
-                        let losses = typeof memo.losses === 'number' ? memo.losses : 0;
-                        
-                        // 아이콘이 있고 승패 데이터가 0인 경우에만 아이콘 기반으로 설정
-                        if (wins === 0 && losses === 0) {
-                            if (memo.text.startsWith('✅')) {
-                                wins = 1;
-                            } else if (memo.text.startsWith('❌')) {
-                                losses = 1;
-                            }
-                        }
-                        
-                        return {
-                            ...memo,
-                            wins: wins,
-                            losses: losses
-                        };
-                    })
-                }));
-            }
-        }
-
-        // 임시 목록 데이터 가져오기
-        const tempListsDoc = await db.collection('lists').doc('temporary').get();
-        if (tempListsDoc.exists) {
-            const tempData = tempListsDoc.data();
-            if (tempData && tempData.lists) {
-                temporaryLists = tempData.lists.map(list => ({
-                    ...list,
-                    memos: list.memos.map(memo => {
-                        // 텍스트에서 아이콘 확인
-                        let wins = typeof memo.wins === 'number' ? memo.wins : 0;
-                        let losses = typeof memo.losses === 'number' ? memo.losses : 0;
-                        
-                        // 아이콘이 있고 승패 데이터가 0인 경우에만 아이콘 기반으로 설정
-                        if (wins === 0 && losses === 0) {
-                            if (memo.text.startsWith('✅')) {
-                                wins = 1;
-                            } else if (memo.text.startsWith('❌')) {
-                                losses = 1;
-                            }
-                        }
-                        
-                        return {
-                            ...memo,
-                            wins: wins,
-                            losses: losses
-                        };
-                    })
-                }));
-            }
-        }
-
-        // 변경사항 저장
-        await saveToFirebase();
-        
-        // UI 업데이트
-        renderLists(currentPage);
-        renderTemporaryLists();
-        
-        console.log('승패 데이터 복구 완료');
-        alert('승패 데이터가 복구되었습니다.');
-        
-    } catch (error) {
-        console.error('승패 데이터 복구 중 오류:', error);
-        alert('승패 데이터 복구 중 오류가 발생했습니다.');
-    }
-}
-
-// DOMContentLoaded 이벤트 리스너 수정
-document.addEventListener('DOMContentLoaded', async function() {
-    await loadLists();
-    
-    // 클립보드 토글 버튼 이벤트 리스너
-    const toggleClipboardBtn = document.querySelector('.toggle-clipboard-btn');
-    const clipboardContent = document.querySelector('.clipboard-content');
-    
-    if (toggleClipboardBtn && clipboardContent) {
-        toggleClipboardBtn.addEventListener('click', function() {
-            clipboardContent.classList.toggle('collapsed');
-            this.textContent = clipboardContent.classList.contains('collapsed') ? '펼치기' : '접기';
-        });
-    }
-
-    // 클립보드 관련 초기화
-    loadClipboardItems();
-    
-    // 검색 입력 필드에 이벤트 리스너 추가
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            const query = this.value.trim();
-            const words = query.split(' ');
-            const lastWord = words[words.length - 1].toLowerCase();
-
-            // 마지막 단어가 있을 때만 추천 단어 표시
-            if (lastWord) {
-                // 모든 목록의 제목을 단어로 분리하여 배열 생성
-                const allWords = Array.from(new Set(
-                    lists.concat(temporaryLists)
-                        .map(list => list.title.split(' ')) // 각 제목을 단어로 분리
-                        .flat() // 2차원 배열을 1차원으로 평탄화
-                        .filter(word => word.toLowerCase().includes(lastWord)) // 입력된 단어와 일치하는 것만 필터링
-                ));
-
-                // 최대 5개까지 표시
-                suggestions = allWords.slice(0, 5);
-                showSuggestions(suggestions, words, lastWord);
-            } else {
-                hideSuggestions();
-            }
-        });
-
-        // 키보드 이벤트 처리
-        searchInput.addEventListener('keydown', function(e) {
-            const searchResults = document.getElementById('searchResults');
-            const items = searchResults.getElementsByClassName('list-item');
-            
-            if (items.length === 0) return;
-            
-            switch(e.key) {
-                case 'ArrowDown':
-                    e.preventDefault();
-                    selectedIndex = (selectedIndex + 1) % items.length;
-                    updateSelectedItem(items);
-                    break;
-                case 'ArrowUp':
-                    e.preventDefault();
-                    selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-                    updateSelectedItem(items);
-                    break;
-                case 'Tab':
-                    e.preventDefault();
-                    if (e.shiftKey) {
-                        selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-                    } else {
-                        selectedIndex = (selectedIndex + 1) % items.length;
-                    }
-                    updateSelectedItem(items);
-                    break;
-                case 'Enter':
-                    e.preventDefault();
-                    if (selectedIndex >= 0 && selectedIndex < items.length) {
-                        const word = items[selectedIndex].dataset.word;
-                        const currentWords = this.value.trim().split(' ');
-                        currentWords[currentWords.length - 1] = word;
-                        this.value = currentWords.join(' ') + ' ';
-                        searchResults.innerHTML = '';
-                        selectedIndex = -1;
-                    }
-                    break;
-                case 'Escape':
-                    searchResults.innerHTML = '';
-                    selectedIndex = -1;
-                    break;
-            }
-        });
-    }
-    
-    // 백업 파일 로드 버튼 이벤트 리스너
-    const loadBackupBtn = document.getElementById('loadBackupBtn');
-    const backupFileInput = document.getElementById('backupFileInput');
-    
-    if (loadBackupBtn && backupFileInput) {
-        loadBackupBtn.addEventListener('click', () => {
-            backupFileInput.click();
-        });
-        
-        backupFileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                await loadBackupFile(file);
-                event.target.value = '';
-            }
-        });
-    }
-
-    // 백업 드롭다운 버튼 이벤트 리스너
-    const backupBtn = document.getElementById('backupBtn');
-    const dropdownContent = document.querySelector('.backup-dropdown-content');
-    
-    if (backupBtn && dropdownContent) {
-        // 드롭다운 토글
-        backupBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            dropdownContent.classList.toggle('show');
-        });
-
-        // 다른 곳 클릭시 드롭다운 닫기
-        document.addEventListener('click', function(e) {
-            if (!dropdownContent.contains(e.target) && !backupBtn.contains(e.target)) {
-                dropdownContent.classList.remove('show');
-            }
-        });
-    }
-
-    // 백업 파일 입력 필드 이벤트 리스너
-    document.getElementById('backupFile').addEventListener('change', async function(event) {
-        const file = event.target.files[0];
-        if (file) {
-            try {
-                await loadBackupFile(file);
-                alert('백업 파일이 성공적으로 로드되었습니다.');
-            } catch (error) {
-                console.error('백업 파일 로드 중 오류:', error);
-                alert('백업 파일 로드 중 오류가 발생했습니다.');
-            }
-        }
-    });
-});
 
 // 메모 아이템 HTML 생성 함수
 function createMemoItemHTML(memo, listId, isTemporary) {
     const wins = typeof memo.wins === 'number' ? memo.wins : 0;
     const losses = typeof memo.losses === 'number' ? memo.losses : 0;
     const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
-    const comments = memo.comments || [];
-    const commentCount = comments.length;
+    
+    // 상태 아이콘 결정 및 클래스 추가
+    const statusIcon = memo.status === 'success' ? '✅' : 
+                      memo.status === 'fail' ? '❌' : '';
+    
+    // 상태 아이콘에 대한 CSS 클래스 결정
+    const statusClass = memo.status === 'success' ? 'status-success' : 
+                       memo.status === 'fail' ? 'status-fail' : '';
 
     return `
         <div class="memo-item" data-memo-id="${memo.id}">
             <div class="memo-content">
-                <div class="memo-text">${memo.text}</div>
-                <button class="comment-toggle" onclick="toggleComments('${listId}', '${memo.id}', ${isTemporary})">
-                    댓글 ${commentCount}개
-                </button>
-                <div class="comment-section" style="display: none;">
-                    <div class="comments-list">
-                        ${comments.map(comment => `
-                            <div class="comment-item" data-comment-id="${comment.id}">
-                                <span class="comment-text">${comment.text}</span>
-                                <button class="delete-comment" onclick="deleteComment('${listId}', '${memo.id}', '${comment.id}', ${isTemporary})">×</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="comment-input-group">
-                        <input type="text" class="comment-input" placeholder="댓글을 입력하세요..." 
-                               onkeypress="if(event.key === 'Enter') addComment('${listId}', '${memo.id}', this, ${isTemporary})">
-                        <button onclick="addComment('${listId}', '${memo.id}', this.previousElementSibling, ${isTemporary})">추가</button>
-                    </div>
-                </div>
-                <div class="edit-section" style="display: none;">
-                    <div class="input-group">
-                        <input type="text" class="edit-memo-input" value="${memo.text.replace(/"/g, '&quot;')}" 
-                               onkeypress="if(event.key === 'Enter') saveMemoEdit('${listId}', '${memo.id}', ${isTemporary})" />
-                        <div class="edit-buttons">
-                            <button class="save-btn" onclick="saveMemoEdit('${listId}', '${memo.id}', ${isTemporary})">저장</button>
-                            <button class="cancel-btn" onclick="cancelMemoEdit('${listId}', '${memo.id}', ${isTemporary})">취소</button>
-                        </div>
-                    </div>
+            <div class="memo-text">
+                    ${memo.text}
+            </div>
+                <div class="memo-stats">
+                <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
                 </div>
             </div>
             <div class="memo-actions">
-                <div class="memo-counter">
-                    <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
-                    <div class="counter-buttons">
-                        <button class="counter-btn plus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', 1, ${isTemporary})">+승</button>
-                        <button class="counter-btn minus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', -1, ${isTemporary})">-승</button>
-                        <button class="counter-btn plus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', 1, ${isTemporary})">+패</button>
-                        <button class="counter-btn minus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', -1, ${isTemporary})">-패</button>
-                    </div>
+                <div class="memo-status-display">
+                    ${statusIcon ? `<span class="status-icon ${statusClass}">${statusIcon}</span>` : ''}
                 </div>
-                <div class="memo-buttons">
-                    <button class="edit-btn" onclick="startEditMemo('${listId}', '${memo.id}', ${isTemporary})">수정</button>
-                    <button class="delete-btn" onclick="deleteMemo('${listId}', '${memo.id}', ${isTemporary})">삭제</button>
+                <div class="memo-counter">
+                <button class="counter-btn plus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', 1, ${isTemporary})">+승</button>
+                <button class="counter-btn minus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', -1, ${isTemporary})">-승</button>
+                <button class="counter-btn plus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', 1, ${isTemporary})">+패</button>
+                <button class="counter-btn minus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', -1, ${isTemporary})">-패</button>
+                </div>
+                <div class="memo-status-buttons">
+                <button class="status-btn success-btn ${memo.status === 'success' ? 'active' : ''}" 
+                    onclick="setMemoStatus('${listId}', '${memo.id}', 'success', ${isTemporary})">✅</button>
+                <button class="status-btn fail-btn ${memo.status === 'fail' ? 'active' : ''}" 
+                    onclick="setMemoStatus('${listId}', '${memo.id}', 'fail', ${isTemporary})">❌</button>
+            </div>
+            <div class="memo-buttons">
+                <button class="edit-btn" onclick="startEditMemo('${listId}', '${memo.id}', ${isTemporary})">수정</button>
+                <button class="delete-btn" onclick="deleteMemo('${listId}', '${memo.id}', ${isTemporary})">삭제</button>
                 </div>
             </div>
         </div>
     `;
-}
-
-// 댓글 토글 함수
-function toggleComments(listId, memoId, isTemporary) {
-    const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-    if (!memoItem) return;
-
-    const commentSection = memoItem.querySelector('.comment-section');
-    if (commentSection) {
-        const isHidden = commentSection.style.display === 'none';
-        commentSection.style.display = isHidden ? 'block' : 'none';
-    }
-}
-
-// 댓글 추가 함수
-function addComment(listId, memoId, inputElement, isTemporary) {
-    if (!inputElement) return;
-    
-    const commentText = inputElement.value.trim();
-    if (!commentText) return;
-
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
-    if (!list) return;
-
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
-    if (!memo) return;
-
-    // 댓글 배열이 없으면 생성
-    if (!memo.comments) {
-        memo.comments = [];
-    }
-
-    // 새 댓글 추가
-    const newComment = {
-        id: Date.now().toString() + Math.random().toString(16).slice(2),
-        text: commentText,
-        createdAt: new Date().toISOString()
-    };
-
-    memo.comments.push(newComment);
-
-    // UI 업데이트
-    const commentsList = inputElement.closest('.comment-section').querySelector('.comments-list');
-    if (commentsList) {
-        const commentHTML = `
-            <div class="comment-item">
-                <span class="comment-text">${commentText}</span>
-                <button class="delete-comment" onclick="deleteComment('${listId}', '${memoId}', '${newComment.id}', ${isTemporary})">×</button>
-            </div>
-        `;
-        commentsList.insertAdjacentHTML('beforeend', commentHTML);
-    }
-
-    // 입력 필드 초기화
-    inputElement.value = '';
-
-    // 댓글 수 업데이트
-    const commentToggle = inputElement.closest('.memo-content').querySelector('.comment-toggle');
-    if (commentToggle) {
-        commentToggle.textContent = `댓글 ${memo.comments.length}개`;
-    }
-
-    // 변경사항 저장
-    if (isTemporary) {
-        saveTemporaryLists();
-        } else {
-        saveLists();
-    }
-}
-
-// 댓글 삭제 함수
-function deleteComment(listId, memoId, commentId, isTemporary) {
-    if (!confirm('댓글을 삭제하시겠습니까?')) return;
-
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
-    if (!list) return;
-
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
-    if (!memo || !memo.comments) return;
-
-    // 댓글 삭제
-    const previousLength = memo.comments.length;
-    memo.comments = memo.comments.filter(c => c.id.toString() !== commentId.toString());
-
-    // 실제로 삭제되었는지 확인
-    if (memo.comments.length < previousLength) {
-        // UI 업데이트
-        const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-        if (memoItem) {
-            // 댓글 섹션 전체를 다시 렌더링
-            const commentSection = memoItem.querySelector('.comment-section');
-            if (commentSection) {
-                commentSection.innerHTML = `
-                    <div class="comments-list">
-                        ${memo.comments.map(comment => `
-                            <div class="comment-item" data-comment-id="${comment.id}">
-                                <span class="comment-text">${comment.text}</span>
-                                <button class="delete-comment" onclick="deleteComment('${listId}', '${memoId}', '${comment.id}', ${isTemporary})">×</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="comment-input-group">
-                        <input type="text" class="comment-input" placeholder="댓글을 입력하세요..." 
-                               onkeypress="if(event.key === 'Enter') addComment('${listId}', '${memoId}', this, ${isTemporary})">
-                        <button onclick="addComment('${listId}', '${memoId}', this.previousElementSibling, ${isTemporary})">추가</button>
-                    </div>
-                `;
-            }
-
-            // 댓글 수 업데이트
-            const commentToggle = memoItem.querySelector('.comment-toggle');
-            if (commentToggle) {
-                commentToggle.textContent = `댓글 ${memo.comments.length}개`;
-            }
-        }
-
-        // 변경사항 저장
-        if (isTemporary) {
-            saveTemporaryLists();
-        } else {
-            saveLists();
-        }
-    }
 }
 
 // 클립보드 관련 함수들
@@ -1957,32 +1544,37 @@ function loadClipboardItems() {
         const saved = localStorage.getItem('clipboardItems');
         if (saved) {
             clipboardItems = JSON.parse(saved);
-        }
-        if (!Array.isArray(clipboardItems) || clipboardItems.length === 0) {
-            clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
+            if (!Array.isArray(clipboardItems) || clipboardItems.length !== MAX_CLIPBOARD_ITEMS) {
+                clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
+            }
         }
         renderClipboardItems();
     } catch (error) {
         console.error('클립보드 로드 중 오류:', error);
         clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
-        renderClipboardItems();
     }
 }
 
-// 클립보드 아이템 렌더링
+// 클립보드 렌더링
 function renderClipboardItems() {
     const container = document.querySelector('.clipboard-items');
     if (!container) return;
     
-    container.innerHTML = clipboardItems.map((item, index) => `
-        <div class="clipboard-item">
+    container.innerHTML = '';
+    
+    // 기존 클립보드 아이템 렌더링
+    clipboardItems.forEach((item, index) => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'clipboard-item';
+        itemElement.innerHTML = `
             <div class="clipboard-item-header">
                 <span class="shortcut">Alt + ${index + 1}</span>
             </div>
             <textarea class="clipboard-text" data-index="${index}" 
                 placeholder="클립보드 ${index + 1}번">${item}</textarea>
-        </div>
-    `).join('');
+        `;
+        container.appendChild(itemElement);
+    });
 
     // 새 아이템 추가 버튼 (최대 9개까지만)
     if (clipboardItems.length < MAX_CLIPBOARD_ITEMS) {
@@ -2054,277 +1646,318 @@ function handleClipboardShortcut(event, inputElement) {
 // 클립보드 단축키 이벤트 리스너 추가
 function addClipboardShortcutListener(element) {
     if (element) {
-        element.addEventListener('keydown', function(event) {
+        // 기존 클립보드 이벤트 리스너 제거
+        element.removeEventListener('keydown', handleClipboardKeydown);
+        
+        // 새 이벤트 리스너 추가
+        element.addEventListener('keydown', handleClipboardKeydown);
+    }
+}
+
+// 클립보드 단축키 키다운 핸들러
+function handleClipboardKeydown(event) {
             handleClipboardShortcut(event, this);
-        });
-    }
 }
 
-// status 관련 스타일 제거
-const style = document.createElement('style');
-style.textContent = `
-    .memo-item {
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        margin-bottom: 10px;
-        padding: 10px;
-        position: relative;
-    }
-
-    .memo-text {
-        margin-bottom: 10px;
-        word-break: break-all;
-    }
-
-    .memo-counter {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        margin-bottom: 10px;
-    }
-
-    .counter-text {
-        margin-right: 10px;
-        font-size: 0.9em;
-        color: #666;
-    }
-
-    .counter-btn {
-        padding: 2px 5px;
-        font-size: 0.8em;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-        background-color: #f8f9fa;
-        cursor: pointer;
-    }
-
-    .counter-btn:hover {
-        background-color: #e9ecef;
-    }
-
-    .memo-buttons {
-        display: flex;
-        gap: 5px;
-    }
-
-    .edit-btn, .delete-btn {
-        padding: 3px 8px;
-        font-size: 0.9em;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-        background-color: #fff;
-        cursor: pointer;
-    }
-
-    .edit-btn:hover, .delete-btn:hover {
-        background-color: #f8f9fa;
-    }
-
-    .delete-btn {
-        color: #dc3545;
-    }
-`;
-document.head.appendChild(style);
-
-// 백업 파일 로드 및 처리 함수
-async function loadBackupFile(file) {
+// JSON 불러오기 함수
+function importJsonFile() {
     try {
-        const fileContent = await file.text();
-        // JSON 파싱 전에 후행 쉼표 제거
-        const cleanedContent = cleanJsonString(fileContent);
-        const backupData = JSON.parse(cleanedContent);
-        
-        console.log('백업 파일 로드 시작...');
-        
-        // Firebase 초기화 확인
-        if (!window.db) {
-            throw new Error('Firebase가 초기화되지 않았습니다.');
-        }
-
-        // 백업 데이터 구조 확인
-        let listsToProcess = [];
-        if (backupData.lists) {
-            listsToProcess = backupData.lists;
-        } else if (Array.isArray(backupData)) {
-            listsToProcess = backupData;
-        } else {
-            throw new Error('올바르지 않은 백업 파일 형식입니다.');
-        }
-
-        // 현재 데이터 로드
-        const currentDoc = await db.collection('lists').doc('main').get();
-        let currentLists = [];
-        if (currentDoc.exists) {
-            currentLists = currentDoc.data().lists || [];
-        }
-
-        // 백업 데이터 처리
-        listsToProcess.forEach(backupList => {
-            const existingList = currentLists.find(list => 
-                list.title === backupList.title
-            );
-            
-            if (existingList) {
-                // 기존 목록이 있는 경우, 메모 병합
-                backupList.memos.forEach(backupMemo => {
-                    const existingMemo = existingList.memos.find(memo => 
-                        memo.text === backupMemo.text
-                    );
-                    
-                    if (!existingMemo) {
-                        // 새로운 메모 추가
-                        existingList.memos.push({
-                            id: Date.now().toString() + Math.random().toString(16).slice(2),
-                            text: backupMemo.text,
-                            wins: backupMemo.wins || 0,
-                            losses: backupMemo.losses || 0,
-                            comments: backupMemo.comments || []
-                        });
-                    }
-                });
-            } else {
-                // 새로운 목록 추가
-                currentLists.push({
-                    id: Date.now().toString() + Math.random().toString(16).slice(2),
-                    title: backupList.title,
-                    createdAt: backupList.createdAt || formatCreatedAt(new Date().toISOString()),
-                    memos: backupList.memos.map(memo => ({
-                        id: Date.now().toString() + Math.random().toString(16).slice(2),
-                        text: memo.text,
-                        wins: memo.wins || 0,
-                        losses: memo.losses || 0,
-                        comments: memo.comments || []
-                    }))
-                });
-            }
-        });
-
-        // Firebase에 저장
-        await db.collection('lists').doc('main').set({
-            lists: currentLists,
-            updated_at: new Date().toISOString()
-        });
-
-        // 전역 변수 업데이트
-        window.lists = currentLists;
-        lists = currentLists;  // 전역 변수 직접 업데이트
-        
-        // 페이지네이션 초기화
-        currentPage = 1;
-        
-        // UI 업데이트
-        await loadLists();  // 전체 데이터 다시 로드
-        
-        console.log('백업 파일 로드 완료');
-        
+        const fileInput = document.getElementById('jsonFileInput');
+        fileInput.click();
     } catch (error) {
-        console.error('백업 파일 처리 중 오류:', error);
-        throw error;
+        console.error('파일 선택 오류:', error);
+        updateActionStatus(document.getElementById('importJsonBtn'), '파일 선택 오류', 3000);
     }
 }
 
-// 승패 카운터 업데이트 함수
-function updateCounter(listId, memoId, type, value, isTemporary = false) {
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
-    if (!list) return;
+// JSON 파일 처리 함수
+function handleJsonFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-        const memo = list.memos.find(m => m.id.toString() === memoId.toString());
-    if (!memo) return;
-
-    // 값이 0 미만이 되지 않도록 체크
-    if (type === 'wins') {
-        memo.wins = Math.max(0, (memo.wins || 0) + value);
-    } else if (type === 'losses') {
-        memo.losses = Math.max(0, (memo.losses || 0) + value);
-    }
-
-    // UI 업데이트
-    const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-    if (memoItem) {
-        const counterText = memoItem.querySelector('.counter-text');
-        if (counterText) {
-            const winRate = (memo.wins + memo.losses) > 0 ? 
-                ((memo.wins / (memo.wins + memo.losses)) * 100).toFixed(1) : 0;
-            counterText.textContent = `${memo.wins}승 ${memo.losses}패 (${winRate}%)`;
-        }
-    }
-
-    // 변경사항 저장
-    if (isTemporary) {
-        saveTemporaryLists();
-                    } else {
-        saveLists();
-    }
-}
-
-// JSON 추출 함수
-async function exportToJson() {
     try {
-        const doc = await db.collection('lists').doc('main').get();
-        if (!doc.exists) {
-            alert('추출할 데이터가 없습니다.');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const jsonData = JSON.parse(e.target.result);
+                
+                // 데이터 처리 전 현재 데이터 백업
+                const listsBackup = JSON.stringify(lists);
+                const tempListsBackup = JSON.stringify(temporaryLists);
+                localStorage.setItem('lists_backup', listsBackup);
+                localStorage.setItem('tempLists_backup', tempListsBackup);
+                
+                // 데이터 처리
+                processImportedJson(jsonData);
+                
+                // 파일 데이터 자체도 백업
+                localStorage.setItem('last_imported_json', e.target.result);
+            } catch (error) {
+                updateActionStatus(document.getElementById('importJsonBtn'), '올바른 JSON 형식이 아닙니다', 3000);
+                console.error('JSON 파싱 오류:', error);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // 입력 필드 초기화
+    } catch (error) {
+        console.error('파일 읽기 오류:', error);
+        updateActionStatus(document.getElementById('importJsonBtn'), '파일 읽기 오류', 3000);
+    }
+}
+
+// 불러온 JSON 데이터 처리 함수
+function processImportedJson(data) {
+    let importedCount = 0;
+    let updatedCount = 0;
+    
+    try {
+        // 목록 데이터 검증
+        if (!Array.isArray(data) && data.lists && Array.isArray(data.lists)) {
+            data = data.lists; // 'lists' 키 내의 배열을 사용
+        } else if (!Array.isArray(data)) {
+            updateActionStatus(document.getElementById('importJsonBtn'), '유효한 목록 데이터가 없습니다', 3000);
             return;
         }
-
-        const data = doc.data();
-        const jsonStr = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
         
-        const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-        const filename = `memo_backup_${dateStr}.json`;
+        // 각 목록 처리
+        data.forEach(list => {
+            if (!list.title) return; // 제목 없는 목록은 건너뜀
+            
+            // 목록 ID 확인 및 생성
+            const listId = list.id || Date.now().toString() + Math.random().toString(16).slice(2);
+            
+            // 메모 형식 확인 및 정규화
+            const memos = Array.isArray(list.memos) ? list.memos.map(memo => {
+                return {
+                    id: memo.id || Date.now().toString() + Math.random().toString(16).slice(2),
+                    text: memo.text || '',
+                    status: memo.status || null,
+                    wins: typeof memo.wins === 'number' ? memo.wins : 0,
+                    losses: typeof memo.losses === 'number' ? memo.losses : 0
+                };
+            }) : [];
+            
+            // createdAt 확인
+            const createdAt = list.createdAt || new Date().toISOString();
+            
+            // 새 목록 객체 생성
+            const newList = {
+                id: listId,
+                title: list.title,
+                memos: memos,
+                createdAt: createdAt
+            };
+            
+            // 기존 목록과 중복 확인
+            const existingList = lists.find(l => l.title === list.title);
+            if (existingList) {
+                // 기존 목록 업데이트 - 새 메모 추가
+                let memosAdded = 0;
+                memos.forEach(memo => {
+                    // 중복 메모 확인 (텍스트 기반)
+                    const duplicateMemo = existingList.memos.find(m => m.text === memo.text);
+                    if (!duplicateMemo) {
+                        existingList.memos.push(memo);
+                        memosAdded++;
+                    }
+                });
+                
+                if (memosAdded > 0) {
+                    updatedCount++;
+                }
+            } else {
+                // 새 목록 추가
+                lists.push(newList);
+                importedCount++;
+            }
+        });
         
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
+        // Firebase 저장 전에 먼저 로컬 스토리지에 저장 (주요 변경점)
+        localStorage.setItem('lists', JSON.stringify(lists));
+        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+        console.log('불러온 데이터가 먼저 로컬 스토리지에 저장됨');
         
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // 목록 다시 렌더링 (Firebase 응답 기다리지 않고 즉시 화면 갱신)
+        renderLists(currentPage);
+        updateStats();
         
+        // 화면에 메시지 표시
+        const message = `${importedCount}개 목록 추가, ${updatedCount}개 목록 업데이트 완료`;
+        updateActionStatus(document.getElementById('importJsonBtn'), message, 3000);
+        
+        // 이후 Firebase에 비동기 저장 (실패해도 로컬 데이터는 보존됨)
+        saveToFirebase().then((firebaseSuccess) => {
+            console.log(firebaseSuccess ? 'Firebase 저장 성공' : 'Firebase 저장 실패 (로컬 데이터는 보존됨)');
+        }).catch(error => {
+            console.error('Firebase 저장 오류:', error);
+        });
     } catch (error) {
-        console.error('데이터 추출 중 오류 발생:', error);
-        alert('데이터 추출 중 오류가 발생했습니다.');
+        console.error('데이터 처리 오류:', error);
+        updateActionStatus(document.getElementById('importJsonBtn'), '데이터 처리 중 오류 발생', 3000);
     }
 }
 
-async function migrateStatusToWinLoss() {
-    const lists = await loadFromFirebase();
-    if (!lists) return;
+// JSON 내보내기 함수 (추가 기능)
+function exportLists() {
+    try {
+        // 내보낼 데이터 준비
+        let exportData;
+        
+        // 로컬 스토리지와 메모리 모두 확인하여 최신 데이터 사용
+        let localLists = [];
+        const savedLists = localStorage.getItem('lists');
+        if (savedLists) {
+            localLists = JSON.parse(savedLists);
+        }
+        
+        // 메모리에 있는 데이터와 로컬 스토리지의 데이터 중 더 많은 항목이 있는 쪽 선택
+        const dataToExport = localLists.length > lists.length ? localLists : lists;
+        
+        exportData = {
+            lists: dataToExport,
+            exportDate: new Date().toISOString(),
+            version: '1.0'
+        };
+        
+        const jsonString = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `방덱목록_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 완료!', 3000);
+    } catch (error) {
+        console.error('JSON 내보내기 오류:', error);
+        updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 실패', 3000);
+    }
+}
 
-    let hasChanges = false;
+// 함수를 전역 스코프에 등록하여 HTML에서 직접 호출 가능하도록 함
+window.updateCounter = updateCounter;
 
+// 함수를 전역 스코프에 등록
+window.setMemoStatus = setMemoStatus;
+
+// 전역으로 필요한 함수들 추가 등록
+window.startEditMemo = startEditMemo;
+window.deleteMemo = deleteMemo;
+
+// 파일 끝에 추가 - 모든 필요한 함수들을 전역 스코프에 등록 
+// (HTML의 onclick 속성에서 직접 호출하기 위함)
+(function registerGlobalFunctions() {
+    // 기존에 등록한 함수들
+    window.updateCounter = updateCounter;
+    window.setMemoStatus = setMemoStatus;
+    window.startEditMemo = startEditMemo;
+    window.deleteMemo = deleteMemo;
+    
+    // 추가로 필요한 함수들
+    window.addMemo = addMemo;
+    window.saveListEdit = saveListEdit;
+    window.cancelListEdit = cancelListEdit;
+    window.saveMemoEdit = saveMemoEdit;
+    window.cancelMemoEdit = cancelMemoEdit;
+    window.startEditList = startEditList;
+    window.toggleMemos = toggleMemos;
+    
+    // 새로 추가한 함수들
+    window.updateMemoStatusByWinRate = updateMemoStatusByWinRate;
+    window.updateAllMemoStatuses = updateAllMemoStatuses;
+    
+    console.log('모든 함수들이 전역 스코프에 등록되었습니다.');
+})();
+
+// 방덱 불러오기 시 모든 메모의 상태 업데이트
+function updateAllMemoStatuses() {
+    // 일반 목록의 모든 메모 상태 업데이트
     lists.forEach(list => {
-        if (list.memos) {
+        if (list.memos && list.memos.length > 0) {
             list.memos.forEach(memo => {
-                if (memo.status) {
-                    // 승패 상태에 따라 wins/losses 업데이트
-                    if (memo.status === '✅') {
-                        memo.wins = (memo.wins || 0) + 1;
-                    } else if (memo.status === '❌') {
-                        memo.losses = (memo.losses || 0) + 1;
-                    }
-                    
-                    // status 필드 삭제
-                    delete memo.status;
-                    hasChanges = true;
-                }
+                updateMemoStatusByWinRate(memo);
             });
         }
     });
+    
+    // 임시 목록의 모든 메모 상태 업데이트
+    temporaryLists.forEach(list => {
+        if (list.memos && list.memos.length > 0) {
+            list.memos.forEach(memo => {
+                updateMemoStatusByWinRate(memo);
+            });
+        }
+    });
+    
+    // 저장
+    saveLists();
+    saveTemporaryLists();
+}
 
-    if (hasChanges) {
-        await db.collection('lists').doc('main').set({ lists });
-        renderLists();
+// 클립보드 토글 함수
+function toggleClipboardContent() {
+    const clipboardContent = document.querySelector('.clipboard-content');
+    if (clipboardContent) {
+        clipboardContent.classList.toggle('collapsed');
     }
 }
 
-function cleanJsonString(jsonString) {
-    // 후행 쉼표 제거
-    return jsonString
-        .replace(/,\s*}/g, '}')  // 객체 끝의 쉼표 제거
-        .replace(/,\s*\]/g, ']') // 배열 끝의 쉼표 제거
-        .replace(/,\s*,/g, ','); // 연속된 쉼표 제거
+// setMemoStatus 함수 추가
+function setMemoStatus(listId, memoId, status, isTemporary = false) {
+    // 대상 목록 배열 결정
+    const targetLists = isTemporary ? temporaryLists : lists;
+    
+    // 목록 찾기
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    if (!list) return;
+
+    // 메모 찾기
+    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    if (!memo) return;
+
+    // 현재 상태와 동일하면 상태 제거, 다르면 설정
+    memo.status = memo.status === status ? null : status;
+    
+    // 변경 사항 저장
+    if (isTemporary) {
+        saveTemporaryLists();
+    } else {
+        saveLists();
+    }
+
+    // UI 업데이트
+    const memoElement = document.querySelector(`.list-item[data-list-id="${listId}"] .memo-item[data-memo-id="${memoId}"]`);
+    if (memoElement) {
+        // 상태 아이콘 업데이트
+        const statusDisplay = memoElement.querySelector('.memo-status-display');
+        if (statusDisplay) {
+            const statusIcon = memo.status === 'success' ? '✅' : 
+                             memo.status === 'fail' ? '❌' : '';
+            
+            if (statusIcon) {
+                // CSS 클래스를 포함하여 상태 아이콘 업데이트
+                const statusClass = memo.status === 'success' ? 'status-success' : 
+                                   memo.status === 'fail' ? 'status-fail' : '';
+                statusDisplay.innerHTML = `<span class="status-icon ${statusClass}">${statusIcon}</span>`;
+            } else {
+                statusDisplay.innerHTML = '';
+            }
+        }
+        
+        // 상태 버튼 활성화 상태 업데이트
+        const successBtn = memoElement.querySelector('.success-btn');
+        const failBtn = memoElement.querySelector('.fail-btn');
+        
+        if (successBtn) {
+            successBtn.classList.toggle('active', memo.status === 'success');
+        }
+        
+        if (failBtn) {
+            failBtn.classList.toggle('active', memo.status === 'fail');
+        }
+    }
 }
