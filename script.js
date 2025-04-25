@@ -2277,12 +2277,32 @@ window.deleteMemo = deleteMemo;
     
     // 정렬 함수
     window.sortAll = function() {
-        // 가나다순으로 정렬
+        // 목록을 가나다순으로 정렬
         lists = sortListsByAlphabetical(lists);
-        showNotification('가나다순으로 정렬되었습니다', 'sortBtn');
         
-        // 목록 다시 렌더링
-        renderLists(currentPage);
+        // 각 목록의 메모들을 가나다순으로 정렬
+        lists.forEach(list => {
+            if (list.memos && list.memos.length > 0) {
+                list.memos = sortMemosByAlphabetical(list.memos);
+            }
+        });
+        
+        // 임시 목록도 동일하게 정렬
+        temporaryLists = sortListsByAlphabetical(temporaryLists);
+        temporaryLists.forEach(list => {
+            if (list.memos && list.memos.length > 0) {
+                list.memos = sortMemosByAlphabetical(list.memos);
+            }
+        });
+        
+        // 변경사항 저장
+        saveToFirebase();
+        
+        // UI 업데이트
+        renderLists();
+        renderTemporaryLists();
+        
+        showNotification('목록과 메모가 가나다순으로 정렬되었습니다', 'sortBtn');
     };
     
     console.log('모든 함수들이 전역 스코프에 등록되었습니다.');
@@ -3002,4 +3022,11 @@ function renderMemos(listElement, memos, listId, isTemporary = false) {
     } catch (error) {
         console.error('메모 렌더링 중 오류 발생:', error, error.stack);
     }
+}
+
+// 메모를 가나다순으로 정렬하는 함수 추가
+function sortMemosByAlphabetical(memos) {
+    return [...memos].sort((a, b) => {
+        return a.text.localeCompare(b.text, 'ko');
+    });
 }
