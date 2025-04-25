@@ -665,7 +665,7 @@ function renderTemporaryLists() {
         <div class="list-item" data-list-id="${list.id}">
             <div class="list-title">
                 <span class="list-title-text">${list.title}</span>
-                <span class="memo-count">${list.memos.length}/50</span>
+                <span class="memo-count">${list.memos.length}/100</span>
                 <div class="button-group">
                     <button class="edit-btn" onclick="startEditList('${list.id}', true)">편집</button>
                     <button class="delete-btn" onclick="deleteList('${list.id}', true)">삭제</button>
@@ -805,8 +805,8 @@ function addMemo(listId, isTemporary = false) {
     
     if (!list) return;
 
-    if (list.memos.length >= 50) {
-        alert('한 방덱에는 최대 50개의 메모만 추가할 수 있습니다.');
+    if (list.memos.length >= 100) {
+        alert('한 방덱에는 최대 100개의 메모만 추가할 수 있습니다.');
         return;
     }
 
@@ -921,7 +921,7 @@ function updateMemoListUI(listId, memos, isTemporary) {
     // 메모 카운트 업데이트
     const memoCountElement = document.querySelector(`.list-item[data-list-id="${listId}"] .memo-count`);
     if (memoCountElement) {
-        memoCountElement.textContent = `${memos.length}/50`;
+        memoCountElement.textContent = `${memos.length}/100`;
     }
 }
 
@@ -1029,7 +1029,7 @@ function renderLists(page = 1) {
         <div class="list-item" data-list-id="${list.id}">
             <div class="list-title">
                 <span class="list-title-text">${list.title}</span>
-                <span class="memo-count">${list.memos.length}/50</span>
+                <span class="memo-count">${list.memos.length}/100</span>
                 <div class="button-group">
                     <button class="edit-btn" onclick="startEditList('${list.id}')">편집</button>
                     <button class="delete-btn" onclick="deleteList('${list.id}')">삭제</button>
