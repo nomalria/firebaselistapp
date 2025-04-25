@@ -663,13 +663,9 @@ function renderTemporaryLists() {
     const temporaryListsContainer = document.getElementById('temporaryLists');
     temporaryListsContainer.innerHTML = temporaryLists.map(list => `
         <div class="list-item" data-list-id="${list.id}">
-            <div class="list-title">
-                <span class="list-title-text">${list.title}</span>
-                <span class="memo-count">${list.memos.length}/50</span>
-                <div class="button-group">
-                    <button class="edit-btn" onclick="startEditList('${list.id}', true)">편집</button>
-                    <button class="delete-btn" onclick="deleteList('${list.id}', true)">삭제</button>
-                </div>
+            <div class="list-header">
+                <h3 class="list-title">${list.title}</h3>
+                <span class="memo-count">메모 ${list.memos.length}개</span>
             </div>
             <div class="edit-section" id="editSection-${list.id}">
                 <div class="input-group">
@@ -805,11 +801,6 @@ function addMemo(listId, isTemporary = false) {
     
     if (!list) return;
 
-    if (list.memos.length >= 50) {
-        alert('한 방덱에는 최대 50개의 메모만 추가할 수 있습니다.');
-        return;
-    }
-
     // 중복 메모 검사
     const isDuplicate = findDuplicateMemo(list.memos, memoText);
     if (isDuplicate) {
@@ -921,7 +912,7 @@ function updateMemoListUI(listId, memos, isTemporary) {
     // 메모 카운트 업데이트
     const memoCountElement = document.querySelector(`.list-item[data-list-id="${listId}"] .memo-count`);
     if (memoCountElement) {
-        memoCountElement.textContent = `${memos.length}/50`;
+        memoCountElement.textContent = `메모 ${memos.length}개`;
     }
 }
 
@@ -1027,13 +1018,9 @@ function renderLists(page = 1) {
     // 3. 목록 렌더링
     listsContainer.innerHTML = paginatedLists.map(list => `
         <div class="list-item" data-list-id="${list.id}">
-            <div class="list-title">
-                <span class="list-title-text">${list.title}</span>
-                <span class="memo-count">${list.memos.length}/50</span>
-                <div class="button-group">
-                    <button class="edit-btn" onclick="startEditList('${list.id}')">편집</button>
-                    <button class="delete-btn" onclick="deleteList('${list.id}')">삭제</button>
-                </div>
+            <div class="list-header">
+                <h3 class="list-title">${list.title}</h3>
+                <span class="memo-count">메모 ${list.memos.length}개</span>
             </div>
             <div class="edit-section" id="editSection-${list.id}">
                 <div class="input-group">
