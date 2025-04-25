@@ -1020,7 +1020,13 @@ function renderLists(page = 1) {
         <div class="list-item" data-list-id="${list.id}">
             <div class="list-header" onclick="toggleMemos('${list.id}')">
                 <h3 class="list-title">${list.title}</h3>
-                <span class="memo-count">${list.memos.length}개</span>
+                <div class="list-header-right">
+                    <span class="memo-count">${list.memos.length}개</span>
+                    <div class="button-group">
+                        <button class="edit-btn" onclick="startEditList('${list.id}')">수정</button>
+                        <button class="delete-btn" onclick="deleteList('${list.id}')">삭제</button>
+                    </div>
+                </div>
             </div>
             <div class="edit-section" id="editSection-${list.id}">
                 <div class="input-group">
@@ -1420,14 +1426,58 @@ function saveListEdit(listId, isTemporary = false) {
 
         // 기존 목록이 없는 경우 일반적인 제목 수정 진행
         const list = temporaryLists.find(l => l.id.toString() === listId.toString());
-    if (list) {
-        list.title = newTitle;
+        if (list) {
+            list.title = newTitle;
             saveTemporaryLists();
             renderTemporaryLists();
         }
-        } else {
+    } else {
+        // 일반 목록 수정 시
         const list = lists.find(l => l.id.toString() === listId.toString());
         if (list) {
+            // 수정 전 제목 저장
+            const originalTitle = list.title;
+            
+            // 기존 목록에서 동일한 방덱이 있는지 확인 (자신 제외)
+            const existingListIndex = lists.findIndex(l => 
+                l.id.toString() !== listId.toString() && 
+                isSameList(l.title, newTitle)
+            );
+            
+            if (existingListIndex !== -1) {
+                // 중복된 목록이 있는 경우
+                const existingList = lists[existingListIndex];
+                
+                // 현재 목록의 메모들을 기존 목록에 추가
+                if (list.memos.length > 0) {
+                    list.memos.forEach(memo => {
+                        const isDuplicate = existingList.memos.some(existingMemo => 
+                            existingMemo.text === memo.text
+                        );
+                        if (!isDuplicate) {
+                            existingList.memos.push(memo);
+                        }
+                    });
+                }
+                
+                // 현재 목록 삭제
+                lists = lists.filter(l => l.id.toString() !== listId.toString());
+                
+                // 기존 목록을 임시 목록 맨 위로 이동
+                lists.splice(existingListIndex, 1);
+                temporaryLists.unshift(existingList);
+                
+                // 변경사항 저장
+                saveLists();
+                saveTemporaryLists();
+                
+                // UI 업데이트
+                renderLists();
+                renderTemporaryLists();
+                return;
+            }
+            
+            // 중복이 없는 경우 일반적인 제목 수정 진행
             list.title = newTitle;
             saveLists();
             renderLists();
