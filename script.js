@@ -1205,47 +1205,37 @@ function toggleMemos(listId) {
 
     const isExpanded = memoSection.classList.contains('expanded');
     
-    // 모든 열린 메모 섹션 닫기
-    document.querySelectorAll('.memo-section.expanded').forEach(section => {
-        if (section.id !== `memoSection-${listId}`) {
-            section.classList.remove('expanded');
-        }
-    });
-    
     // 현재 선택된 섹션 토글
     memoSection.classList.toggle('expanded');
     
-    // 메모 섹션이 열릴 때 클립보드 단축키 이벤트 리스너 추가
+    // 다른 열린 메모 섹션 닫기 (현재 섹션 제외)
     if (!isExpanded) {
+        document.querySelectorAll('.memo-section.expanded').forEach(section => {
+            if (section.id !== `memoSection-${listId}`) {
+                section.classList.remove('expanded');
+            }
+        });
+        
+        // 메모 입력창으로 포커싱
         const memoInput = document.getElementById(`newMemoInput-${listId}`);
         if (memoInput) {
             addClipboardShortcutListener(memoInput);
-            
-            // 메모 입력창으로 포커싱 (더 확실하게 지연 적용)
-            setTimeout(() => {
-                memoInput.focus();
-            }, 100);
+            memoInput.focus();
         }
         
-        // 스크롤 위치 조정 - 메모 입력창이 화면 중앙에 오도록 수정
+        // 스크롤 위치 조정
         const listItem = memoSection.closest('.list-item');
         if (listItem) {
-            setTimeout(() => {
-                // 메모 입력창의 위치 가져오기
-                const memoInput = document.getElementById(`newMemoInput-${listId}`);
-                if (memoInput) {
-                    const inputRect = memoInput.getBoundingClientRect();
-                    const viewportHeight = window.innerHeight;
-                    
-                    // 입력창이 화면 중앙에 오도록 스크롤 조정
-                    const targetScrollTop = window.scrollY + inputRect.top - (viewportHeight / 2) + (inputRect.height / 2);
-                    
-                    window.scrollTo({
-                        top: targetScrollTop,
-                        behavior: 'smooth'
-                    });
-                }
-            }, 150);
+            const memoInput = document.getElementById(`newMemoInput-${listId}`);
+            if (memoInput) {
+                const inputRect = memoInput.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                const targetScrollTop = window.scrollY + inputRect.top - (viewportHeight / 2) + (inputRect.height / 2);
+                window.scrollTo({
+                    top: targetScrollTop,
+                    behavior: 'smooth'
+                });
+            }
         }
     }
 }

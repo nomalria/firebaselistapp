@@ -260,7 +260,7 @@ h1 {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.list-title {
+.list-header {
     padding: 15px;
     cursor: pointer;
     display: flex;
@@ -271,23 +271,14 @@ h1 {
     position: relative;
 }
 
-.list-title-text {
+.list-title {
     flex: 1;
     font-size: 15px;
     font-weight: 600;
     line-height: 1.4;
     margin-right: 10px;
     color: #333;
-}
-
-.list-created-at {
-    position: absolute;
-    right: 15px;
-    bottom: 10px;
-    font-size: 0.8em;
-    color: #666;
-    min-width: 140px;
-    text-align: right;
+    margin: 0;
 }
 
 .memo-count {
@@ -296,6 +287,9 @@ h1 {
     font-size: 13px;
     font-weight: 500;
     white-space: nowrap;
+    background-color: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 12px;
 }
 
 .button-group {
