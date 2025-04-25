@@ -290,53 +290,34 @@ h1 {
     text-align: right;
 }
 
-.list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    cursor: pointer;
-    padding: 10px;
-    transition: background-color 0.2s;
-}
-
-.list-header:hover {
-    background-color: #f5f5f5;
-}
-
-.list-header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
 .memo-count {
-    font-size: 14px;
+    margin: 0 8px;
     color: #666;
-    margin-right: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .button-group {
     display: flex;
-    gap: 5px;
+    gap: 6px;
 }
 
 .edit-btn, .delete-btn {
     padding: 4px 8px;
     border: none;
-    border-radius: 4px;
+    border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
-    transition: background-color 0.2s;
 }
 
 .edit-btn {
-    background-color: #4CAF50;
+    background-color: #2196F3;
     color: white;
 }
 
 .edit-btn:hover {
-    background-color: #45a049;
+    background-color: #0b7dda;
 }
 
 .delete-btn {
@@ -345,7 +326,7 @@ h1 {
 }
 
 .delete-btn:hover {
-    background-color: #da190b;
+    background-color: #d32f2f;
 }
 
 /* 메모 섹션 */
