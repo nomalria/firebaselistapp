@@ -707,7 +707,7 @@ function renderTemporaryLists() {
     temporaryLists.forEach(list => {
         const memoInput = document.getElementById(`newMemoInput-${list.id}`);
         if (memoInput) {
-            addClipboardShortcutListener(memoInput);
+            addMemoInputListeners(memoInput, list.id, true);
         }
     });
 }
@@ -1074,7 +1074,7 @@ function renderLists(page = 1) {
     paginatedLists.forEach(list => {
         const memoInput = document.getElementById(`newMemoInput-${list.id}`);
         if (memoInput) {
-            addClipboardShortcutListener(memoInput);
+            addMemoInputListeners(memoInput, list.id, false);
         }
     });
 }
@@ -1228,13 +1228,11 @@ function toggleMemos(listId) {
     // 현재 선택된 섹션 토글
     memoSection.classList.toggle('expanded');
     
-    // 메모 섹션이 열릴 때 클립보드 단축키 이벤트 리스너 추가
+    // 메모 섹션이 열릴 때 클립보드+카운터 단축키 이벤트 리스너 추가
     if (!isExpanded) {
         const memoInput = document.getElementById(`newMemoInput-${listId}`);
         if (memoInput) {
-            addClipboardShortcutListener(memoInput);
-            
-            // 메모 입력창으로 포커싱 (더 확실하게 지연 적용)
+            addMemoInputListeners(memoInput, listId, memoSection.closest('.temporary-section') !== null);
             setTimeout(() => {
                 memoInput.focus();
             }, 100);
@@ -3029,4 +3027,59 @@ function sortMemosByAlphabetical(memos) {
     return [...memos].sort((a, b) => {
         return a.text.localeCompare(b.text, 'ko');
     });
+}
+
+// 메모 입력창에 키보드로 승/패 카운터 조작 기능 추가
+function addCounterHotkeyListener(memoInput, listId, isTemporary = false) {
+    // 중복 등록 방지
+    memoInput.removeEventListener('keydown', memoInput._counterHotkeyHandler);
+    memoInput._counterHotkeyHandler = function(e) {
+        // Alt + ↑ : 승리 +1
+        if (e.altKey && !e.shiftKey && e.key === 'ArrowUp') {
+            e.preventDefault();
+            const targetLists = isTemporary ? temporaryLists : lists;
+            const list = targetLists.find(l => l.id.toString() === listId.toString());
+            if (list && list.memos.length > 0) {
+                const memoId = list.memos[0].id;
+                updateCounter(listId, memoId, 'wins', 1, isTemporary);
+            }
+        }
+        // Alt + Shift + ↑ : 승리 -1
+        if (e.altKey && e.shiftKey && e.key === 'ArrowUp') {
+            e.preventDefault();
+            const targetLists = isTemporary ? temporaryLists : lists;
+            const list = targetLists.find(l => l.id.toString() === listId.toString());
+            if (list && list.memos.length > 0) {
+                const memoId = list.memos[0].id;
+                updateCounter(listId, memoId, 'wins', -1, isTemporary);
+            }
+        }
+        // Alt + ↓ : 패배 +1
+        if (e.altKey && !e.shiftKey && e.key === 'ArrowDown') {
+            e.preventDefault();
+            const targetLists = isTemporary ? temporaryLists : lists;
+            const list = targetLists.find(l => l.id.toString() === listId.toString());
+            if (list && list.memos.length > 0) {
+                const memoId = list.memos[0].id;
+                updateCounter(listId, memoId, 'losses', 1, isTemporary);
+            }
+        }
+        // Alt + Shift + ↓ : 패배 -1
+        if (e.altKey && e.shiftKey && e.key === 'ArrowDown') {
+            e.preventDefault();
+            const targetLists = isTemporary ? temporaryLists : lists;
+            const list = targetLists.find(l => l.id.toString() === listId.toString());
+            if (list && list.memos.length > 0) {
+                const memoId = list.memos[0].id;
+                updateCounter(listId, memoId, 'losses', -1, isTemporary);
+            }
+        }
+    };
+    memoInput.addEventListener('keydown', memoInput._counterHotkeyHandler);
+}
+
+// 클립보드 단축키와 카운터 단축키를 모두 등록하는 함수
+function addMemoInputListeners(memoInput, listId, isTemporary = false) {
+    addClipboardShortcutListener(memoInput);
+    addCounterHotkeyListener(memoInput, listId, isTemporary);
 }
