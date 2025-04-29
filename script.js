@@ -2641,11 +2641,9 @@ function setupSearchInputEvents() {
         }
         // 스페이스바로 첫 번째 추천 단어 선택
         else if (e.key === ' ' && items.length > 0) {
-            // 모바일 환경에서는 커서 위치 체크를 하지 않음
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             const hasText = this.value.trim().length > 0;
             
-            if (hasText && (isMobile || (this.selectionStart === this.value.length)) && selectedIndex >= 0) {
+            if (hasText && selectedIndex >= 0) {
                 e.preventDefault();
                 const word = items[selectedIndex].dataset.word;
                 selectWord(word);
