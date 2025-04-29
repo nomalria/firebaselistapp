@@ -2603,7 +2603,31 @@ function setupSearchInputEvents() {
     const searchInput = document.getElementById('searchInput');
     if (!searchInput) return;
     
-    // 키보드 이벤트 리스너 추가
+    // 모바일 환경 감지
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // 모바일 환경에서의 스페이스바 처리
+    if (isMobile) {
+        searchInput.addEventListener('input', function(e) {
+            const searchResults = document.getElementById('searchResults');
+            const items = searchResults.getElementsByClassName('list-item');
+            
+            if (items.length === 0) return;
+            
+            // 입력값의 마지막 문자가 스페이스인 경우
+            if (this.value.endsWith(' ')) {
+                e.preventDefault();
+                const word = items[0].dataset.word; // 첫 번째 추천 단어 선택
+                if (word) {
+                    this.value = this.value.slice(0, -1) + word + ' ';
+                    selectedIndex = 0;
+                    updateSelectedItem(items);
+                }
+            }
+        });
+    }
+    
+    // 기존 키보드 이벤트 리스너
     searchInput.addEventListener('keydown', function(e) {
         const searchResults = document.getElementById('searchResults');
         const items = searchResults.getElementsByClassName('list-item');
