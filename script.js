@@ -2619,7 +2619,10 @@ function setupSearchInputEvents() {
                 e.preventDefault();
                 const word = items[0].dataset.word; // 첫 번째 추천 단어 선택
                 if (word) {
-                    this.value = this.value.slice(0, -1) + word + ' ';
+                    // 마지막 단어를 추천 단어로 대체
+                    const words = this.value.trim().split(' ');
+                    words[words.length - 1] = word;
+                    this.value = words.join(' ') + ' ';
                     selectedIndex = 0;
                     updateSelectedItem(items);
                 }
