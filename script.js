@@ -564,10 +564,24 @@ function isSameList(list1, list2) {
 
 // 방덱 추가
 function addNewList() {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+    
+    if (!checkAdminPermission(user)) {
+        alert('이 기능은 관리자만 사용할 수 있습니다.');
+        return;
+    }
+    
     const searchInput = document.getElementById('searchInput');
     const title = searchInput.value.trim();
     
-    if (!title) return;
+    if (!title) {
+        alert('방덱 이름을 입력해주세요.');
+        return;
+    }
     
     // 현재 시간 정보 생성
     const now = new Date();
@@ -795,11 +809,25 @@ async function deleteList(listId, isTemporary = false) {
 
 // 메모 추가 (키워드 기반 자동 상태 설정 및 텍스트 제거 - 로그 제거)
 function addMemo(listId, isTemporary = false) {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+    
+    if (!checkAdminPermission(user)) {
+        alert('이 기능은 관리자만 사용할 수 있습니다.');
+        return;
+    }
+    
     const memoInput = document.getElementById(`newMemoInput-${listId}`);
-    let memoText = memoInput.value.trim();
-
-    if (!memoText) return;
-
+    const memoText = memoInput.value.trim();
+    
+    if (!memoText) {
+        alert('메모 내용을 입력해주세요.');
+        return;
+    }
+    
     const targetLists = isTemporary ? temporaryLists : lists;
     const list = targetLists.find(l => l.id.toString() === listId.toString());
     
@@ -3108,3 +3136,53 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
     addClipboardShortcutListener(memoInput);
     addCounterHotkeyListener(memoInput, listId, isTemporary);
 }
+
+// 권한 체크 함수 추가
+function checkAdminPermission(user) {
+    return user && user.email === 'longway7098@gmail.com';
+}
+
+// UI 업데이트 함수 추가
+function updateUIForUser(user) {
+    const isAdmin = checkAdminPermission(user);
+    const searchInput = document.getElementById('searchInput');
+    const addListBtn = document.getElementById('addListBtn');
+    const addTemporaryBtn = document.getElementById('addTemporaryBtn');
+    
+    // 검색 입력창과 추가 버튼 표시/숨김
+    if (searchInput && addListBtn) {
+        if (user) {
+            searchInput.style.display = 'block';
+            addListBtn.style.display = isAdmin ? 'block' : 'none';
+        } else {
+            searchInput.style.display = 'none';
+            addListBtn.style.display = 'none';
+        }
+    }
+    
+    // 기존목록 추가 버튼 표시/숨김
+    if (addTemporaryBtn) {
+        addTemporaryBtn.style.display = isAdmin ? 'block' : 'none';
+    }
+    
+    // 모든 메모 입력창 숨김
+    document.querySelectorAll('input[type="text"][id^="newMemoInput-"]').forEach(input => {
+        input.style.display = isAdmin ? 'block' : 'none';
+    });
+    
+    // 모든 메모 추가 버튼 숨김
+    document.querySelectorAll('button[onclick^="addMemo"]').forEach(button => {
+        button.style.display = isAdmin ? 'block' : 'none';
+    });
+}
+
+// Firebase Auth 상태 변경 시 UI 업데이트
+firebase.auth().onAuthStateChanged((user) => {
+    const loginStatus = document.getElementById('loginStatus');
+    if (user) {
+        loginStatus.textContent = user.email;
+    } else {
+        loginStatus.textContent = '로그인하기';
+    }
+    updateUIForUser(user);
+});
