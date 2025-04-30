@@ -1,11 +1,12 @@
 // Firebase 초기화
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCzu8BvgrCepm3yqElubr4AKlIVwu_21_k",
+    authDomain: "listapps-23091.firebaseapp.com",
+    projectId: "listapps-23091",
+    storageBucket: "listapps-23091.firebasestorage.app",
+    messagingSenderId: "158638855824",
+    appId: "1:158638855824:web:5ec8e743771128ee65ea15",
+    measurementId: "G-NGSN7YLFXT"
 };
 
 // Firebase 앱 초기화
