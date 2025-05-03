@@ -125,6 +125,24 @@
             window.firestore = firebase.firestore;
 
             console.log('Firebase가 성공적으로 초기화되었습니다.');
+
+            // 페이지 첫 로딩 시 Firebase에서 목록 데이터 불러오기
+            document.addEventListener('DOMContentLoaded', async function() {
+                if (window.location.pathname.endsWith('viewer.html')) {
+                    try {
+                        const mainDoc = await window.db.collection('lists').doc('main').get();
+                        const tempDoc = await window.db.collection('lists').doc('temporary').get();
+                        window.lists = mainDoc.exists ? mainDoc.data().lists || [] : [];
+                        window.temporaryLists = tempDoc.exists ? tempDoc.data().lists || [] : [];
+                        if (typeof renderLists === 'function') renderLists(1);
+                        if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
+                        if (typeof updateStats === 'function') updateStats();
+                        console.log('Firebase에서 목록 데이터를 불러왔습니다.');
+                    } catch (e) {
+                        console.error('Firebase 목록 데이터 불러오기 오류:', e);
+                    }
+                }
+            });
         } catch (error) {
             console.error('Firebase 초기화 오류:', error);
         }
@@ -207,13 +225,22 @@
                             reader.onload = function(ev) {
                                 try {
                                     const data = JSON.parse(ev.target.result);
-                                    if (typeof processImportedJson === 'function') {
-                                        processImportedJson(data);
-                                    } else if (window.processImportedJson) {
-                                        window.processImportedJson(data);
+                                    // lists, temporaryLists 교체
+                                    if (Array.isArray(data)) {
+                                        window.lists = data;
+                                    } else if (data && Array.isArray(data.lists)) {
+                                        window.lists = data.lists;
                                     }
+                                    if (data && Array.isArray(data.temporaryLists)) {
+                                        window.temporaryLists = data.temporaryLists;
+                                    }
+                                    // 렌더링
+                                    if (typeof renderLists === 'function') renderLists(1);
+                                    if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
+                                    if (typeof updateStats === 'function') updateStats();
+                                    alert('JSON 데이터가 정상적으로 불러와졌습니다.');
                                 } catch (err) {
-                                    // alert('JSON 파일 형식이 올바르지 않습니다.'); // 알림 제거
+                                    alert('JSON 파일 형식이 올바르지 않습니다.');
                                 }
                             };
                             reader.readAsText(e.target.files[0]);

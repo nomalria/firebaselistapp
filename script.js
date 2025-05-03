@@ -3200,9 +3200,9 @@ function updateUIForUser(user) {
 firebase.auth().onAuthStateChanged((user) => {
     const loginStatus = document.getElementById('loginStatus');
     if (user) {
-        loginStatus.textContent = user.email;
+        if (loginStatus) loginStatus.textContent = user.email;
     } else {
-        loginStatus.textContent = '로그인하기';
+        if (loginStatus) loginStatus.textContent = '로그인하기';
     }
     updateUIForUser(user);
 });
