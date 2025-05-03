@@ -3193,6 +3193,7 @@ function updateUIForUser(user) {
 firebase.auth().onAuthStateChanged((user) => {
     const loginStatus = document.getElementById('loginStatus');
     const userEmailDisplay = document.getElementById('userEmailDisplay');
+    const provider = new firebase.auth.GoogleAuthProvider();
     if (user) {
         // 권한 체크: longway7098@gmail.com이 아니면 알림 후 로그아웃
         if (user.email !== 'longway7098@gmail.com') {
@@ -3209,6 +3210,8 @@ firebase.auth().onAuthStateChanged((user) => {
         loginStatus.textContent = '로그인하기';
         userEmailDisplay.textContent = '';
         userEmailDisplay.style.display = 'none';
+        // 로그인하지 않은 경우 자동으로 로그인 팝업
+        firebase.auth().signInWithPopup(provider).catch(() => {});
     }
     updateUIForUser(user);
 });
