@@ -127,7 +127,7 @@
 </head>
 <body>
     <!-- 로그인 상태 표시 (항상 접근 가능하도록 최상단에 배치) -->
-    <span class="login-status" id="loginStatus" onclick="handleLoginStatus()" style="display: none;"></span>
+    <span class="login-status" id="loginStatus" onclick="handleLoginStatus()"></span>
 
     <!-- 로그인 화면 -->
     <div class="login-container" id="loginContainer">
@@ -144,7 +144,7 @@
         <div class="container">
             <div class="title-container">
                 <h1 class="main-title">방덱 목록 관리</h1>
-                <a href="viewer.html" class="viewer-link">뷰어 모드</a>
+                <span class="login-status" id="loginStatus" onclick="handleLoginStatus()"></span>
             </div>
             
             <!-- 검색 및 추가 섹션 -->
