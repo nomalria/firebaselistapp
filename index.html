@@ -47,9 +47,27 @@
             text-decoration: underline;
         }
 
-        .help-link {
-            text-align: right;
-            margin-bottom: 20px;
+        .viewer-link {
+            position: absolute;
+            right: 0;
+            top: 0;
+            padding: 6px 12px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+
+        .viewer-link:hover {
+            background-color: #45a049;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
         }
     </style>
 </head>
@@ -57,16 +75,14 @@
     <div class="container">
         <div class="title-container">
             <h1 class="main-title">방덱 목록 관리</h1>
+            <a href="viewer.html" class="viewer-link">뷰어 모드</a>
             <span class="login-status" id="loginStatus" onclick="handleLoginStatus()"></span>
-        </div>
-        <div class="help-link">
-            <a href="help.html" class="help-btn">도움말 보기</a>
         </div>
         
         <!-- 검색 및 추가 섹션 -->
         <div class="search-section">
-            <div class="input-group">
-                <input type="text" id="searchInput" placeholder="방덱 검색 또는 추가">
+            <div class="input-group" style="position:relative;z-index:9999;">
+                <input type="text" id="searchInput" placeholder="방덱 검색 또는 추가" style="width:500%;z-index:9999;position:relative;">
                 <button id="addListBtn" class="add-btn">추가</button>
             </div>
             <div id="searchResults" class="search-results"></div>
@@ -238,6 +254,42 @@
             document.getElementById('importJsonBtn').addEventListener('click', importJsonFile);
             document.getElementById('exportJsonBtn').addEventListener('click', exportLists);
             document.getElementById('jsonFileInput').addEventListener('change', handleJsonFileUpload);
+
+            // index.html에서는 항상 검색창과 버튼이 보이도록 강제 설정
+            const searchInput = document.getElementById('searchInput');
+            const addListBtn = document.getElementById('addListBtn');
+            const addTemporaryBtn = document.getElementById('addTemporaryBtn');
+            
+            if (searchInput) searchInput.style.display = 'block';
+            if (addListBtn) addListBtn.style.display = 'block';
+            if (addTemporaryBtn) addTemporaryBtn.style.display = 'block';
+
+            // Firebase Auth 상태 변경 시 UI 업데이트 오버라이드
+            firebase.auth().onAuthStateChanged((user) => {
+                const loginStatus = document.getElementById('loginStatus');
+                if (user) {
+                    loginStatus.textContent = user.email;
+                } else {
+                    loginStatus.textContent = '로그인하기';
+                }
+                
+                // index.html 전용 UI 업데이트
+                const isAdmin = user && user.email === 'longway7098@gmail.com';
+                
+                // 검색창과 버튼은 항상 보이도록 유지
+                if (searchInput) searchInput.style.display = 'block';
+                if (addListBtn) addListBtn.style.display = 'block';
+                if (addTemporaryBtn) addTemporaryBtn.style.display = 'block';
+                
+                // 메모 입력창/버튼만 관리자 권한에 따라 표시
+                document.querySelectorAll('input[type="text"][id^="newMemoInput-"]').forEach(input => {
+                    input.style.display = isAdmin ? 'block' : 'none';
+                });
+                
+                document.querySelectorAll('button[onclick^="addMemo"]').forEach(button => {
+                    button.style.display = isAdmin ? 'block' : 'none';
+                });
+            });
         });
     </script>
 </body>
