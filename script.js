@@ -3160,15 +3160,11 @@ function checkAdminPermission(user) {
 
 // UI 업데이트 함수 추가
 function updateUIForUser(user) {
+    const isAdmin = checkAdminPermission(user);
     const searchInput = document.getElementById('searchInput');
     const addListBtn = document.getElementById('addListBtn');
     const addTemporaryBtn = document.getElementById('addTemporaryBtn');
-    // 로그인/관리자 여부와 상관없이 항상 보이도록
-    if (searchInput) searchInput.style.display = 'block';
-    if (addListBtn) addListBtn.style.display = 'block';
-    if (addTemporaryBtn) addTemporaryBtn.style.display = 'block';
-    // 이하 기존 코드(메모 입력창/버튼 등)는 그대로 유지
-    const isAdmin = checkAdminPermission(user);
+    
     // 검색 입력창과 추가 버튼 표시/숨김
     if (searchInput && addListBtn) {
         if (user) {
@@ -3200,9 +3196,9 @@ function updateUIForUser(user) {
 firebase.auth().onAuthStateChanged((user) => {
     const loginStatus = document.getElementById('loginStatus');
     if (user) {
-        if (loginStatus) loginStatus.textContent = user.email;
+        loginStatus.textContent = user.email;
     } else {
-        if (loginStatus) loginStatus.textContent = '로그인하기';
+        loginStatus.textContent = '로그인하기';
     }
     updateUIForUser(user);
 });
