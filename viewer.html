@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>방덱 목록 뷰어</title>
+    <title>목록 뷰어</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
     <style>
@@ -35,7 +35,7 @@
 <body>
     <div class="container">
         <div class="title-container">
-            <h1 class="main-title">방덱 목록 뷰어</h1>
+            <h1 class="main-title">목록 뷰어</h1>
         </div>
         <!-- 불러오기 및 검색창 추가 -->
         <div class="viewer-top-controls" style="display: flex; gap: 16px; align-items: center; margin-bottom: 20px; position:relative;">
@@ -104,11 +104,62 @@
     <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase 초기화 -->
+    <script type="module">
+        try {
+            // Firebase 설정
+            const firebaseConfig = {
+                apiKey: "AIzaSyCzu8BvgrCepm3yqElubr4AKlIVwu_21_k",
+                authDomain: "listapps-23091.firebaseapp.com",
+                projectId: "listapps-23091",
+                storageBucket: "listapps-23091.firebasestorage.app",
+                messagingSenderId: "158638855824",
+                appId: "1:158638855824:web:5ec8e743771128ee65ea15",
+                measurementId: "G-NGSN7YLFXT"
+            };
+
+            // Firebase 초기화
+            firebase.initializeApp(firebaseConfig);
+            window.db = firebase.firestore();
+            window.firestore = firebase.firestore;
+
+            console.log('Firebase가 성공적으로 초기화되었습니다.');
+        } catch (error) {
+            console.error('Firebase 초기화 오류:', error);
+        }
+    </script>
+    
     <!-- 메인 스크립트 -->
     <script src="script.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             if (window.location.pathname.endsWith('viewer.html')) {
+                try {
+                    // Firebase에서 데이터 로드
+                    const mainListsDoc = await window.db.collection('lists').doc('main').get();
+                    const tempListsDoc = await window.db.collection('lists').doc('temporary').get();
+                    
+                    if (mainListsDoc.exists) {
+                        window.lists = mainListsDoc.data().lists || [];
+                    }
+                    
+                    if (tempListsDoc.exists) {
+                        window.temporaryLists = tempListsDoc.data().lists || [];
+                    }
+                    
+                    // UI 업데이트
+                    if (typeof renderLists === 'function') {
+                        renderLists();
+                        renderTemporaryLists();
+                        updateStats();
+                    }
+                    
+                    console.log('Firebase에서 데이터를 성공적으로 불러왔습니다.');
+                } catch (error) {
+                    console.error('Firebase 데이터 로드 오류:', error);
+                }
+
                 // 로그인 관련 UI/기능 제거: loginStatus, handleLoginStatus 등
                 const loginStatus = document.getElementById('loginStatus');
                 if (loginStatus) loginStatus.style.display = 'none';
