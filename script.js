@@ -3194,6 +3194,12 @@ firebase.auth().onAuthStateChanged((user) => {
     const loginStatus = document.getElementById('loginStatus');
     const userEmailDisplay = document.getElementById('userEmailDisplay');
     if (user) {
+        // 권한 체크: longway7098@gmail.com이 아니면 알림 후 로그아웃
+        if (user.email !== 'longway7098@gmail.com') {
+            alert('권한이 없습니다');
+            firebase.auth().signOut();
+            return;
+        }
         // 헤더에는 '로그인하기'만 표시
         loginStatus.textContent = '로그인하기';
         // 오른쪽 아래에만 이메일 표시
