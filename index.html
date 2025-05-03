@@ -111,6 +111,10 @@
     </style>
 </head>
 <body>
+    <!-- 로그인 상태 표시 (항상 접근 가능하도록 최상단에 배치) -->
+    <span class="login-status" id="loginStatus" onclick="handleLoginStatus()" style="display: none;"></span>
+
+    <!-- 로그인 화면 -->
     <div class="login-container" id="loginContainer">
         <h2>방덱 목록 관리</h2>
         <p style="margin-bottom: 30px; color: #666;">계속하려면 로그인해주세요</p>
@@ -120,12 +124,12 @@
         </button>
     </div>
 
+    <!-- 메인 컨텐츠 -->
     <div class="main-content" id="mainContent">
         <div class="container">
             <div class="title-container">
                 <h1 class="main-title">방덱 목록 관리</h1>
                 <a href="viewer.html" class="viewer-link">뷰어 모드</a>
-                <span class="login-status" id="loginStatus" onclick="handleLoginStatus()"></span>
             </div>
             
             <!-- 검색 및 추가 섹션 -->
@@ -240,6 +244,7 @@
                     if (user.email === 'longway7098@gmail.com') {
                         // 관리자인 경우
                         loginStatus.textContent = user.email;
+                        loginStatus.style.display = 'block';
                         loginContainer.style.display = 'none';
                         mainContent.style.display = 'block';
                         // 데이터 로드
@@ -249,6 +254,7 @@
                         alert('제한된 페이지입니다.');
                         // 로그아웃 처리
                         firebase.auth().signOut().then(() => {
+                            loginStatus.style.display = 'none';
                             loginContainer.style.display = 'block';
                             mainContent.style.display = 'none';
                         }).catch((error) => {
@@ -258,6 +264,7 @@
                 } else {
                     // 로그인되지 않은 상태
                     loginStatus.textContent = '로그인하기';
+                    loginStatus.style.display = 'none';
                     loginContainer.style.display = 'block';
                     mainContent.style.display = 'none';
                 }
