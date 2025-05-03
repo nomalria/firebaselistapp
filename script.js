@@ -504,13 +504,14 @@ function searchLists(query) {
     const matchingWords = Array.from(allWords).filter(word => {
         const matches = word.toLowerCase().includes(lastWord.toLowerCase()) &&
                        !currentWords.includes(word);
-        console.log(`단어 "${word}" 검색 결과:`, matches);
         return matches;
     });
 
-    console.log('매칭된 단어들:', matchingWords);
-
     if (matchingWords.length > 0) {
+        // 추천단어가 새로 렌더링될 때 selectedIndex가 범위를 벗어나면 0으로 순환
+        if (selectedIndex < 0 || selectedIndex >= matchingWords.length) {
+            selectedIndex = 0;
+        }
         searchResults.innerHTML = matchingWords.map((word, index) => `
             <div class="list-item ${index === selectedIndex ? 'selected' : ''}" 
                  data-word="${word}" 
@@ -519,11 +520,7 @@ function searchLists(query) {
                 <span>${word}</span>
             </div>
         `).join('');
-        
-        if (selectedIndex === -1 && matchingWords.length > 0) {
-            selectedIndex = 0;
-            updateSelectedItem(searchResults.getElementsByClassName('list-item'));
-        }
+        updateSelectedItem(searchResults.getElementsByClassName('list-item'));
     } else {
         searchResults.innerHTML = '';
         selectedIndex = -1;
