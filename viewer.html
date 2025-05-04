@@ -14,10 +14,19 @@
             <span class="login-status" id="loginStatus" onclick="handleLoginStatus()"></span>
         </div>
         <div class="search-section" id="viewerSearchSection">
+            <button id="viewerMemoSearchBtn" class="memo-search-btn">메모 검색</button>
             <div class="input-group">
                 <input type="text" id="viewerSearchInput" placeholder="목록 검색 (공백으로 단어 구분)">
                 <button id="viewerSearchBtn" class="add-btn">검색</button>
+                <div id="memoSearchDropdown" class="memo-search-dropdown">
+                    <div class="input-group">
+                        <input type="text" id="memoSearchInput" placeholder="메모 검색 (공백으로 단어 구분)">
+                        <button id="memoSearchBtn" class="add-btn">검색</button>
+                    </div>
+                    <div id="memoSearchSuggestions" class="search-results"></div>
+                </div>
             </div>
+            <div id="viewerSearchSuggestions" class="search-results"></div>
         </div>
         <div class="stats-section">
             <div class="category-buttons">
@@ -29,10 +38,7 @@
         </div>
         <div class="button-container">
             <div class="button-wrapper">
-                <button id="sortBtn" class="action-btn">목록 및 메모 정렬</button>
-            </div>
-            <div class="button-wrapper">
-                <button id="moveTempToMainBtn" class="action-btn">임시목록 기존목록으로 이동</button>
+                <button id="sortAndMoveBtn" class="action-btn">정렬 및 임시목록 이동</button>
             </div>
         </div>
         <input type="file" id="jsonFileInput" accept=".json" style="display: none;">

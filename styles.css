@@ -206,9 +206,11 @@ h1 {
 }
 
 .search-section .input-group {
+    position: relative;
     display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 8px;
+    margin-bottom: 0;
+    margin-top: 16px;
 }
 
 .search-section input {
@@ -1945,4 +1947,54 @@ h1 {
     background-color: #4CAF50;
     color: white;
     border-color: #4CAF50;
+}
+
+.memo-search-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    margin-bottom: 8px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.memo-search-btn:hover {
+    background-color: #45a049;
+}
+
+.memo-search-dropdown {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 9999;
+}
+
+.memo-search-dropdown.show {
+    display: block;
+}
+
+.memo-search-dropdown .input-group {
+    margin-bottom: 8px;
+}
+
+.memo-search-dropdown .search-results {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    margin-top: 8px;
+    max-height: 200px;
+    overflow-y: auto;
 } 

@@ -2178,20 +2178,23 @@ function exportLists() {
         if (savedLists) {
             localLists = JSON.parse(savedLists);
         }
-        
+        let localTemporaryLists = [];
+        const savedTempLists = localStorage.getItem('temporaryLists');
+        if (savedTempLists) {
+            localTemporaryLists = JSON.parse(savedTempLists);
+        }
         // 메모리에 있는 데이터와 로컬 스토리지의 데이터 중 더 많은 항목이 있는 쪽 선택
         const dataToExport = localLists.length > lists.length ? localLists : lists;
-        
+        const tempToExport = localTemporaryLists.length > temporaryLists.length ? localTemporaryLists : temporaryLists;
         exportData = {
             lists: dataToExport,
+            temporaryLists: tempToExport,
             exportDate: new Date().toISOString(),
-            version: '1.0'
+            version: '1.1'
         };
-        
         const jsonString = JSON.stringify(exportData, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
         const a = document.createElement('a');
         a.href = url;
         a.download = `방덱목록_${new Date().toISOString().slice(0, 10)}.json`;
@@ -2199,7 +2202,6 @@ function exportLists() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
         updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 완료!', 3000);
     } catch (error) {
         console.error('JSON 내보내기 오류:', error);
