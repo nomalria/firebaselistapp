@@ -522,6 +522,17 @@ window.addEventListener('DOMContentLoaded', function() {
         };
     }
 
+    // 메모와 댓글까지 모두 포함하여 deep copy
+    function deepCopyWithComments(arr) {
+        return arr.map(list => ({
+            ...list,
+            memos: (list.memos || []).map(memo => ({
+                ...memo,
+                comments: memo.comments ? memo.comments.map(comment => ({ ...comment })) : []
+            }))
+        }));
+    }
+
     // JSON 내보내기 버튼 동작: 목록, 메모, 댓글, 임시목록까지 모두 포함
     const exportBtn = document.getElementById('exportJsonBtn');
     if (exportBtn) {
@@ -534,13 +545,14 @@ window.addEventListener('DOMContentLoaded', function() {
                 let localTemporaryLists = [];
                 const savedTempLists = localStorage.getItem('temporaryLists');
                 if (savedTempLists) localTemporaryLists = JSON.parse(savedTempLists);
-                const dataToExport = localLists.length > lists.length ? localLists : lists;
-                const tempToExport = localTemporaryLists.length > temporaryLists.length ? localTemporaryLists : temporaryLists;
+                // deep copy로 comments까지 모두 포함
+                const dataToExport = localLists.length > lists.length ? deepCopyWithComments(localLists) : deepCopyWithComments(lists);
+                const tempToExport = localTemporaryLists.length > temporaryLists.length ? deepCopyWithComments(localTemporaryLists) : deepCopyWithComments(temporaryLists);
                 const exportData = {
                     lists: dataToExport,
                     temporaryLists: tempToExport,
                     exportDate: new Date().toISOString(),
-                    version: '1.1'
+                    version: '1.2'
                 };
                 const jsonString = JSON.stringify(exportData, null, 2);
                 const blob = new Blob([jsonString], { type: 'application/json' });

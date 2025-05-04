@@ -3152,3 +3152,56 @@ firebase.auth().onAuthStateChanged((user) => {
     }
     updateUIForUser(user);
 });
+
+// 메모와 댓글까지 모두 포함하여 deep copy
+function deepCopyWithComments(arr) {
+    return arr.map(list => ({
+        ...list,
+        memos: (list.memos || []).map(memo => ({
+            ...memo,
+            comments: memo.comments ? memo.comments.map(comment => ({ ...comment })) : []
+        }))
+    }));
+}
+
+function exportLists() {
+    try {
+        // 내보낼 데이터 준비
+        let exportData;
+        
+        // 로컬 스토리지와 메모리 모두 확인하여 최신 데이터 사용
+        let localLists = [];
+        const savedLists = localStorage.getItem('lists');
+        if (savedLists) {
+            localLists = JSON.parse(savedLists);
+        }
+        let localTemporaryLists = [];
+        const savedTempLists = localStorage.getItem('temporaryLists');
+        if (savedTempLists) {
+            localTemporaryLists = JSON.parse(savedTempLists);
+        }
+        // deep copy로 comments까지 모두 포함
+        const dataToExport = localLists.length > lists.length ? deepCopyWithComments(localLists) : deepCopyWithComments(lists);
+        const tempToExport = localTemporaryLists.length > temporaryLists.length ? deepCopyWithComments(localTemporaryLists) : deepCopyWithComments(temporaryLists);
+        exportData = {
+            lists: dataToExport,
+            temporaryLists: tempToExport,
+            exportDate: new Date().toISOString(),
+            version: '1.2'
+        };
+        const jsonString = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `방덱목록_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 완료!', 3000);
+    } catch (error) {
+        console.error('JSON 내보내기 오류:', error);
+        updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 실패', 3000);
+    }
+}
