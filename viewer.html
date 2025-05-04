@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>방덱 목록</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <div class="title-container">
+            <h1 class="main-title">방덱 목록</h1>
+            <span class="login-status" id="loginStatus" onclick="handleLoginStatus()"></span>
+        </div>
+        <div class="search-section" id="viewerSearchSection">
+            <div class="input-group">
+                <input type="text" id="viewerSearchInput" placeholder="목록 검색 (공백으로 단어 구분)">
+                <button id="viewerSearchBtn" class="add-btn">검색</button>
+            </div>
+        </div>
+        <div class="stats-section">
+            <div class="category-buttons">
+                <button class="category-btn" id="cat-all" data-filter-type="all">전체보기</button>
+                <button class="category-btn" id="cat-4deck" data-filter-type="4방덱">4방덱 (<span id="stat-4">0</span>)</button>
+                <button class="category-btn" id="cat-5deck" data-filter-type="5방덱">5방덱 (<span id="stat-5">0</span>)</button>
+                <button class="category-btn" id="cat-other" data-filter-type="기타">기타 (<span id="stat-other">0</span>)</button>
+            </div>
+        </div>
+        <div class="button-container">
+            <div class="button-wrapper">
+                <button id="sortBtn" class="action-btn">목록 및 메모 정렬</button>
+            </div>
+            <div class="button-wrapper">
+                <button id="moveTempToMainBtn" class="action-btn">임시목록 기존목록으로 이동</button>
+            </div>
+        </div>
+        <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+        <div class="temporary-section">
+            <h2>임시 목록</h2>
+            <div id="temporaryLists" class="lists-container"></div>
+        </div>
+        <div class="existing-section">
+            <h2>기존 목록</h2>
+            <div id="lists" class="lists-container"></div>
+            <div id="paginationControls" class="pagination-controls"></div>
+        </div>
+        <div class="json-buttons-section">
+            <h2>데이터 관리</h2>
+            <div class="button-container">
+                <div class="button-wrapper">
+                    <button id="importJsonBtn" class="action-btn">JSON 불러오기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="lastUploadTimeDisplay" style="position:fixed; right:20px; bottom:60px; background:rgba(255,255,255,0.9); padding:8px 16px; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); font-size:0.95em; color:#666; z-index:9999; min-width:180px; text-align:right; display:none;"></div>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+    <script src="script.js"></script>
+    <script src="viewer-restrict.js"></script>
+</body>
+</html> 
