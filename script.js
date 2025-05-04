@@ -3180,14 +3180,14 @@ function exportLists() {
         if (savedTempLists) {
             localTemporaryLists = JSON.parse(savedTempLists);
         }
-        // deep copy로 comments까지 모두 포함
+        // deep copy로 comments까지 모두 포함 (항상 사용)
         const dataToExport = localLists.length > lists.length ? deepCopyWithComments(localLists) : deepCopyWithComments(lists);
         const tempToExport = localTemporaryLists.length > temporaryLists.length ? deepCopyWithComments(localTemporaryLists) : deepCopyWithComments(temporaryLists);
         exportData = {
             lists: dataToExport,
             temporaryLists: tempToExport,
             exportDate: new Date().toISOString(),
-            version: '1.2'
+            version: '1.3'
         };
         const jsonString = JSON.stringify(exportData, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
