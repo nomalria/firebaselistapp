@@ -492,20 +492,54 @@ function updateSelectedItem(items) {
     });
 }
 
-// 방덱이 동일한지 확인하는 함수
+// 브라우니 변형 단어를 통일
+function normalizeTitle(title) {
+    return title
+        .replace(/물브라우니/g, '물브라')
+        .replace(/불브라우니/g, '불브라')
+        .replace(/풍브라우니/g, '풍브라')
+        .replace(/빛브라우니/g, '빛브라')
+        .replace(/암브라우니/g, '암브라')
+        .replace(/물키(?!메라)/g, '물키메라')
+        .replace(/불키(?!메라)/g, '불키메라')
+        .replace(/풍키(?!메라)/g, '풍키메라')
+        .replace(/빛키(?!메라)/g, '빛키메라')
+        .replace(/암키(?!메라)/g, '암키메라')
+        .replace(/물발(?!키리)/g, '물발키리')
+        .replace(/불발(?!키리)/g, '불발키리')
+        .replace(/풍발(?!키리)/g, '풍발키리')
+        .replace(/빛발(?!키리)/g, '빛발키리')
+        .replace(/암발(?!키리)/g, '암발키리')
+        .replace(/물뱀(?!파)/g, '물뱀파')
+        .replace(/불뱀(?!파)/g, '불뱀파')
+        .replace(/풍뱀(?!파)/g, '풍뱀파')
+        .replace(/빛뱀(?!파)/g, '빛뱀파')
+        .replace(/암뱀(?!파)/g, '암뱀파')
+        .replace(/물드(?!래곤)/g, '물드래곤')
+        .replace(/불드(?!래곤)/g, '불드래곤')
+        .replace(/풍드(?!래곤)/g, '풍드래곤')
+        .replace(/빛드(?!래곤)/g, '빛드래곤')
+        .replace(/암드(?!래곤)/g, '암드래곤')
+        .replace(/물드라(?!이어드)/g, '물드라이어드')
+        .replace(/불드라(?!이어드)/g, '불드라이어드')
+        .replace(/풍드라(?!이어드)/g, '풍드라이어드')
+        .replace(/빛드라(?!이어드)/g, '빛드라이어드')
+        .replace(/암드라(?!이어드)/g, '암드라이어드');
+}
+
+// 방덱이 동일한지 확인하는 함수 (브라우니 변형 포함)
 function isSameList(list1, list2) {
-    const words1 = list1.split(' ');
-    const words2 = list2.split(' ');
-    
+    const norm1 = normalizeTitle(list1);
+    const norm2 = normalizeTitle(list2);
+    const words1 = norm1.split(' ');
+    const words2 = norm2.split(' ');
     // 첫 번째와 두 번째 단어가 일치하는지 확인
     if (words1[0] !== words2[0] || words1[1] !== words2[1]) {
         return false;
     }
-    
     // 나머지 단어들을 정렬하여 비교
     const remainingWords1 = words1.slice(2).sort();
     const remainingWords2 = words2.slice(2).sort();
-    
     return remainingWords1.join(' ') === remainingWords2.join(' ');
 }
 
@@ -3204,4 +3238,84 @@ function exportLists() {
         console.error('JSON 내보내기 오류:', error);
         updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 실패', 3000);
     }
+}
+
+// 브라우니 변형 단어를 모두 '브라우니'로 통일
+function normalizeTitleForDedup(title) {
+    return title
+        .replace(/물브라/g, '물브라우니')
+        .replace(/불브라/g, '불브라우니')
+        .replace(/풍브라/g, '풍브라우니')
+        .replace(/빛브라/g, '빛브라우니')
+        .replace(/암브라/g, '암브라우니')
+        .replace(/물닌(?!자)/g, '물닌자')
+        .replace(/불닌(?!자)/g, '불닌자')
+        .replace(/풍닌(?!자)/g, '풍닌자')
+        .replace(/빛닌(?!자)/g, '빛닌자')
+        .replace(/암닌(?!자)/g, '암닌자')
+        .replace(/물키(?!메라)/g, '물키메라')
+        .replace(/불키(?!메라)/g, '불키메라')
+        .replace(/풍키(?!메라)/g, '풍키메라')
+        .replace(/빛키(?!메라)/g, '빛키메라')
+        .replace(/암키(?!메라)/g, '암키메라')
+        .replace(/물발(?!키리)/g, '물발키리')
+        .replace(/불발(?!키리)/g, '불발키리')
+        .replace(/풍발(?!키리)/g, '풍발키리')
+        .replace(/빛발(?!키리)/g, '빛발키리')
+        .replace(/암발(?!키리)/g, '암발키리')
+        .replace(/물뱀(?!파)/g, '물뱀파')
+        .replace(/불뱀(?!파)/g, '불뱀파')
+        .replace(/풍뱀(?!파)/g, '풍뱀파')
+        .replace(/빛뱀(?!파)/g, '빛뱀파')
+        .replace(/암뱀(?!파)/g, '암뱀파')
+        .replace(/물드(?!래곤)/g, '물드래곤')
+        .replace(/불드(?!래곤)/g, '불드래곤')
+        .replace(/풍드(?!래곤)/g, '풍드래곤')
+        .replace(/빛드(?!래곤)/g, '빛드래곤')
+        .replace(/암드(?!래곤)/g, '암드래곤')
+        .replace(/물드라(?!이어드)/g, '물드라이어드')
+        .replace(/불드라(?!이어드)/g, '불드라이어드')
+        .replace(/풍드라(?!이어드)/g, '풍드라이어드')
+        .replace(/빛드라(?!이어드)/g, '빛드라이어드')
+        .replace(/암드라(?!이어드)/g, '암드라이어드');
+}
+
+// 방덱이 동일한지 확인하는 함수 (브라우니 변형 포함, 브라우니 쪽만 남김)
+function isSameList(list1, list2) {
+    const norm1 = normalizeTitleForDedup(list1);
+    const norm2 = normalizeTitleForDedup(list2);
+    const words1 = norm1.split(' ');
+    const words2 = norm2.split(' ');
+    if (words1[0] !== words2[0] || words1[1] !== words2[1]) {
+        return false;
+    }
+    const remainingWords1 = words1.slice(2).sort();
+    const remainingWords2 = words2.slice(2).sort();
+    return remainingWords1.join(' ') === remainingWords2.join(' ');
+}
+
+// 목록 정렬 시 중복 제거 (브라우니 쪽만 남김)
+function dedupListsByBraouni(lists) {
+    const seen = new Map();
+    for (const list of lists) {
+        const normTitle = normalizeTitleForDedup(list.title);
+        if (!seen.has(normTitle)) {
+            seen.set(normTitle, list);
+        } else {
+            // 이미 있으면 브라우니 쪽(즉, 변환된 제목이 실제 제목과 같은 쪽)을 남김
+            const existing = seen.get(normTitle);
+            if (!/브라우니/.test(existing.title) && /브라우니/.test(list.title)) {
+                seen.set(normTitle, list);
+            }
+        }
+    }
+    return Array.from(seen.values());
+}
+
+// 가나다순 정렬 함수에서 중복 제거 적용
+function sortListsByAlphabetical(lists) {
+    const deduped = dedupListsByBraouni(lists);
+    return [...deduped].sort((a, b) => {
+        return a.title.localeCompare(b.title, 'ko');
+    });
 }
