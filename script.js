@@ -62,7 +62,6 @@ async function saveToFirebase() {
         
         if (!db) {
             console.error('Firebase가 초기화되지 않았습니다.');
-            // Firebase가 초기화되지 않은 경우 로컬 스토리지에만 저장
             localStorage.setItem('lists', JSON.stringify(lists));
             localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
             return false;
@@ -77,15 +76,14 @@ async function saveToFirebase() {
 
         // 변경된 메인 목록 찾기
         const changedMainLists = lists.filter(list => {
-            if (!currentMainLists) return true; // currentMainLists가 undefined인 경우 처리
+            if (!currentMainLists) return true;
             const currentList = currentMainLists.find(l => l && l.id === list.id);
-            if (!currentList) return true; // 새로 추가된 목록
+            if (!currentList) return true;
             if (currentList.title !== list.title) return true;
             if (currentList.memos.length !== list.memos.length) return true;
             return list.memos.some(memo => {
                 const currentMemo = currentList.memos.find(m => m.id === memo.id);
                 if (!currentMemo) return true;
-                // 승패 데이터도 비교에 포함
                 return currentMemo.text !== memo.text || 
                         currentMemo.status !== memo.status ||
                         currentMemo.wins !== memo.wins ||
@@ -95,7 +93,7 @@ async function saveToFirebase() {
 
         // 변경된 임시 목록 찾기
         const changedTempLists = temporaryLists.filter(list => {
-            if (!currentTempLists) return true; // currentTempLists가 undefined인 경우 처리
+            if (!currentTempLists) return true;
             const currentList = currentTempLists.find(l => l && l.id === list.id);
             if (!currentList) return true;
             if (currentList.title !== list.title) return true;
@@ -103,7 +101,6 @@ async function saveToFirebase() {
             return list.memos.some(memo => {
                 const currentMemo = currentList.memos.find(m => m.id === memo.id);
                 if (!currentMemo) return true;
-                // 승패 데이터도 비교에 포함
                 return currentMemo.text !== memo.text || 
                         currentMemo.status !== memo.status ||
                         currentMemo.wins !== memo.wins ||
@@ -111,63 +108,52 @@ async function saveToFirebase() {
             });
         });
 
-        // 삭제된 목록 찾기
-        const deletedMainListIds = currentMainLists ? 
-            currentMainLists.filter(list => !lists.some(l => l.id === list.id)).map(list => list.id) : 
-            [];
+        // 변경사항이 있는 경우에만 저장
+        if (changedMainLists.length > 0 || changedTempLists.length > 0) {
+            // 현재 시간을 타임스탬프로 저장
+            const currentTime = new Date();
+            const timestamp = {
+                lastUpdated: currentTime.toISOString()
+            };
 
-        const deletedTempListIds = currentTempLists ? 
-            currentTempLists.filter(list => !temporaryLists.some(l => l.id === list.id)).map(list => list.id) : 
-            [];
-
-        // 메인 목록 업데이트
-        if (changedMainLists.length > 0 || deletedMainListIds.length > 0) {
-            const mainDocRef = db.collection('lists').doc('main');
-            await mainDocRef.set({
-                lists: lists.map(list => ({
-                    ...list,
-                    memos: list.memos.map(memo => ({
-                        ...memo,
-                        wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                        losses: typeof memo.losses === 'number' ? memo.losses : 0
-                    }))
-                })),
-                updated_at: new Date().toISOString()
+            // 메인 목록 저장
+            await db.collection('lists').doc('main').set({
+                lists: lists,
+                ...timestamp
             });
+
+            // 임시 목록 저장
+            await db.collection('lists').doc('temporary').set({
+                lists: temporaryLists,
+                ...timestamp
+            });
+
+            // 최근 업로드 시간 표시 업데이트
+            updateLastUploadTimeDisplay(currentTime);
         }
 
-        // 임시 목록 업데이트
-        if (changedTempLists.length > 0 || deletedTempListIds.length > 0) {
-            const tempDocRef = db.collection('lists').doc('temporary');
-            await tempDocRef.set({
-                lists: temporaryLists.map(list => ({
-                    ...list,
-                    memos: list.memos.map(memo => ({
-                        ...memo,
-                        wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                        losses: typeof memo.losses === 'number' ? memo.losses : 0
-                    }))
-                })),
-                updated_at: new Date().toISOString()
-            });
-        }
-
-        console.log('Firebase 저장 완료');
-        
-        // Firebase 저장이 성공했더라도 로컬 스토리지에도 저장 (백업용)
-        localStorage.setItem('lists', JSON.stringify(lists));
-        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-        console.log('로컬 스토리지 백업 완료');
-        
         return true;
-
     } catch (error) {
         console.error('Firebase 저장 오류:', error);
-        // 오류 발생 시 로컬 스토리지에 저장
-        localStorage.setItem('lists', JSON.stringify(lists));
-        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-        console.log('오류 발생으로 로컬 스토리지에 저장됨');
         return false;
+    }
+}
+
+// 최근 업로드 시간 표시 업데이트 함수
+function updateLastUploadTimeDisplay(timestamp) {
+    const lastUploadTimeDisplay = document.getElementById('lastUploadTimeDisplay');
+    if (lastUploadTimeDisplay) {
+        const formattedTime = new Date(timestamp).toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        lastUploadTimeDisplay.textContent = `마지막 업로드: ${formattedTime}`;
+        lastUploadTimeDisplay.style.display = 'block';
     }
 }
 
@@ -175,80 +161,28 @@ async function saveToFirebase() {
 async function loadFromFirebase() {
     try {
         const db = window.db;
-        
         if (!db) {
             console.error('Firebase가 초기화되지 않았습니다.');
             return false;
         }
 
-        // 현재 메모리에 있는 데이터 길이 확인 (비교용)
-        const currentListsLength = lists.length;
-        const currentTempListsLength = temporaryLists.length;
-
-        // 메인 목록 로드
         const mainListsDoc = await db.collection('lists').doc('main').get();
-        let firebaseLists = [];
-        if (mainListsDoc.exists) {
-            firebaseLists = mainListsDoc.data().lists || [];
-        }
-
-        // 임시 목록 로드
         const tempListsDoc = await db.collection('lists').doc('temporary').get();
-        let firebaseTempLists = [];
-        if (tempListsDoc.exists) {
-            firebaseTempLists = tempListsDoc.data().lists || [];
-        }
-        
-        // Firebase 데이터가 비어있고 로컬 데이터가 있으면 로컬 데이터 유지
-        if (firebaseLists.length === 0 && currentListsLength > 0) {
-            console.log('Firebase 목록이 비어있지만 로컬 데이터가 있습니다. 로컬 데이터 유지.');
-            // 로컬 데이터 유지, lists 배열 그대로 두기
-        } else {
-            // Firebase 데이터 사용
-            lists = firebaseLists;
 
-        // 데이터 구조 확인 및 수정
-        lists = lists.map(list => ({
-            ...list,
-            id: list.id || Date.now().toString(),
-            memos: (list.memos || []).map(memo => ({
-                id: memo.id || Date.now().toString() + Math.random().toString(16).slice(2),
-                text: memo.text || '',
-                status: memo.status || null,
-                wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                losses: typeof memo.losses === 'number' ? memo.losses : 0
-            }))
-        }));
-        }
-        
-        // 임시 목록도 같은 로직 적용
-        if (firebaseTempLists.length === 0 && currentTempListsLength > 0) {
-            console.log('Firebase 임시 목록이 비어있지만 로컬 데이터가 있습니다. 로컬 데이터 유지.');
-            // 로컬 데이터 유지, temporaryLists 배열 그대로 두기
-        } else {
-            // Firebase 데이터 사용
-            temporaryLists = firebaseTempLists;
+        if (mainListsDoc.exists) {
+            const data = mainListsDoc.data();
+            lists = data.lists || [];
             
-            // 데이터 구조 확인 및 수정
-        temporaryLists = temporaryLists.map(list => ({
-            ...list,
-            id: list.id || Date.now().toString(),
-            memos: (list.memos || []).map(memo => ({
-                id: memo.id || Date.now().toString() + Math.random().toString(16).slice(2),
-                text: memo.text || '',
-                status: memo.status || null,
-                wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                losses: typeof memo.losses === 'number' ? memo.losses : 0
-            }))
-        }));
+            // 최근 업로드 시간 표시
+            if (data.lastUpdated) {
+                updateLastUploadTimeDisplay(new Date(data.lastUpdated));
+            }
         }
 
-        console.log(`Firebase에서 ${lists.length}개의 목록과 ${temporaryLists.length}개의 임시 목록 로드됨`);
-        
-        // 로컬 스토리지에도 백업
-        localStorage.setItem('lists', JSON.stringify(lists));
-        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-        console.log('Firebase 데이터 로컬 스토리지에 백업 완료');
+        if (tempListsDoc.exists) {
+            const data = tempListsDoc.data();
+            temporaryLists = data.lists || [];
+        }
 
         return true;
     } catch (error) {
@@ -3193,6 +3127,7 @@ function updateUIForUser(user) {
 firebase.auth().onAuthStateChanged((user) => {
     const loginStatus = document.getElementById('loginStatus');
     const userEmailDisplay = document.getElementById('userEmailDisplay');
+    const lastUploadTimeDisplay = document.getElementById('lastUploadTimeDisplay');
     const mainContainer = document.getElementById('mainContainer');
     const provider = new firebase.auth.GoogleAuthProvider();
     if (user) {
@@ -3201,6 +3136,7 @@ firebase.auth().onAuthStateChanged((user) => {
             alert('권한이 없습니다');
             firebase.auth().signOut();
             if (mainContainer) mainContainer.style.display = 'none';
+            if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = 'none';
             return;
         }
         // 헤더에는 '로그인하기'만 표시
@@ -3213,6 +3149,7 @@ firebase.auth().onAuthStateChanged((user) => {
         loginStatus.textContent = '로그인하기';
         userEmailDisplay.textContent = '';
         userEmailDisplay.style.display = 'none';
+        lastUploadTimeDisplay.style.display = 'none';
         if (mainContainer) mainContainer.style.display = 'none';
         // 로그인하지 않은 경우 자동으로 로그인 팝업
         firebase.auth().signInWithPopup(provider).catch(() => {});
