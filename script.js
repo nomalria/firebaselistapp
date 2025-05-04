@@ -3126,7 +3126,6 @@ function updateUIForUser(user) {
 // Firebase Auth 상태 변경 시 UI 업데이트
 firebase.auth().onAuthStateChanged((user) => {
     const loginStatus = document.getElementById('loginStatus');
-    const userEmailDisplay = document.getElementById('userEmailDisplay');
     const lastUploadTimeDisplay = document.getElementById('lastUploadTimeDisplay');
     const mainContainer = document.getElementById('mainContainer');
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -3141,15 +3140,10 @@ firebase.auth().onAuthStateChanged((user) => {
         }
         // 헤더에는 '로그인하기'만 표시
         loginStatus.textContent = '로그인하기';
-        // 오른쪽 아래에만 이메일 표시
-        userEmailDisplay.textContent = user.email;
-        userEmailDisplay.style.display = 'block';
         if (mainContainer) mainContainer.style.display = '';
     } else {
         loginStatus.textContent = '로그인하기';
-        userEmailDisplay.textContent = '';
-        userEmailDisplay.style.display = 'none';
-        lastUploadTimeDisplay.style.display = 'none';
+        if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = 'none';
         if (mainContainer) mainContainer.style.display = 'none';
         // 로그인하지 않은 경우 자동으로 로그인 팝업
         firebase.auth().signInWithPopup(provider).catch(() => {});
