@@ -3207,126 +3207,100 @@ function exportLists() {
 
 // 랜덤 ID 생성 함수
 function generateRandomId() {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    return Date.now().toString() + Math.random().toString(36).substring(2, 9);
 }
 
-// ID 변경 섹션 표시/숨김 함수
-function toggleChangeIdSection(show, listId = null) {
-    const changeIdSection = document.getElementById('changeIdSection');
-    if (changeIdSection) {
-        changeIdSection.style.display = show ? 'block' : 'none';
-    }
-}
-
-// 목록 ID 변경 함수
+// ID 변경 함수
 async function changeListId(listId) {
     try {
-        // 현재 열려있는 목록이 임시 목록인지 확인
+        // 현재 메모 섹션이 열린 목록 찾기
+        const listElement = document.querySelector(`[data-list-id="${listId}"] .memo-section[style*="display: block"]`);
+        if (!listElement) {
+            console.error('열린 메모 섹션을 찾을 수 없습니다.');
+            return;
+        }
+
+        // 임시 목록에서 해당 목록 찾기
         const list = temporaryLists.find(l => l.id === listId);
         if (!list) {
             console.error('임시 목록을 찾을 수 없습니다.');
             return;
         }
 
-        // 새로운 랜덤 ID 생성
+        // 새로운 랜덤 ID 생성 (중복 확인)
         let newId;
         do {
             newId = generateRandomId();
-        } while (temporaryLists.some(l => l.id === newId) || lists.some(l => l.id === newId));
+        } while (
+            temporaryLists.some(l => l.id === newId) || 
+            lists.some(l => l.id === newId)
+        );
 
-        // 목록 ID 변경
+        // 목록의 ID 변경
         list.id = newId;
 
         // UI 업데이트
-        const listElement = document.querySelector(`[data-list-id="${listId}"]`);
-        if (listElement) {
-            listElement.setAttribute('data-list-id', newId);
+        const oldListElement = document.querySelector(`[data-list-id="${listId}"]`);
+        if (oldListElement) {
+            // 새 ID로 데이터 속성 업데이트
+            oldListElement.setAttribute('data-list-id', newId);
+
+            // 관련된 모든 요소의 ID와 이벤트 핸들러 업데이트
+            const elementsToUpdate = {
+                'editSection': 'editSection-',
+                'editListInput': 'editListInput-',
+                'memoSection': 'memoSection-',
+                'newMemoInput': 'newMemoInput-'
+            };
+
+            for (const [key, prefix] of Object.entries(elementsToUpdate)) {
+                const element = oldListElement.querySelector(`#${prefix}${listId}`);
+                if (element) {
+                    element.id = `${prefix}${newId}`;
+                }
+            }
+
+            // 버튼들의 onclick 이벤트 업데이트
+            const editBtn = oldListElement.querySelector('.edit-btn');
+            if (editBtn) {
+                editBtn.setAttribute('onclick', `event.stopPropagation(); startEditList('${newId}', true)`);
+            }
+
+            const deleteBtn = oldListElement.querySelector('.delete-btn');
+            if (deleteBtn) {
+                deleteBtn.setAttribute('onclick', `event.stopPropagation(); deleteList('${newId}', true)`);
+            }
+
+            const addMemoBtn = oldListElement.querySelector('.input-group button');
+            if (addMemoBtn) {
+                addMemoBtn.setAttribute('onclick', `addMemo('${newId}', true)`);
+            }
+
+            const memoInput = oldListElement.querySelector(`#newMemoInput-${newId}`);
+            if (memoInput) {
+                memoInput.setAttribute('onkeypress', `if(event.key === 'Enter') addMemo('${newId}', true)`);
+            }
+
+            // 목록 제목 클릭 이벤트 업데이트
+            const titleElement = oldListElement.querySelector('.list-title');
+            if (titleElement) {
+                titleElement.setAttribute('onclick', `toggleMemos('${newId}')`);
+            }
         }
 
         // Firebase에 저장
         await saveToFirebase();
 
-        // 알림 표시
-        showNotification('목록 ID가 변경되었습니다.', 'changeIdSection');
+        // 성공 메시지 표시
+        showNotification('목록 ID가 성공적으로 변경되었습니다.', 'changeIdSection');
 
-        // ID 변경 섹션 숨기기
-        toggleChangeIdSection(false);
     } catch (error) {
         console.error('ID 변경 중 오류 발생:', error);
         showNotification('ID 변경 중 오류가 발생했습니다.', 'changeIdSection');
     }
 }
 
-// 메모 토글 함수 수정
-function toggleMemos(listId) {
-    try {
-        const listElement = document.querySelector(`[data-list-id="${listId}"]`);
-        if (!listElement) {
-            console.error('목록 요소를 찾을 수 없습니다:', listId);
-            return;
-        }
-
-        const isTemporary = listElement.closest('#temporaryLists') !== null;
-        const list = isTemporary ? temporaryLists.find(l => l.id === listId) : lists.find(l => l.id === listId);
-        
-        if (!list) {
-            console.error('목록 데이터를 찾을 수 없습니다:', listId);
-            return;
-        }
-
-        const memoSection = listElement.querySelector('.memo-section');
-        if (!memoSection) {
-            console.error('메모 섹션을 찾을 수 없습니다:', listId);
-            return;
-        }
-
-        const isExpanded = memoSection.style.display === 'block';
-        
-        // 다른 열린 메모 섹션 닫기
-        document.querySelectorAll('.memo-section').forEach(section => {
-            if (section !== memoSection) {
-                section.style.display = 'none';
-            }
-        });
-
-        // ID 변경 섹션 초기화
-        const changeIdSection = document.getElementById('changeIdSection');
-        if (changeIdSection) {
-            changeIdSection.style.display = 'none';
-        }
-        
-        if (!isExpanded) {
-            // 메모를 펼칠 때
-            memoSection.style.display = 'block';
-            
-            // 메모 목록 렌더링
-            const memoList = memoSection.querySelector('.memo-list');
-            if (memoList) {
-                memoList.innerHTML = (list.memos || []).map(memo => createMemoItemHTML(memo, listId, isTemporary)).join('');
-            }
-            
-            // 임시 목록인 경우 ID 변경 섹션 표시
-            if (isTemporary && changeIdSection) {
-                changeIdSection.style.display = 'block';
-            }
-
-            // 메모 입력창에 포커스
-            const memoInput = document.getElementById(`newMemoInput-${listId}`);
-            if (memoInput) {
-                setTimeout(() => {
-                    memoInput.focus();
-                }, 100);
-            }
-        } else {
-            // 메모를 접을 때
-            memoSection.style.display = 'none';
-        }
-    } catch (error) {
-        console.error('toggleMemos 함수 실행 중 오류 발생:', error);
-    }
-}
-
-// 이벤트 리스너 등록
+// 이벤트 리스너 등록 (DOMContentLoaded 이벤트 내부에 추가)
 document.addEventListener('DOMContentLoaded', function() {
     // ... existing code ...
 
@@ -3334,10 +3308,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const changeListIdBtn = document.getElementById('changeListIdBtn');
     if (changeListIdBtn) {
         changeListIdBtn.addEventListener('click', function() {
-            const activeList = document.querySelector('.memos-container[style="display: block;"]');
-            if (activeList) {
-                const listId = activeList.closest('[data-list-id]').getAttribute('data-list-id');
-                changeListId(listId);
+            // 현재 열린 메모 섹션을 가진 목록 찾기
+            const openMemoSection = document.querySelector('.memo-section[style*="display: block"]');
+            if (openMemoSection) {
+                const listElement = openMemoSection.closest('.list-item');
+                if (listElement) {
+                    const listId = listElement.getAttribute('data-list-id');
+                    if (listId) {
+                        changeListId(listId);
+                    }
+                }
+            } else {
+                showNotification('ID를 변경할 목록을 먼저 선택해주세요.', 'changeIdSection');
             }
         });
     }
