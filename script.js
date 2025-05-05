@@ -492,54 +492,20 @@ function updateSelectedItem(items) {
     });
 }
 
-// 브라우니 변형 단어를 통일
-function normalizeTitle(title) {
-    return title
-        .replace(/물브라우니/g, '물브라')
-        .replace(/불브라우니/g, '불브라')
-        .replace(/풍브라우니/g, '풍브라')
-        .replace(/빛브라우니/g, '빛브라')
-        .replace(/암브라우니/g, '암브라')
-        .replace(/물키(?!메라)/g, '물키메라')
-        .replace(/불키(?!메라)/g, '불키메라')
-        .replace(/풍키(?!메라)/g, '풍키메라')
-        .replace(/빛키(?!메라)/g, '빛키메라')
-        .replace(/암키(?!메라)/g, '암키메라')
-        .replace(/물발(?!키리)/g, '물발키리')
-        .replace(/불발(?!키리)/g, '불발키리')
-        .replace(/풍발(?!키리)/g, '풍발키리')
-        .replace(/빛발(?!키리)/g, '빛발키리')
-        .replace(/암발(?!키리)/g, '암발키리')
-        .replace(/물뱀(?!파)/g, '물뱀파')
-        .replace(/불뱀(?!파)/g, '불뱀파')
-        .replace(/풍뱀(?!파)/g, '풍뱀파')
-        .replace(/빛뱀(?!파)/g, '빛뱀파')
-        .replace(/암뱀(?!파)/g, '암뱀파')
-        .replace(/물드(?!래곤)/g, '물드래곤')
-        .replace(/불드(?!래곤)/g, '불드래곤')
-        .replace(/풍드(?!래곤)/g, '풍드래곤')
-        .replace(/빛드(?!래곤)/g, '빛드래곤')
-        .replace(/암드(?!래곤)/g, '암드래곤')
-        .replace(/물드라(?!이어드)/g, '물드라이어드')
-        .replace(/불드라(?!이어드)/g, '불드라이어드')
-        .replace(/풍드라(?!이어드)/g, '풍드라이어드')
-        .replace(/빛드라(?!이어드)/g, '빛드라이어드')
-        .replace(/암드라(?!이어드)/g, '암드라이어드');
-}
-
-// 방덱이 동일한지 확인하는 함수 (브라우니 변형 포함)
+// 방덱이 동일한지 확인하는 함수
 function isSameList(list1, list2) {
-    const norm1 = normalizeTitle(list1);
-    const norm2 = normalizeTitle(list2);
-    const words1 = norm1.split(' ');
-    const words2 = norm2.split(' ');
+    const words1 = list1.split(' ');
+    const words2 = list2.split(' ');
+    
     // 첫 번째와 두 번째 단어가 일치하는지 확인
     if (words1[0] !== words2[0] || words1[1] !== words2[1]) {
         return false;
     }
+    
     // 나머지 단어들을 정렬하여 비교
     const remainingWords1 = words1.slice(2).sort();
     const remainingWords2 = words2.slice(2).sort();
+    
     return remainingWords1.join(' ') === remainingWords2.join(' ');
 }
 
@@ -655,54 +621,55 @@ function addCreatedAtToExistingLists() {
 
 // 임시 목록 렌더링 (상태 아이콘 및 버튼 추가)
 function renderTemporaryLists() {
-    const container = document.getElementById('temporaryLists');
-    if (!container) return;
+    const temporaryListsContainer = document.getElementById('temporaryLists');
+    temporaryListsContainer.innerHTML = temporaryLists.map(list => `
+        <div class="list-item" data-list-id="${list.id}">
+            <div class="list-title">
+                <span class="list-title-text">${list.title}</span>
+                <span class="memo-count">${list.memos.length}/100</span>
+                <div class="button-group">
+                    <button class="edit-btn" onclick="startEditList('${list.id}', true)">편집</button>
+                    <button class="delete-btn" onclick="deleteList('${list.id}', true)">삭제</button>
+                </div>
+            </div>
+            <div class="edit-section" id="editSection-${list.id}">
+                <div class="input-group">
+                    <input type="text" id="editListInput-${list.id}" placeholder="방덱 제목 수정..." onkeypress="if(event.key === 'Enter') saveListEdit('${list.id}', true)">
+                    <div class="edit-buttons">
+                        <button class="save-btn" onclick="saveListEdit('${list.id}', true)">저장</button>
+                        <button class="cancel-btn" onclick="cancelListEdit('${list.id}', true)">취소</button>
+                    </div>
+                </div>
+            </div>
+            <div class="memo-section" id="memoSection-${list.id}">
+                <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
+                <div class="input-group">
+                    <input type="text" id="newMemoInput-${list.id}" placeholder="메모 추가..." onkeypress="if(event.key === 'Enter') addMemo('${list.id}', true)">
+                    <button onclick="addMemo('${list.id}', true)">추가</button>
+                </div>
+                <div class="memo-list">
+                    ${(list.memos || []).map(memo => createMemoItemHTML(memo, list.id, true)).join('')}
+                </div>
+            </div>
+        </div>
+    `).join('');
 
-    container.innerHTML = '';
+    // 임시 목록의 이벤트 리스너 추가
+    document.querySelectorAll('#temporaryLists .list-title').forEach(title => {
+        title.addEventListener('click', function(e) {
+            if (!e.target.closest('.button-group')) {
+                const listId = this.closest('.list-item').dataset.listId;
+                toggleMemos(listId);
+            }
+        });
+    });
     
-    if (temporaryLists.length === 0) {
-        container.innerHTML = '<p class="empty-message">임시 목록이 비어있습니다.</p>';
-        return;
-    }
-
+    // 클립보드 단축키 이벤트 리스너 추가
     temporaryLists.forEach(list => {
-        const listElement = document.createElement('div');
-        listElement.className = 'list-item';
-        listElement.dataset.id = list.id;
-        
-        const titleElement = document.createElement('div');
-        titleElement.className = 'list-title';
-        titleElement.textContent = list.title;
-        
-        const memosContainer = document.createElement('div');
-        memosContainer.className = 'memos-container';
-        memosContainer.style.display = 'none';
-        
-        listElement.appendChild(titleElement);
-        listElement.appendChild(memosContainer);
-        
-        // 메모 추가 버튼
-        const addMemoBtn = document.createElement('button');
-        addMemoBtn.className = 'add-memo-btn';
-        addMemoBtn.textContent = '메모 추가';
-        addMemoBtn.onclick = () => addMemo(list.id, true);
-        
-        // 삭제 버튼
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.textContent = '삭제';
-        deleteBtn.onclick = () => deleteList(list.id, true);
-        
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'button-container';
-        buttonContainer.appendChild(addMemoBtn);
-        buttonContainer.appendChild(deleteBtn);
-        
-        listElement.appendChild(buttonContainer);
-        container.appendChild(listElement);
-        
-        // 메모 렌더링
-        renderMemos(memosContainer, list.memos, list.id, true);
+        const memoInput = document.getElementById(`newMemoInput-${list.id}`);
+        if (memoInput) {
+            addMemoInputListeners(memoInput, list.id, true);
+        }
     });
 }
 
@@ -3213,14 +3180,14 @@ function exportLists() {
         if (savedTempLists) {
             localTemporaryLists = JSON.parse(savedTempLists);
         }
-        // deep copy로 comments까지 모두 포함 (항상 사용)
+        // deep copy로 comments까지 모두 포함
         const dataToExport = localLists.length > lists.length ? deepCopyWithComments(localLists) : deepCopyWithComments(lists);
         const tempToExport = localTemporaryLists.length > temporaryLists.length ? deepCopyWithComments(localTemporaryLists) : deepCopyWithComments(temporaryLists);
         exportData = {
             lists: dataToExport,
             temporaryLists: tempToExport,
             exportDate: new Date().toISOString(),
-            version: '1.3'
+            version: '1.2'
         };
         const jsonString = JSON.stringify(exportData, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
@@ -3238,113 +3205,3 @@ function exportLists() {
         updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 실패', 3000);
     }
 }
-
-// 브라우니 변형 단어를 모두 '브라우니'로 통일
-function normalizeTitleForDedup(title) {
-    return title
-        .replace(/물브라/g, '물브라우니')
-        .replace(/불브라/g, '불브라우니')
-        .replace(/풍브라/g, '풍브라우니')
-        .replace(/빛브라/g, '빛브라우니')
-        .replace(/암브라/g, '암브라우니')
-        .replace(/물닌(?!자)/g, '물닌자')
-        .replace(/불닌(?!자)/g, '불닌자')
-        .replace(/풍닌(?!자)/g, '풍닌자')
-        .replace(/빛닌(?!자)/g, '빛닌자')
-        .replace(/암닌(?!자)/g, '암닌자')
-        .replace(/물키(?!메라)/g, '물키메라')
-        .replace(/불키(?!메라)/g, '불키메라')
-        .replace(/풍키(?!메라)/g, '풍키메라')
-        .replace(/빛키(?!메라)/g, '빛키메라')
-        .replace(/암키(?!메라)/g, '암키메라')
-        .replace(/물발(?!키리)/g, '물발키리')
-        .replace(/불발(?!키리)/g, '불발키리')
-        .replace(/풍발(?!키리)/g, '풍발키리')
-        .replace(/빛발(?!키리)/g, '빛발키리')
-        .replace(/암발(?!키리)/g, '암발키리')
-        .replace(/물뱀(?!파)/g, '물뱀파')
-        .replace(/불뱀(?!파)/g, '불뱀파')
-        .replace(/풍뱀(?!파)/g, '풍뱀파')
-        .replace(/빛뱀(?!파)/g, '빛뱀파')
-        .replace(/암뱀(?!파)/g, '암뱀파')
-        .replace(/물드(?!래곤)/g, '물드래곤')
-        .replace(/불드(?!래곤)/g, '불드래곤')
-        .replace(/풍드(?!래곤)/g, '풍드래곤')
-        .replace(/빛드(?!래곤)/g, '빛드래곤')
-        .replace(/암드(?!래곤)/g, '암드래곤')
-        .replace(/물드라(?!이어드)/g, '물드라이어드')
-        .replace(/불드라(?!이어드)/g, '불드라이어드')
-        .replace(/풍드라(?!이어드)/g, '풍드라이어드')
-        .replace(/빛드라(?!이어드)/g, '빛드라이어드')
-        .replace(/암드라(?!이어드)/g, '암드라이어드');
-}
-
-// 방덱이 동일한지 확인하는 함수 (브라우니 변형 포함, 브라우니 쪽만 남김)
-function isSameList(list1, list2) {
-    const norm1 = normalizeTitleForDedup(list1);
-    const norm2 = normalizeTitleForDedup(list2);
-    const words1 = norm1.split(' ');
-    const words2 = norm2.split(' ');
-    if (words1[0] !== words2[0] || words1[1] !== words2[1]) {
-        return false;
-    }
-    const remainingWords1 = words1.slice(2).sort();
-    const remainingWords2 = words2.slice(2).sort();
-    return remainingWords1.join(' ') === remainingWords2.join(' ');
-}
-
-// 목록 정렬 시 중복 제거 (브라우니 쪽만 남김)
-function dedupListsByBraouni(lists) {
-    const seen = new Map();
-    for (const list of lists) {
-        const normTitle = normalizeTitleForDedup(list.title);
-        if (!seen.has(normTitle)) {
-            seen.set(normTitle, list);
-        } else {
-            // 이미 있으면 브라우니 쪽(즉, 변환된 제목이 실제 제목과 같은 쪽)을 남김
-            const existing = seen.get(normTitle);
-            if (!/브라우니/.test(existing.title) && /브라우니/.test(list.title)) {
-                seen.set(normTitle, list);
-            }
-        }
-    }
-    return Array.from(seen.values());
-}
-
-// 가나다순 정렬 함수에서 중복 제거 적용
-function sortListsByAlphabetical(lists) {
-    const deduped = dedupListsByBraouni(lists);
-    return [...deduped].sort((a, b) => {
-        return a.title.localeCompare(b.title, 'ko');
-    });
-}
-
-function exportTemporaryLists() {
-    try {
-        const exportData = {
-            temporaryLists: deepCopyWithComments(temporaryLists),
-            exportDate: new Date().toISOString(),
-            version: '1.0-temp'
-        };
-        const jsonString = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `임시목록_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        updateActionStatus(document.getElementById('exportTempJsonBtn'), '내보내기 완료!', 3000);
-    } catch (error) {
-        updateActionStatus(document.getElementById('exportTempJsonBtn'), '내보내기 실패', 3000);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const exportTempBtn = document.getElementById('exportTempJsonBtn');
-    if (exportTempBtn) {
-        exportTempBtn.addEventListener('click', exportTemporaryLists);
-    }
-});

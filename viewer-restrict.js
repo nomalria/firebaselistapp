@@ -163,15 +163,6 @@ window.addEventListener('DOMContentLoaded', function() {
             reader.onload = function(e) {
                 try {
                     const jsonData = JSON.parse(e.target.result);
-                    // 임시목록만 있는 경우 처리
-                    if (jsonData.temporaryLists && (!jsonData.lists || jsonData.lists.length === 0)) {
-                        temporaryLists = jsonData.temporaryLists;
-                        if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
-                        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-                        alert('임시목록 데이터가 성공적으로 불러와졌습니다.');
-                        afterRenderPatch();
-                        return;
-                    }
                     if (Array.isArray(jsonData)) {
                         lists = jsonData;
                     } else if (jsonData.lists && Array.isArray(jsonData.lists)) {
@@ -528,6 +519,55 @@ window.addEventListener('DOMContentLoaded', function() {
             if (typeof renderLists === 'function') renderLists(1);
             if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
             if (typeof updateStats === 'function') updateStats();
+        };
+    }
+
+    // 메모와 댓글까지 모두 포함하여 deep copy
+    function deepCopyWithComments(arr) {
+        return arr.map(list => ({
+            ...list,
+            memos: (list.memos || []).map(memo => ({
+                ...memo,
+                comments: memo.comments ? memo.comments.map(comment => ({ ...comment })) : []
+            }))
+        }));
+    }
+
+    // JSON 내보내기 버튼 동작: 목록, 메모, 댓글, 임시목록까지 모두 포함
+    const exportBtn = document.getElementById('exportJsonBtn');
+    if (exportBtn) {
+        exportBtn.onclick = function() {
+            try {
+                // 최신 데이터 사용
+                let localLists = [];
+                const savedLists = localStorage.getItem('lists');
+                if (savedLists) localLists = JSON.parse(savedLists);
+                let localTemporaryLists = [];
+                const savedTempLists = localStorage.getItem('temporaryLists');
+                if (savedTempLists) localTemporaryLists = JSON.parse(savedTempLists);
+                // deep copy로 comments까지 모두 포함
+                const dataToExport = localLists.length > lists.length ? deepCopyWithComments(localLists) : deepCopyWithComments(lists);
+                const tempToExport = localTemporaryLists.length > temporaryLists.length ? deepCopyWithComments(localTemporaryLists) : deepCopyWithComments(temporaryLists);
+                const exportData = {
+                    lists: dataToExport,
+                    temporaryLists: tempToExport,
+                    exportDate: new Date().toISOString(),
+                    version: '1.2'
+                };
+                const jsonString = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `방덱목록_${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert('내보내기 완료!');
+            } catch (error) {
+                alert('내보내기 실패');
+            }
         };
     }
 }); 
