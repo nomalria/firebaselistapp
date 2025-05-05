@@ -624,15 +624,15 @@ function renderTemporaryLists() {
     const temporaryListsContainer = document.getElementById('temporaryLists');
     temporaryListsContainer.innerHTML = temporaryLists.map(list => `
         <div class="list-item" data-list-id="${list.id}">
-            <div class="list-title">
+            <div class="list-title" onclick="toggleMemos('${list.id}')">
                 <span class="list-title-text">${list.title}</span>
                 <span class="memo-count">${list.memos.length}/100</span>
                 <div class="button-group">
-                    <button class="edit-btn" onclick="startEditList('${list.id}', true)">편집</button>
-                    <button class="delete-btn" onclick="deleteList('${list.id}', true)">삭제</button>
+                    <button class="edit-btn" onclick="event.stopPropagation(); startEditList('${list.id}', true)">편집</button>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteList('${list.id}', true)">삭제</button>
                 </div>
             </div>
-            <div class="edit-section" id="editSection-${list.id}">
+            <div class="edit-section" id="editSection-${list.id}" style="display: none;">
                 <div class="input-group">
                     <input type="text" id="editListInput-${list.id}" placeholder="방덱 제목 수정..." onkeypress="if(event.key === 'Enter') saveListEdit('${list.id}', true)">
                     <div class="edit-buttons">
@@ -641,7 +641,7 @@ function renderTemporaryLists() {
                     </div>
                 </div>
             </div>
-            <div class="memo-section" id="memoSection-${list.id}">
+            <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
                 <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
                 <div class="input-group">
                     <input type="text" id="newMemoInput-${list.id}" placeholder="메모 추가..." onkeypress="if(event.key === 'Enter') addMemo('${list.id}', true)">
@@ -654,16 +654,6 @@ function renderTemporaryLists() {
         </div>
     `).join('');
 
-    // 임시 목록의 이벤트 리스너 추가
-    document.querySelectorAll('#temporaryLists .list-title').forEach(title => {
-        title.addEventListener('click', function(e) {
-            if (!e.target.closest('.button-group')) {
-                const listId = this.closest('.list-item').dataset.listId;
-                toggleMemos(listId);
-            }
-        });
-    });
-    
     // 클립보드 단축키 이벤트 리스너 추가
     temporaryLists.forEach(list => {
         const memoInput = document.getElementById(`newMemoInput-${list.id}`);
@@ -1002,15 +992,15 @@ function renderLists(page = 1) {
     // 3. 목록 렌더링
     listsContainer.innerHTML = paginatedLists.map(list => `
         <div class="list-item" data-list-id="${list.id}">
-            <div class="list-title">
+            <div class="list-title" onclick="toggleMemos('${list.id}')">
                 <span class="list-title-text">${list.title}</span>
                 <span class="memo-count">${list.memos.length}/100</span>
                 <div class="button-group">
-                    <button class="edit-btn" onclick="startEditList('${list.id}')">편집</button>
-                    <button class="delete-btn" onclick="deleteList('${list.id}')">삭제</button>
+                    <button class="edit-btn" onclick="event.stopPropagation(); startEditList('${list.id}')">편집</button>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteList('${list.id}')">삭제</button>
                 </div>
             </div>
-            <div class="edit-section" id="editSection-${list.id}">
+            <div class="edit-section" id="editSection-${list.id}" style="display: none;">
                 <div class="input-group">
                     <input type="text" id="editListInput-${list.id}" placeholder="방덱 제목 수정..." onkeypress="if(event.key === 'Enter') saveListEdit('${list.id}')">
                     <div class="edit-buttons">
@@ -1019,7 +1009,7 @@ function renderLists(page = 1) {
                     </div>
                 </div>
             </div>
-            <div class="memo-section" id="memoSection-${list.id}">
+            <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
                 <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
                 <div class="input-group">
                     <input type="text" id="newMemoInput-${list.id}" placeholder="메모 추가..." onkeypress="if(event.key === 'Enter') addMemo('${list.id}')">
@@ -1032,20 +1022,10 @@ function renderLists(page = 1) {
         </div>
     `).join('');
 
-    // 4. 이벤트 리스너 추가
-    document.querySelectorAll('#lists .list-title').forEach(title => {
-        title.addEventListener('click', function(e) {
-            if (!e.target.closest('.button-group')) {
-                const listId = this.closest('.list-item').dataset.listId;
-                toggleMemos(listId);
-            }
-        });
-    });
-
-    // 5. 페이지네이션 컨트롤 렌더링
+    // 4. 페이지네이션 컨트롤 렌더링
     renderPaginationControls(filteredLists.length);
     
-    // 6. 클립보드 단축키 이벤트 리스너 추가
+    // 5. 클립보드 단축키 이벤트 리스너 추가
     paginatedLists.forEach(list => {
         const memoInput = document.getElementById(`newMemoInput-${list.id}`);
         if (memoInput) {
@@ -1188,51 +1168,53 @@ function handleListClick(listId) {
 
 // 메모 섹션 토글
 function toggleMemos(listId) {
-    const memoSection = document.getElementById(`memoSection-${listId}`);
-    if (!memoSection) return;
+    const listElement = document.querySelector(`[data-list-id="${listId}"]`);
+    if (!listElement) return;
+
+    const isTemporary = listElement.closest('#temporaryLists') !== null;
+    const list = isTemporary ? temporaryLists.find(l => l.id === listId) : lists.find(l => l.id === listId);
+    
+    if (!list) return;
+
+    // 메모 섹션이 없으면 생성
+    let memoSection = listElement.querySelector('.memo-section');
+    if (!memoSection) {
+        console.error('메모 섹션을 찾을 수 없습니다.');
+        return;
+    }
 
     const isExpanded = memoSection.classList.contains('expanded');
     
-    // 모든 열린 메모 섹션 닫기
+    // 다른 열린 메모 섹션 닫기
     document.querySelectorAll('.memo-section.expanded').forEach(section => {
         if (section.id !== `memoSection-${listId}`) {
             section.classList.remove('expanded');
+            section.style.display = 'none';
         }
     });
     
-    // 현재 선택된 섹션 토글
-    memoSection.classList.toggle('expanded');
-    
-    // 메모 섹션이 열릴 때 클립보드+카운터 단축키 이벤트 리스너 추가
     if (!isExpanded) {
-        const memoInput = document.getElementById(`newMemoInput-${listId}`);
-        if (memoInput) {
-            addMemoInputListeners(memoInput, listId, memoSection.closest('.temporary-section') !== null);
-            setTimeout(() => {
-                memoInput.focus();
-            }, 100);
+        // 메모를 펼칠 때
+        memoSection.classList.add('expanded');
+        memoSection.style.display = 'block';
+        
+        // 메모 목록 렌더링
+        const memoList = memoSection.querySelector('.memo-list');
+        if (memoList) {
+            memoList.innerHTML = (list.memos || []).map(memo => createMemoItemHTML(memo, listId, isTemporary)).join('');
         }
         
-        // 스크롤 위치 조정 - 메모 입력창이 화면 중앙에 오도록 수정
-        const listItem = memoSection.closest('.list-item');
-        if (listItem) {
-            setTimeout(() => {
-                // 메모 입력창의 위치 가져오기
-                const memoInput = document.getElementById(`newMemoInput-${listId}`);
-                if (memoInput) {
-                    const inputRect = memoInput.getBoundingClientRect();
-                    const viewportHeight = window.innerHeight;
-                    
-                    // 입력창이 화면 중앙에 오도록 스크롤 조정
-                    const targetScrollTop = window.scrollY + inputRect.top - (viewportHeight / 2) + (inputRect.height / 2);
-                    
-                    window.scrollTo({
-                        top: targetScrollTop,
-                        behavior: 'smooth'
-                    });
-                }
-            }, 150);
+        // 임시 목록인 경우 ID 변경 섹션 표시
+        if (isTemporary) {
+            toggleChangeIdSection(true, listId);
         }
+    } else {
+        // 메모를 접을 때
+        memoSection.classList.remove('expanded');
+        memoSection.style.display = 'none';
+        
+        // ID 변경 섹션 숨기기
+        toggleChangeIdSection(false);
     }
 }
 
@@ -3263,20 +3245,38 @@ function toggleMemos(listId) {
     const listElement = document.querySelector(`[data-list-id="${listId}"]`);
     if (!listElement) return;
 
-    const memosContainer = listElement.querySelector('.memos-container');
-    if (!memosContainer) return;
-
     const isTemporary = listElement.closest('#temporaryLists') !== null;
     const list = isTemporary ? temporaryLists.find(l => l.id === listId) : lists.find(l => l.id === listId);
     
     if (!list) return;
 
-    const isExpanded = memosContainer.style.display !== 'none';
+    // 메모 섹션이 없으면 생성
+    let memoSection = listElement.querySelector('.memo-section');
+    if (!memoSection) {
+        console.error('메모 섹션을 찾을 수 없습니다.');
+        return;
+    }
+
+    const isExpanded = memoSection.classList.contains('expanded');
+    
+    // 다른 열린 메모 섹션 닫기
+    document.querySelectorAll('.memo-section.expanded').forEach(section => {
+        if (section.id !== `memoSection-${listId}`) {
+            section.classList.remove('expanded');
+            section.style.display = 'none';
+        }
+    });
     
     if (!isExpanded) {
         // 메모를 펼칠 때
-        renderMemos(listElement, list.memos, listId, isTemporary);
-        memosContainer.style.display = 'block';
+        memoSection.classList.add('expanded');
+        memoSection.style.display = 'block';
+        
+        // 메모 목록 렌더링
+        const memoList = memoSection.querySelector('.memo-list');
+        if (memoList) {
+            memoList.innerHTML = (list.memos || []).map(memo => createMemoItemHTML(memo, listId, isTemporary)).join('');
+        }
         
         // 임시 목록인 경우 ID 변경 섹션 표시
         if (isTemporary) {
@@ -3284,7 +3284,8 @@ function toggleMemos(listId) {
         }
     } else {
         // 메모를 접을 때
-        memosContainer.style.display = 'none';
+        memoSection.classList.remove('expanded');
+        memoSection.style.display = 'none';
         
         // ID 변경 섹션 숨기기
         toggleChangeIdSection(false);
