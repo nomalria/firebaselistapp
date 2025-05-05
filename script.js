@@ -655,55 +655,54 @@ function addCreatedAtToExistingLists() {
 
 // 임시 목록 렌더링 (상태 아이콘 및 버튼 추가)
 function renderTemporaryLists() {
-    const temporaryListsContainer = document.getElementById('temporaryLists');
-    temporaryListsContainer.innerHTML = temporaryLists.map(list => `
-        <div class="list-item" data-list-id="${list.id}">
-            <div class="list-title">
-                <span class="list-title-text">${list.title}</span>
-                <span class="memo-count">${list.memos.length}/100</span>
-                <div class="button-group">
-                    <button class="edit-btn" onclick="startEditList('${list.id}', true)">편집</button>
-                    <button class="delete-btn" onclick="deleteList('${list.id}', true)">삭제</button>
-                </div>
-            </div>
-            <div class="edit-section" id="editSection-${list.id}">
-                <div class="input-group">
-                    <input type="text" id="editListInput-${list.id}" placeholder="방덱 제목 수정..." onkeypress="if(event.key === 'Enter') saveListEdit('${list.id}', true)">
-                    <div class="edit-buttons">
-                        <button class="save-btn" onclick="saveListEdit('${list.id}', true)">저장</button>
-                        <button class="cancel-btn" onclick="cancelListEdit('${list.id}', true)">취소</button>
-                    </div>
-                </div>
-            </div>
-            <div class="memo-section" id="memoSection-${list.id}">
-                <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
-                <div class="input-group">
-                    <input type="text" id="newMemoInput-${list.id}" placeholder="메모 추가..." onkeypress="if(event.key === 'Enter') addMemo('${list.id}', true)">
-                    <button onclick="addMemo('${list.id}', true)">추가</button>
-                </div>
-                <div class="memo-list">
-                    ${(list.memos || []).map(memo => createMemoItemHTML(memo, list.id, true)).join('')}
-                </div>
-            </div>
-        </div>
-    `).join('');
+    const container = document.getElementById('temporaryLists');
+    if (!container) return;
 
-    // 임시 목록의 이벤트 리스너 추가
-    document.querySelectorAll('#temporaryLists .list-title').forEach(title => {
-        title.addEventListener('click', function(e) {
-            if (!e.target.closest('.button-group')) {
-                const listId = this.closest('.list-item').dataset.listId;
-                toggleMemos(listId);
-            }
-        });
-    });
+    container.innerHTML = '';
     
-    // 클립보드 단축키 이벤트 리스너 추가
+    if (temporaryLists.length === 0) {
+        container.innerHTML = '<p class="empty-message">임시 목록이 비어있습니다.</p>';
+        return;
+    }
+
     temporaryLists.forEach(list => {
-        const memoInput = document.getElementById(`newMemoInput-${list.id}`);
-        if (memoInput) {
-            addMemoInputListeners(memoInput, list.id, true);
-        }
+        const listElement = document.createElement('div');
+        listElement.className = 'list-item';
+        listElement.dataset.id = list.id;
+        
+        const titleElement = document.createElement('div');
+        titleElement.className = 'list-title';
+        titleElement.textContent = list.title;
+        
+        const memosContainer = document.createElement('div');
+        memosContainer.className = 'memos-container';
+        memosContainer.style.display = 'none';
+        
+        listElement.appendChild(titleElement);
+        listElement.appendChild(memosContainer);
+        
+        // 메모 추가 버튼
+        const addMemoBtn = document.createElement('button');
+        addMemoBtn.className = 'add-memo-btn';
+        addMemoBtn.textContent = '메모 추가';
+        addMemoBtn.onclick = () => addMemo(list.id, true);
+        
+        // 삭제 버튼
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = '삭제';
+        deleteBtn.onclick = () => deleteList(list.id, true);
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'button-container';
+        buttonContainer.appendChild(addMemoBtn);
+        buttonContainer.appendChild(deleteBtn);
+        
+        listElement.appendChild(buttonContainer);
+        container.appendChild(listElement);
+        
+        // 메모 렌더링
+        renderMemos(memosContainer, list.memos, list.id, true);
     });
 }
 
