@@ -3319,33 +3319,3 @@ function sortListsByAlphabetical(lists) {
         return a.title.localeCompare(b.title, 'ko');
     });
 }
-
-function exportTemporaryLists() {
-    try {
-        const exportData = {
-            temporaryLists: deepCopyWithComments(temporaryLists),
-            exportDate: new Date().toISOString(),
-            version: '1.0-temp'
-        };
-        const jsonString = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `임시목록_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        updateActionStatus(document.getElementById('exportTempJsonBtn'), '내보내기 완료!', 3000);
-    } catch (error) {
-        updateActionStatus(document.getElementById('exportTempJsonBtn'), '내보내기 실패', 3000);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const exportTempBtn = document.getElementById('exportTempJsonBtn');
-    if (exportTempBtn) {
-        exportTempBtn.addEventListener('click', exportTemporaryLists);
-    }
-});

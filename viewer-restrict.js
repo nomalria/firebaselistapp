@@ -163,15 +163,6 @@ window.addEventListener('DOMContentLoaded', function() {
             reader.onload = function(e) {
                 try {
                     const jsonData = JSON.parse(e.target.result);
-                    // 임시목록만 있는 경우 처리
-                    if (jsonData.temporaryLists && (!jsonData.lists || jsonData.lists.length === 0)) {
-                        temporaryLists = jsonData.temporaryLists;
-                        if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
-                        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-                        alert('임시목록 데이터가 성공적으로 불러와졌습니다.');
-                        afterRenderPatch();
-                        return;
-                    }
                     if (Array.isArray(jsonData)) {
                         lists = jsonData;
                     } else if (jsonData.lists && Array.isArray(jsonData.lists)) {
