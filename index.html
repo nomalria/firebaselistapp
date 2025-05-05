@@ -87,6 +87,10 @@
             <div class="button-wrapper">
                 <button id="sortBtn" class="action-btn">목록 및 메모 정렬</button>
             </div>
+            <div class="button-wrapper" id="changeIdSection" style="display: none; text-align: center;">
+                <button id="changeListIdBtn" class="action-btn">목록 ID 변경</button>
+                <div id="currentListIdDisplay" style="margin-top:8px; color:#555; font-size:13px;"></div>
+            </div>
         </div>
         
         <!-- JSON 파일 입력 요소 (숨김) -->
@@ -129,10 +133,6 @@
                     <!-- 클립보드 아이템들은 JavaScript로 동적 생성됩니다 -->
                 </div>
             </div>
-        </div>
-        <div id="changeIdSection" style="display: none; margin-top: 10px; text-align: center;">
-            <button id="changeListIdBtn" class="action-btn">목록 ID 변경</button>
-            <div id="currentListIdDisplay" style="margin-top:8px; color:#555; font-size:13px;"></div>
         </div>
     </div>
 
