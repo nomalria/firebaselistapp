@@ -1168,53 +1168,70 @@ function handleListClick(listId) {
 
 // 메모 섹션 토글
 function toggleMemos(listId) {
-    const listElement = document.querySelector(`[data-list-id="${listId}"]`);
-    if (!listElement) return;
-
-    const isTemporary = listElement.closest('#temporaryLists') !== null;
-    const list = isTemporary ? temporaryLists.find(l => l.id === listId) : lists.find(l => l.id === listId);
-    
-    if (!list) return;
-
-    // 메모 섹션이 없으면 생성
-    let memoSection = listElement.querySelector('.memo-section');
-    if (!memoSection) {
-        console.error('메모 섹션을 찾을 수 없습니다.');
-        return;
-    }
-
-    const isExpanded = memoSection.classList.contains('expanded');
-    
-    // 다른 열린 메모 섹션 닫기
-    document.querySelectorAll('.memo-section.expanded').forEach(section => {
-        if (section.id !== `memoSection-${listId}`) {
-            section.classList.remove('expanded');
-            section.style.display = 'none';
+    try {
+        const listElement = document.querySelector(`[data-list-id="${listId}"]`);
+        if (!listElement) {
+            console.error('목록 요소를 찾을 수 없습니다:', listId);
+            return;
         }
-    });
-    
-    if (!isExpanded) {
-        // 메모를 펼칠 때
-        memoSection.classList.add('expanded');
-        memoSection.style.display = 'block';
+
+        const isTemporary = listElement.closest('#temporaryLists') !== null;
+        const list = isTemporary ? temporaryLists.find(l => l.id === listId) : lists.find(l => l.id === listId);
         
-        // 메모 목록 렌더링
-        const memoList = memoSection.querySelector('.memo-list');
-        if (memoList) {
-            memoList.innerHTML = (list.memos || []).map(memo => createMemoItemHTML(memo, listId, isTemporary)).join('');
+        if (!list) {
+            console.error('목록 데이터를 찾을 수 없습니다:', listId);
+            return;
+        }
+
+        const memoSection = listElement.querySelector('.memo-section');
+        if (!memoSection) {
+            console.error('메모 섹션을 찾을 수 없습니다:', listId);
+            return;
+        }
+
+        const isExpanded = memoSection.style.display === 'block';
+        
+        // 다른 열린 메모 섹션 닫기
+        document.querySelectorAll('.memo-section').forEach(section => {
+            if (section !== memoSection) {
+                section.style.display = 'none';
+            }
+        });
+
+        // ID 변경 섹션 초기화
+        const changeIdSection = document.getElementById('changeIdSection');
+        if (changeIdSection) {
+            changeIdSection.style.display = 'none';
         }
         
-        // 임시 목록인 경우 ID 변경 섹션 표시
-        if (isTemporary) {
-            toggleChangeIdSection(true, listId);
+        if (!isExpanded) {
+            // 메모를 펼칠 때
+            memoSection.style.display = 'block';
+            
+            // 메모 목록 렌더링
+            const memoList = memoSection.querySelector('.memo-list');
+            if (memoList) {
+                memoList.innerHTML = (list.memos || []).map(memo => createMemoItemHTML(memo, listId, isTemporary)).join('');
+            }
+            
+            // 임시 목록인 경우 ID 변경 섹션 표시
+            if (isTemporary && changeIdSection) {
+                changeIdSection.style.display = 'block';
+            }
+
+            // 메모 입력창에 포커스
+            const memoInput = document.getElementById(`newMemoInput-${listId}`);
+            if (memoInput) {
+                setTimeout(() => {
+                    memoInput.focus();
+                }, 100);
+            }
+        } else {
+            // 메모를 접을 때
+            memoSection.style.display = 'none';
         }
-    } else {
-        // 메모를 접을 때
-        memoSection.classList.remove('expanded');
-        memoSection.style.display = 'none';
-        
-        // ID 변경 섹션 숨기기
-        toggleChangeIdSection(false);
+    } catch (error) {
+        console.error('toggleMemos 함수 실행 중 오류 발생:', error);
     }
 }
 
@@ -3242,53 +3259,70 @@ async function changeListId(listId) {
 
 // 메모 토글 함수 수정
 function toggleMemos(listId) {
-    const listElement = document.querySelector(`[data-list-id="${listId}"]`);
-    if (!listElement) return;
-
-    const isTemporary = listElement.closest('#temporaryLists') !== null;
-    const list = isTemporary ? temporaryLists.find(l => l.id === listId) : lists.find(l => l.id === listId);
-    
-    if (!list) return;
-
-    // 메모 섹션이 없으면 생성
-    let memoSection = listElement.querySelector('.memo-section');
-    if (!memoSection) {
-        console.error('메모 섹션을 찾을 수 없습니다.');
-        return;
-    }
-
-    const isExpanded = memoSection.classList.contains('expanded');
-    
-    // 다른 열린 메모 섹션 닫기
-    document.querySelectorAll('.memo-section.expanded').forEach(section => {
-        if (section.id !== `memoSection-${listId}`) {
-            section.classList.remove('expanded');
-            section.style.display = 'none';
+    try {
+        const listElement = document.querySelector(`[data-list-id="${listId}"]`);
+        if (!listElement) {
+            console.error('목록 요소를 찾을 수 없습니다:', listId);
+            return;
         }
-    });
-    
-    if (!isExpanded) {
-        // 메모를 펼칠 때
-        memoSection.classList.add('expanded');
-        memoSection.style.display = 'block';
+
+        const isTemporary = listElement.closest('#temporaryLists') !== null;
+        const list = isTemporary ? temporaryLists.find(l => l.id === listId) : lists.find(l => l.id === listId);
         
-        // 메모 목록 렌더링
-        const memoList = memoSection.querySelector('.memo-list');
-        if (memoList) {
-            memoList.innerHTML = (list.memos || []).map(memo => createMemoItemHTML(memo, listId, isTemporary)).join('');
+        if (!list) {
+            console.error('목록 데이터를 찾을 수 없습니다:', listId);
+            return;
+        }
+
+        const memoSection = listElement.querySelector('.memo-section');
+        if (!memoSection) {
+            console.error('메모 섹션을 찾을 수 없습니다:', listId);
+            return;
+        }
+
+        const isExpanded = memoSection.style.display === 'block';
+        
+        // 다른 열린 메모 섹션 닫기
+        document.querySelectorAll('.memo-section').forEach(section => {
+            if (section !== memoSection) {
+                section.style.display = 'none';
+            }
+        });
+
+        // ID 변경 섹션 초기화
+        const changeIdSection = document.getElementById('changeIdSection');
+        if (changeIdSection) {
+            changeIdSection.style.display = 'none';
         }
         
-        // 임시 목록인 경우 ID 변경 섹션 표시
-        if (isTemporary) {
-            toggleChangeIdSection(true, listId);
+        if (!isExpanded) {
+            // 메모를 펼칠 때
+            memoSection.style.display = 'block';
+            
+            // 메모 목록 렌더링
+            const memoList = memoSection.querySelector('.memo-list');
+            if (memoList) {
+                memoList.innerHTML = (list.memos || []).map(memo => createMemoItemHTML(memo, listId, isTemporary)).join('');
+            }
+            
+            // 임시 목록인 경우 ID 변경 섹션 표시
+            if (isTemporary && changeIdSection) {
+                changeIdSection.style.display = 'block';
+            }
+
+            // 메모 입력창에 포커스
+            const memoInput = document.getElementById(`newMemoInput-${listId}`);
+            if (memoInput) {
+                setTimeout(() => {
+                    memoInput.focus();
+                }, 100);
+            }
+        } else {
+            // 메모를 접을 때
+            memoSection.style.display = 'none';
         }
-    } else {
-        // 메모를 접을 때
-        memoSection.classList.remove('expanded');
-        memoSection.style.display = 'none';
-        
-        // ID 변경 섹션 숨기기
-        toggleChangeIdSection(false);
+    } catch (error) {
+        console.error('toggleMemos 함수 실행 중 오류 발생:', error);
     }
 }
 
