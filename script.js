@@ -1214,9 +1214,16 @@ function toggleMemos(listId) {
                 memoList.innerHTML = (list.memos || []).map(memo => createMemoItemHTML(memo, listId, isTemporary)).join('');
             }
             
-            // 임시 목록인 경우 ID 변경 섹션 표시
+            // 임시 목록인 경우에만 ID 변경 섹션 표시
             if (isTemporary && changeIdSection) {
                 changeIdSection.style.display = 'block';
+                
+                // ID 변경 버튼이 보이도록 스타일 수정
+                const changeListIdBtn = document.getElementById('changeListIdBtn');
+                if (changeListIdBtn) {
+                    changeListIdBtn.style.display = 'inline-block';
+                    changeListIdBtn.style.marginTop = '10px';
+                }
             }
 
             // 메모 입력창에 포커스
@@ -1229,6 +1236,11 @@ function toggleMemos(listId) {
         } else {
             // 메모를 접을 때
             memoSection.style.display = 'none';
+            
+            // ID 변경 섹션도 숨기기
+            if (changeIdSection) {
+                changeIdSection.style.display = 'none';
+            }
         }
     } catch (error) {
         console.error('toggleMemos 함수 실행 중 오류 발생:', error);
@@ -3323,4 +3335,43 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+
+// DOMContentLoaded 이벤트에 스타일 추가
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+
+    // ID 변경 섹션 스타일 추가
+    const style = document.createElement('style');
+    style.textContent = `
+        #changeIdSection {
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        #changeListIdBtn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        #changeListIdBtn:hover {
+            background-color: #5a6268;
+        }
+
+        #changeListIdBtn:active {
+            background-color: #545b62;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // ... existing code ...
 });
