@@ -3205,3 +3205,105 @@ function exportLists() {
         updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 실패', 3000);
     }
 }
+
+// 랜덤 ID 생성 함수
+function generateRandomId() {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+// ID 변경 섹션 표시/숨김 함수
+function toggleChangeIdSection(show, listId = null) {
+    const changeIdSection = document.getElementById('changeIdSection');
+    if (changeIdSection) {
+        changeIdSection.style.display = show ? 'block' : 'none';
+    }
+}
+
+// 목록 ID 변경 함수
+async function changeListId(listId) {
+    try {
+        // 현재 열려있는 목록이 임시 목록인지 확인
+        const list = temporaryLists.find(l => l.id === listId);
+        if (!list) {
+            console.error('임시 목록을 찾을 수 없습니다.');
+            return;
+        }
+
+        // 새로운 랜덤 ID 생성
+        let newId;
+        do {
+            newId = generateRandomId();
+        } while (temporaryLists.some(l => l.id === newId) || lists.some(l => l.id === newId));
+
+        // 목록 ID 변경
+        list.id = newId;
+
+        // UI 업데이트
+        const listElement = document.querySelector(`[data-list-id="${listId}"]`);
+        if (listElement) {
+            listElement.setAttribute('data-list-id', newId);
+        }
+
+        // Firebase에 저장
+        await saveToFirebase();
+
+        // 알림 표시
+        showNotification('목록 ID가 변경되었습니다.', 'changeIdSection');
+
+        // ID 변경 섹션 숨기기
+        toggleChangeIdSection(false);
+    } catch (error) {
+        console.error('ID 변경 중 오류 발생:', error);
+        showNotification('ID 변경 중 오류가 발생했습니다.', 'changeIdSection');
+    }
+}
+
+// 메모 토글 함수 수정
+function toggleMemos(listId) {
+    const listElement = document.querySelector(`[data-list-id="${listId}"]`);
+    if (!listElement) return;
+
+    const memosContainer = listElement.querySelector('.memos-container');
+    if (!memosContainer) return;
+
+    const isTemporary = listElement.closest('#temporaryLists') !== null;
+    const list = isTemporary ? temporaryLists.find(l => l.id === listId) : lists.find(l => l.id === listId);
+    
+    if (!list) return;
+
+    const isExpanded = memosContainer.style.display !== 'none';
+    
+    if (!isExpanded) {
+        // 메모를 펼칠 때
+        renderMemos(listElement, list.memos, listId, isTemporary);
+        memosContainer.style.display = 'block';
+        
+        // 임시 목록인 경우 ID 변경 섹션 표시
+        if (isTemporary) {
+            toggleChangeIdSection(true, listId);
+        }
+    } else {
+        // 메모를 접을 때
+        memosContainer.style.display = 'none';
+        
+        // ID 변경 섹션 숨기기
+        toggleChangeIdSection(false);
+    }
+}
+
+// 이벤트 리스너 등록
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+
+    // ID 변경 버튼 이벤트 리스너
+    const changeListIdBtn = document.getElementById('changeListIdBtn');
+    if (changeListIdBtn) {
+        changeListIdBtn.addEventListener('click', function() {
+            const activeList = document.querySelector('.memos-container[style="display: block;"]');
+            if (activeList) {
+                const listId = activeList.closest('[data-list-id]').getAttribute('data-list-id');
+                changeListId(listId);
+            }
+        });
+    }
+});
