@@ -91,12 +91,20 @@
         
         <!-- JSON 파일 입력 요소 (숨김) -->
         <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
-        
+        <input type="file" id="exportJsonInput" accept=".json" style="display: none;">
+
         <!-- 임시 목록 섹션 -->
         <div class="temporary-section">
             <h2>임시 목록</h2>
+            <div class="button-container">
+                <div class="button-wrapper">
+                    <button id="exportTemporaryBtn" class="action-btn">임시목록 내보내기</button>
+                </div>
+                <div class="button-wrapper">
+                    <button id="importTemporaryBtn" class="action-btn">임시목록 불러오기</button>
+                </div>
+            </div>
             <div id="temporaryLists" class="lists-container"></div>
-        </div>
         
         <!-- 기존 목록 섹션 -->
         <div class="existing-section">

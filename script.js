@@ -22,6 +22,66 @@ let currentFilterType = 'all'; // 현재 활성화된 필터 타입 ('all', '4�
 let currentPage = 1; // 현재 페이지 번호 (페이지네이션용)
 const itemsPerPage = 20; // 페이지당 항목 수 (페이지네이션용)
 
+// 임시목록 내보내기 함수
+async function exportTemporaryLists() {
+    if (temporaryLists.length === 0) {
+        alert('임시목록이 비어있습니다.');
+        return;
+    }
+
+    try {
+        const blob = new Blob([JSON.stringify(temporaryLists, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'temporary_lists_' + new Date().toISOString().split('T')[0] + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        // 임시목록 비우기
+        temporaryLists = [];
+        updateTemporaryLists();
+        
+        alert('임시목록이 성공적으로 내보내지고 초기화되었습니다.');
+    } catch (error) {
+        console.error('임시목록 내보내기 오류:', error);
+        alert('임시목록 내보내기에 실패했습니다.');
+    }
+}
+
+// 임시목록 불러오기 함수
+async function importTemporaryLists() {
+    const fileInput = document.getElementById('jsonFileInput');
+    fileInput.click();
+}
+
+// JSON 파일 처리 함수
+async function handleTemporaryJsonFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+        const importedLists = JSON.parse(text);
+
+        // 유효성 검사
+        if (!Array.isArray(importedLists)) {
+            throw new Error('유효한 JSON 파일이 아닙니다.');
+        }
+
+        // 임시목록에 추가
+        temporaryLists = importedLists;
+        updateTemporaryLists();
+        
+        alert('임시목록이 성공적으로 불러와졌습니다.');
+    } catch (error) {
+        console.error('임시목록 불러오기 오류:', error);
+        alert('임시목록 불러오기에 실패했습니다. 유효한 JSON 파일을 선택해주세요.');
+    }
+}
+
 // 삭제 확인을 위한 타이머 객체
 const deleteTimers = {};
 
