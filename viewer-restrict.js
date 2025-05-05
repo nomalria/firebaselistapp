@@ -69,15 +69,14 @@ function toggleMemos(listId) {
     const memoSection = document.getElementById(`memoSection-${listId}`);
     if (!memoSection) return;
 
-    const isExpanded = memoSection.classList.contains('expanded');
-    document.querySelectorAll('.memo-section.expanded').forEach(section => {
-        if (section.id !== `memoSection-${listId}`) {
-            section.classList.remove('expanded');
+    const isExpanded = memoSection.style.display === 'block';
+    document.querySelectorAll('.memo-section').forEach(section => {
+        if (section !== memoSection) {
+            section.style.display = 'none';
         }
     });
-    memoSection.classList.toggle('expanded');
-
     if (!isExpanded) {
+        memoSection.style.display = 'block';
         setTimeout(() => {
             // 해당 목록 전체(list-item)가 화면에 오도록 스크롤
             const listItem = memoSection.closest('.list-item');
@@ -87,6 +86,8 @@ function toggleMemos(listId) {
                 window.scrollTo({ top: scrollTop, behavior: 'smooth' });
             }
         }, 150);
+    } else {
+        memoSection.style.display = 'none';
     }
 }
 
