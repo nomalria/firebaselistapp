@@ -1200,8 +1200,12 @@ function toggleMemos(listId) {
 
         // ID 변경 섹션 초기화
         const changeIdSection = document.getElementById('changeIdSection');
+        const currentListIdDisplay = document.getElementById('currentListIdDisplay');
         if (changeIdSection) {
             changeIdSection.style.display = 'none';
+        }
+        if (currentListIdDisplay) {
+            currentListIdDisplay.textContent = '';
         }
         
         if (!isExpanded) {
@@ -1214,10 +1218,12 @@ function toggleMemos(listId) {
                 memoList.innerHTML = (list.memos || []).map(memo => createMemoItemHTML(memo, listId, isTemporary)).join('');
             }
             
-            // 임시 목록인 경우에만 ID 변경 섹션 표시
+            // 임시 목록인 경우에만 ID 변경 섹션 표시 및 현재 ID 표시
             if (isTemporary && changeIdSection) {
                 changeIdSection.style.display = 'block';
-                
+                if (currentListIdDisplay) {
+                    currentListIdDisplay.textContent = `현재 목록 ID: ${list.id}`;
+                }
                 // ID 변경 버튼이 보이도록 스타일 수정
                 const changeListIdBtn = document.getElementById('changeListIdBtn');
                 if (changeListIdBtn) {
@@ -1236,10 +1242,12 @@ function toggleMemos(listId) {
         } else {
             // 메모를 접을 때
             memoSection.style.display = 'none';
-            
             // ID 변경 섹션도 숨기기
             if (changeIdSection) {
                 changeIdSection.style.display = 'none';
+            }
+            if (currentListIdDisplay) {
+                currentListIdDisplay.textContent = '';
             }
         }
     } catch (error) {
@@ -3306,6 +3314,11 @@ async function changeListId(listId) {
         // 성공 메시지 표시
         showNotification('목록 ID가 성공적으로 변경되었습니다.', 'changeIdSection');
 
+        // 변경된 ID를 표시
+        const currentListIdDisplay = document.getElementById('currentListIdDisplay');
+        if (currentListIdDisplay) {
+            currentListIdDisplay.textContent = `현재 목록 ID: ${newId}`;
+        }
     } catch (error) {
         console.error('ID 변경 중 오류 발생:', error);
         showNotification('ID 변경 중 오류가 발생했습니다.', 'changeIdSection');
