@@ -1,6 +1,10 @@
 // viewer.html 전용 기능 제한 스크립트
 // 이 파일에 제한 로직을 추가할 예정입니다. 
 
+// 페이지네이션 관련 변수
+let viewerCurrentPage = 1;
+const viewerItemsPerPage = 20;
+
 function hideViewerRestrictedButtons() {
     // 1. 목록 추가 입력창, 추가 버튼, 기존목록 추가 버튼 숨김
     const searchInput = document.getElementById('searchInput');
@@ -581,4 +585,112 @@ window.addEventListener('DOMContentLoaded', function() {
             }
         };
     }
+
+    // 뷰어용 메모 아이템 HTML 생성 함수
+    function createViewerMemoItemHTML(memo) {
+        const wins = typeof memo.wins === 'number' ? memo.wins : 0;
+        const losses = typeof memo.losses === 'number' ? memo.losses : 0;
+        const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
+        
+        return `
+            <div class="memo-item" data-memo-id="${memo.id}">
+                <div class="memo-content">
+                    <div class="memo-text">${memo.text}</div>
+                    <div class="memo-stats">
+                        <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 뷰어용 목록 렌더링 함수
+    function renderViewerList(list) {
+        return `
+            <div class="list-item" data-list-id="${list.id}">
+                <div class="list-title" onclick="toggleMemos('${list.id}')">
+                    <span class="list-title-text">${list.title}</span>
+                    <span class="memo-count">${list.memos.length}/100</span>
+                </div>
+                <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
+                    <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
+                    <div class="memo-list">
+                        ${(list.memos || []).map(memo => createViewerMemoItemHTML(memo)).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 뷰어용 목록 렌더링 함수
+    window.renderLists = function(page = 1) {
+        viewerCurrentPage = page;  // 현재 페이지 업데이트
+        const listsContainer = document.getElementById('lists');
+        if (!listsContainer) return;
+
+        let filteredLists = lists;
+        if (viewerCurrentFilterType === '4방덱') {
+            filteredLists = lists.filter(list => list.title.startsWith('4방덱'));
+        } else if (viewerCurrentFilterType === '5방덱') {
+            filteredLists = lists.filter(list => list.title.startsWith('5방덱'));
+        } else if (viewerCurrentFilterType === '기타') {
+            filteredLists = lists.filter(list => !list.title.startsWith('4방덱') && !list.title.startsWith('5방덱'));
+        }
+
+        const startIndex = (viewerCurrentPage - 1) * viewerItemsPerPage;
+        const endIndex = startIndex + viewerItemsPerPage;
+        const paginatedLists = filteredLists.slice(startIndex, endIndex);
+
+        listsContainer.innerHTML = paginatedLists.map(renderViewerList).join('');
+
+        // 페이지네이션 컨트롤 렌더링
+        const paginationControls = document.getElementById('paginationControls');
+        if (paginationControls) {
+            const totalPages = Math.ceil(filteredLists.length / viewerItemsPerPage);
+            
+            // 페이지가 1개 이하면 컨트롤 숨김
+            if (totalPages <= 1) {
+                paginationControls.innerHTML = '';
+                return;
+            }
+
+            // 상단 이전/다음 버튼 추가
+            let html = '<div class="pagination-top-controls" style="margin-bottom: 10px;">';
+            html += `<button onclick="renderLists(${Math.max(1, viewerCurrentPage - 1)})" ${viewerCurrentPage === 1 ? 'disabled' : ''} style="padding: 8px 20px; margin: 0 5px; font-size: 16px;">이전</button>`;
+            html += `<button onclick="renderLists(${Math.min(totalPages, viewerCurrentPage + 1)})" ${viewerCurrentPage === totalPages ? 'disabled' : ''} style="padding: 8px 20px; margin: 0 5px; font-size: 16px;">다음</button>`;
+            html += '</div>';
+
+            // 기존 페이지네이션 UI 생성
+            html += '<div class="pagination-controls" style="display: flex; justify-content: center; align-items: center; gap: 5px;">';
+            
+            // 처음 페이지로 이동 버튼
+            html += `<button onclick="renderLists(1)" ${viewerCurrentPage === 1 ? 'disabled' : ''} style="padding: 5px 10px;">&laquo;</button>`;
+            
+            // 이전 페이지로 이동 버튼
+            html += `<button onclick="renderLists(${Math.max(1, viewerCurrentPage - 1)})" ${viewerCurrentPage === 1 ? 'disabled' : ''} style="padding: 5px 10px;">&lt;</button>`;
+            
+            // 페이지 번호 버튼들
+            const startPage = Math.max(1, viewerCurrentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button onclick="renderLists(${i})" class="${i === viewerCurrentPage ? 'active' : ''}" style="padding: 5px 10px; ${i === viewerCurrentPage ? 'background-color: #007bff; color: white; font-weight: bold;' : ''}">${i}</button>`;
+            }
+            
+            // 다음 페이지로 이동 버튼
+            html += `<button onclick="renderLists(${Math.min(totalPages, viewerCurrentPage + 1)})" ${viewerCurrentPage === totalPages ? 'disabled' : ''} style="padding: 5px 10px;">&gt;</button>`;
+            
+            // 마지막 페이지로 이동 버튼
+            html += `<button onclick="renderLists(${totalPages})" ${viewerCurrentPage === totalPages ? 'disabled' : ''} style="padding: 5px 10px;">&raquo;</button>`;
+            
+            html += '</div>';
+            paginationControls.innerHTML = html;
+        }
+    };
+
+    window.renderTemporaryLists = function() {
+        const temporaryListsContainer = document.getElementById('temporaryLists');
+        if (!temporaryListsContainer) return;
+        temporaryListsContainer.innerHTML = temporaryLists.map(renderViewerList).join('');
+    };
 }); 
