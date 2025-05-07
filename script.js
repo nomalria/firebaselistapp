@@ -771,12 +771,12 @@ function addMemo(listId, isTemporary = false) {
     
     const memoInput = document.getElementById(`newMemoInput-${listId}`);
     const memoText = memoInput.value.trim();
-    
+
     if (!memoText) {
         alert('메모 내용을 입력해주세요.');
         return;
     }
-    
+
     const targetLists = isTemporary ? temporaryLists : lists;
     const list = targetLists.find(l => l.id.toString() === listId.toString());
     
@@ -816,14 +816,28 @@ function addMemo(listId, isTemporary = false) {
         }
     }
 
+    // 참고URL 입력값 가져오기
+    const referenceUrlInput = document.getElementById('referenceUrlInput');
+    const referenceUrl = referenceUrlInput ? referenceUrlInput.value.trim() : '';
+
     // 새 메모 객체 생성
     const newMemo = {
         id: Date.now().toString() + Math.random().toString(16).slice(2),
         text: memoText,
         status: null,
         wins: 0,
-        losses: 0
+        losses: 0,
+        comments: []
     };
+
+    // 참고URL이 있는 경우 댓글 추가
+    if (referenceUrl) {
+        newMemo.comments.push({
+            id: Date.now().toString() + Math.random().toString(16).slice(2),
+            text: referenceUrl,
+            createdAt: new Date().toISOString()
+        });
+    }
 
     // 메모 추가
     list.memos.unshift(newMemo);  // 맨 앞에 추가
@@ -837,7 +851,7 @@ function addMemo(listId, isTemporary = false) {
 
     // UI 업데이트 - 전체 메모 목록 다시 렌더링
     updateMemoListUI(listId, list.memos, isTemporary);
-
+    
     // 입력 필드 초기화
     memoInput.value = '';
     
@@ -1024,8 +1038,8 @@ function renderLists(page = 1) {
             <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
                 <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
                 <div class="input-group">
-                    <input type="text" id="newMemoInput-${list.id}" placeholder="메모 추가..." onkeypress="if(event.key === 'Enter') addMemo('${list.id}')">
-                    <button onclick="addMemo('${list.id}')">추가</button>
+                    <input type="text" id="newMemoInput-${list.id}" placeholder="메모 추가..." onkeypress="if(event.key === 'Enter') addMemo('${list.id}', true)">
+                    <button onclick="addMemo('${list.id}', true)">추가</button>
                 </div>
                 <div class="memo-list">
                     ${(list.memos || []).map(memo => createMemoItemHTML(memo, list.id, false)).join('')}
