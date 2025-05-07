@@ -827,7 +827,7 @@ function addMemo(listId, isTemporary = false) {
     };
 
     // 참고URL 확인 및 자동 댓글 추가
-    const referenceUrlInput = document.getElementById('referenceUrl');
+    const referenceUrlInput = document.getElementById('referenceUrlInput');
     if (referenceUrlInput && referenceUrlInput.value.trim()) {
         const referenceUrl = referenceUrlInput.value.trim();
         const autoComment = {
