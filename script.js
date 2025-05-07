@@ -2839,6 +2839,9 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
                 url: referenceUrl,
                 createdAt: new Date().toISOString()
             };
+            if (!memo.comments) {
+                memo.comments = [];
+            }
             memo.comments.push(autoComment);
         }
         
@@ -2864,6 +2867,22 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
         // 원래 요소 표시
         memoItem.querySelector('.memo-content').style.display = '';
         memoItem.querySelector('.memo-buttons').style.display = '';
+        
+        // 댓글 섹션 업데이트
+        const commentSection = document.getElementById(`commentSection-${memoId}`);
+        if (commentSection) {
+            const commentList = commentSection.querySelector('.comment-list');
+            if (commentList) {
+                commentList.innerHTML = renderComments(memo);
+            }
+        }
+
+        // 댓글 버튼 텍스트 업데이트
+        const commentBtn = memoItem.querySelector('.comment-btn');
+        if (commentBtn) {
+            const commentCount = memo.comments ? memo.comments.length : 0;
+            commentBtn.textContent = commentCount > 0 ? `댓글 (${commentCount})` : '댓글';
+        }
         
         // 변경사항 저장
         if (isTemporary) {
