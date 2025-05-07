@@ -590,18 +590,86 @@ window.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // 뷰어용 메모 아이템 HTML 생성 함수
-    function createViewerMemoItemHTML(memo) {
+    // 댓글 렌더링 함수 (읽기 전용)
+    function renderComments(memo) {
+        if (!memo.comments || memo.comments.length === 0) {
+            return '<div class="no-comments">댓글이 없습니다.</div>';
+        }
+        return memo.comments.map(comment => {
+            let commentText = comment.text;
+            if ((comment.isReference && comment.url) ||
+                (!comment.isReference && typeof comment.text === 'string' && /^(https?:\/\/[^\s]+)$/.test(comment.text.trim()))) {
+                const urlPart = comment.url || comment.text.trim();
+                commentText = `참고자료: <a href="${urlPart}" target="_blank" class="reference-link">${urlPart}</a>`;
+            }
+            return `
+                <div class="comment-item" data-comment-id="${comment.id}">
+                    <div class="comment-text">${commentText}</div>
+                    <div class="comment-date">${formatCommentDate(comment.createdAt)}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // 댓글 날짜 포맷팅 함수
+    function formatCommentDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        if (diff < 60 * 60 * 1000) {
+            const minutes = Math.floor(diff / (60 * 1000));
+            return `${minutes}분 전`;
+        }
+        if (diff < 24 * 60 * 60 * 1000) {
+            const hours = Math.floor(diff / (60 * 60 * 1000));
+            return `${hours}시간 전`;
+        }
+        if (diff < 7 * 24 * 60 * 60 * 1000) {
+            const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+            return `${days}일 전`;
+        }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // 댓글 섹션 토글 함수 (뷰어용)
+    window.toggleCommentSection = function(listId, memoId) {
+        const commentSection = document.getElementById(`commentSection-${memoId}`);
+        if (!commentSection) return;
+        const isVisible = commentSection.style.display !== 'none';
+        document.querySelectorAll('.comment-section').forEach(section => {
+            if (section.id !== `commentSection-${memoId}`) {
+                section.style.display = 'none';
+            }
+        });
+        commentSection.style.display = isVisible ? 'none' : 'block';
+    };
+
+    // 뷰어용 메모 아이템 HTML 생성 함수 (댓글 버튼/섹션 추가)
+    function createViewerMemoItemHTML(memo, listId) {
         const wins = typeof memo.wins === 'number' ? memo.wins : 0;
         const losses = typeof memo.losses === 'number' ? memo.losses : 0;
         const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
-        
+        const commentCount = memo.comments ? memo.comments.length : 0;
+        const commentButtonText = commentCount > 0 ? `댓글 (${commentCount})` : '댓글';
         return `
             <div class="memo-item" data-memo-id="${memo.id}">
                 <div class="memo-content">
                     <div class="memo-text">${memo.text}</div>
                     <div class="memo-stats">
                         <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
+                    </div>
+                </div>
+                <div class="memo-actions">
+                    <div class="memo-buttons">
+                        <button class="comment-btn" onclick="toggleCommentSection('${listId}', '${memo.id}')">${commentButtonText}</button>
+                    </div>
+                </div>
+                <div class="comment-section" id="commentSection-${memo.id}" style="display: none;">
+                    <div class="comment-list">
+                        ${renderComments(memo)}
                     </div>
                 </div>
             </div>
@@ -619,7 +687,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
                     <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
                     <div class="memo-list">
-                        ${(list.memos || []).map(memo => createViewerMemoItemHTML(memo)).join('')}
+                        ${(list.memos || []).map(memo => createViewerMemoItemHTML(memo, list.id)).join('')}
                     </div>
                 </div>
             </div>
