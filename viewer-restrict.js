@@ -70,6 +70,14 @@ function hideViewerRestrictedButtons() {
     if (window.firebase && window.firebase.auth) {
         window.firebase.auth = function() { return { onAuthStateChanged: function(){} } };
     }
+
+    // .memo-buttons와 .comment-btn을 항상 보이도록 강제
+    document.querySelectorAll('.memo-buttons').forEach(btn => {
+        btn.style.display = '';
+    });
+    document.querySelectorAll('.comment-btn').forEach(btn => {
+        btn.style.display = '';
+    });
 }
 
 // toggleMemos 오버라이드: viewer에서는 목록을 열 때 해당 list-item 전체가 화면에 오도록 스크롤
