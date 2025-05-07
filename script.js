@@ -826,14 +826,14 @@ function addMemo(listId, isTemporary = false) {
         comments: [] // comments 배열 초기화
     };
 
-    // 참고URL 확인 및 자동 댓글 추가
+    // 참고URL 확인 및 자동 참고자료 추가
     const referenceUrlInput = document.getElementById('referenceUrlInput');
     if (referenceUrlInput && referenceUrlInput.value.trim()) {
         const referenceUrl = referenceUrlInput.value.trim();
         const autoComment = {
             id: Date.now().toString() + Math.random().toString(16).slice(2),
             text: `참고자료: ${referenceUrl}`,
-            isReference: true, // 참고자료 댓글 표시를 위한 플래그
+            isReference: true, // 참고자료 표시를 위한 플래그
             url: referenceUrl, // 원본 URL 저장
             createdAt: new Date().toISOString()
         };
@@ -1685,16 +1685,14 @@ function createMemoItemHTML(memo, listId, isTemporary) {
     const statusClass = memo.status === 'success' ? 'status-success' : 
                        memo.status === 'fail' ? 'status-fail' : '';
     
-    // 댓글 수를 표시하기 위한 변수
+    // 참고자료 수를 표시하기 위한 변수
     const commentCount = memo.comments ? memo.comments.length : 0;
-    const commentButtonText = commentCount > 0 ? `댓글 (${commentCount})` : '댓글';
+    const commentButtonText = commentCount > 0 ? `참고자료 (${commentCount})` : '참고자료';
 
     return `
         <div class="memo-item" data-memo-id="${memo.id}">
             <div class="memo-content">
-                <div class="memo-text">
-                    ${memo.text}
-                </div>
+                <div class="memo-text">${memo.text}</div>
                 <div class="memo-stats">
                     <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
                 </div>
@@ -1728,7 +1726,7 @@ function createMemoItemHTML(memo, listId, isTemporary) {
                     ${renderComments(memo)}
                 </div>
                 <div class="comment-input-group">
-                    <input type="text" id="commentInput-${memo.id}" placeholder="댓글을 입력하세요..." onkeypress="if(event.key === 'Enter') addComment('${listId}', '${memo.id}', ${isTemporary})">
+                    <input type="text" id="commentInput-${memo.id}" placeholder="참고자료를 입력하세요..." onkeypress="if(event.key === 'Enter') addComment('${listId}', '${memo.id}', ${isTemporary})">
                     <button onclick="addComment('${listId}', '${memo.id}', ${isTemporary})">등록</button>
                 </div>
             </div>
@@ -1736,18 +1734,17 @@ function createMemoItemHTML(memo, listId, isTemporary) {
     `;
 }
 
-// 댓글 목록 렌더링 함수
+// 참고자료 목록 렌더링 함수
 function renderComments(memo) {
     if (!memo.comments || memo.comments.length === 0) {
-        return '<div class="no-comments">댓글이 없습니다.</div>';
+        return '<div class="no-comments">참고자료가 없습니다.</div>';
     }
     
     return memo.comments.map(comment => {
         let commentText = comment.text;
-        // 참고자료 댓글인 경우 클릭 가능한 링크로 변환
+        // 참고자료 인 경우 클릭 가능한 링크로 변환
         if ((comment.isReference && comment.url) ||
             (!comment.isReference && typeof comment.text === 'string' && /^(https?:\/\/[^\s]+)$/.test(comment.text.trim()))) {
-            // isReference가 있으면 url 사용, 없으면 text 사용
             const urlPart = comment.url || comment.text.trim();
             commentText = `참고자료: <a href="${urlPart}" target="_blank" class="reference-link">${urlPart}</a>`;
         }
@@ -1761,7 +1758,7 @@ function renderComments(memo) {
     }).join('');
 }
 
-// 댓글 날짜 포맷팅 함수
+// 참고자료 날짜 포맷팅 함수
 function formatCommentDate(dateString) {
     const date = new Date(dateString);
     const now = new Date();
@@ -1795,24 +1792,24 @@ function formatCommentDate(dateString) {
     return `${year}-${month}-${day}`;
 }
 
-// 댓글 섹션 토글 함수
+// 참고자료 섹션 토글 함수
 function toggleCommentSection(listId, memoId, isTemporary = false) {
     const commentSection = document.getElementById(`commentSection-${memoId}`);
     if (!commentSection) return;
     
     const isVisible = commentSection.style.display !== 'none';
     
-    // 현재 열린 댓글 섹션들 닫기
+    // 현재 열린 참고자료 섹션들 닫기
     document.querySelectorAll('.comment-section').forEach(section => {
         if (section.id !== `commentSection-${memoId}`) {
             section.style.display = 'none';
         }
     });
     
-    // 현재 선택된 댓글 섹션 토글
+    // 현재 선택된 참고자료 섹션 토글
     commentSection.style.display = isVisible ? 'none' : 'block';
     
-    // 댓글 섹션이 열릴 때 입력창에 포커스
+    // 참고자료 섹션이 열릴 때 입력창에 포커스
     if (!isVisible) {
         const commentInput = document.getElementById(`commentInput-${memoId}`);
         if (commentInput) {
@@ -1823,7 +1820,7 @@ function toggleCommentSection(listId, memoId, isTemporary = false) {
     }
 }
 
-// 댓글 추가 함수
+// 참고자료 추가 함수
 function addComment(listId, memoId, isTemporary = false) {
     const commentInput = document.getElementById(`commentInput-${memoId}`);
     if (!commentInput) return;
@@ -1842,19 +1839,19 @@ function addComment(listId, memoId, isTemporary = false) {
     const memo = list.memos.find(m => m.id.toString() === memoId.toString());
     if (!memo) return;
     
-    // 댓글 배열이 없으면 생성
+    // 참고자료 배열이 없으면 생성
     if (!memo.comments) {
         memo.comments = [];
     }
     
-    // 새 댓글 객체 생성
+    // 새 참고자료 객체 생성
     const newComment = {
         id: Date.now().toString() + Math.random().toString(16).slice(2),
         text: commentText,
         createdAt: new Date().toISOString()
     };
     
-    // 댓글 추가
+    // 참고자료 추가
     memo.comments.push(newComment);
     
     // 변경 사항 저장
@@ -1867,13 +1864,13 @@ function addComment(listId, memoId, isTemporary = false) {
     // UI 업데이트
     const commentList = document.querySelector(`#commentSection-${memoId} .comment-list`);
     if (commentList) {
-        // 댓글이 없다는 메시지 제거
+        // 참고자료가 없다는 메시지 제거
         const noComments = commentList.querySelector('.no-comments');
         if (noComments) {
             noComments.remove();
         }
         
-        // 새 댓글 추가
+        // 새 참고자료 추가
         const commentHTML = `
             <div class="comment-item" data-comment-id="${newComment.id}">
                 <div class="comment-text">${newComment.text}</div>
@@ -1887,15 +1884,15 @@ function addComment(listId, memoId, isTemporary = false) {
     // 입력 필드 초기화
     commentInput.value = '';
     
-    // 댓글 버튼 텍스트 업데이트
+    // 참고자료 버튼 텍스트 업데이트
     const commentBtn = document.querySelector(`.memo-item[data-memo-id="${memoId}"] .comment-btn`);
     if (commentBtn) {
         const commentCount = memo.comments.length;
-        commentBtn.textContent = `댓글 (${commentCount})`;
+        commentBtn.textContent = `참고자료 (${commentCount})`;
     }
 }
 
-// 댓글 삭제 함수
+// 참고자료 삭제 함수
 function deleteComment(memoId, commentId) {
     // 현재 보이는 모든 목록(임시 목록 포함)에서 해당 메모 찾기
     let memo = null;
@@ -1925,7 +1922,7 @@ function deleteComment(memoId, commentId) {
     
     if (!memo || !parentList || !memo.comments) return;
     
-    // 댓글 삭제
+    // 참고자료 삭제
     const commentIndex = memo.comments.findIndex(c => c.id.toString() === commentId.toString());
     if (commentIndex === -1) return;
     
@@ -1943,18 +1940,18 @@ function deleteComment(memoId, commentId) {
     if (commentItem) {
         commentItem.remove();
         
-        // 댓글이 없으면 메시지 표시
+        // 참고자료가 없으면 메시지 표시
         const commentList = document.querySelector(`#commentSection-${memoId} .comment-list`);
         if (commentList && memo.comments.length === 0) {
-            commentList.innerHTML = '<div class="no-comments">댓글이 없습니다.</div>';
+            commentList.innerHTML = '<div class="no-comments">참고자료가 없습니다.</div>';
         }
     }
     
-    // 댓글 버튼 텍스트 업데이트
+    //  참고자료 버튼 텍스트 업데이트
     const commentBtn = document.querySelector(`.memo-item[data-memo-id="${memoId}"] .comment-btn`);
     if (commentBtn) {
         const commentCount = memo.comments.length;
-        commentBtn.textContent = commentCount > 0 ? `댓글 (${commentCount})` : '댓글';
+        commentBtn.textContent = commentCount > 0 ? `참고자료 (${commentCount})` : '참고자료';
     }
 }
 
@@ -2828,15 +2825,15 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
         // 메모 텍스트 업데이트
         memo.text = newText;
 
-        // 참고URL 확인 및 자동 댓글 추가
+        // 참고URL 확인 및 자동 참고자료 추가
         const referenceUrlInput = document.getElementById('referenceUrlInput');
         if (referenceUrlInput && referenceUrlInput.value.trim()) {
             const referenceUrl = referenceUrlInput.value.trim();
             const autoComment = {
                 id: Date.now().toString() + Math.random().toString(16).slice(2),
                 text: `참고자료: ${referenceUrl}`,
-                isReference: true,
-                url: referenceUrl,
+                isReference: true, // 참고자료 표시를 위한 플래그
+                url: referenceUrl, // 원본 URL 저장
                 createdAt: new Date().toISOString()
             };
             if (!memo.comments) {
@@ -2868,7 +2865,7 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
         memoItem.querySelector('.memo-content').style.display = '';
         memoItem.querySelector('.memo-buttons').style.display = '';
         
-        // 댓글 섹션 업데이트
+        // 참고자료 섹션 업데이트
         const commentSection = document.getElementById(`commentSection-${memoId}`);
         if (commentSection) {
             const commentList = commentSection.querySelector('.comment-list');
@@ -2877,11 +2874,11 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
             }
         }
 
-        // 댓글 버튼 텍스트 업데이트
+        // 참고자료 버튼 텍스트 업데이트
         const commentBtn = memoItem.querySelector('.comment-btn');
         if (commentBtn) {
             const commentCount = memo.comments ? memo.comments.length : 0;
-            commentBtn.textContent = commentCount > 0 ? `댓글 (${commentCount})` : '댓글';
+            commentBtn.textContent = commentCount > 0 ? `참고자료 (${commentCount})` : '참고자료';
         }
         
         // 변경사항 저장
@@ -3299,7 +3296,7 @@ firebase.auth().onAuthStateChanged((user) => {
     updateUIForUser(user);
 });
 
-// 메모와 댓글까지 모두 포함하여 deep copy
+// 메모와 참고자료까지 모두 포함하여 deep copy
 function deepCopyWithComments(arr) {
     return arr.map(list => ({
         ...list,

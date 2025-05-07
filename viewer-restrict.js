@@ -549,7 +549,7 @@ window.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // 메모와 댓글까지 모두 포함하여 deep copy
+    // 메모와 참고자료까지 모두 포함하여 deep copy
     function deepCopyWithComments(arr) {
         return arr.map(list => ({
             ...list,
@@ -560,7 +560,7 @@ window.addEventListener('DOMContentLoaded', function() {
         }));
     }
 
-    // JSON 내보내기 버튼 동작: 목록, 메모, 댓글, 임시목록까지 모두 포함
+    // JSON 내보내기 버튼 동작: 목록, 메모, 참고자료, 임시목록까지 모두 포함
     const exportBtn = document.getElementById('exportJsonBtn');
     if (exportBtn) {
         exportBtn.onclick = function() {
@@ -598,10 +598,10 @@ window.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // 댓글 렌더링 함수 (읽기 전용)
+    // 참고자료 렌더링 함수 (읽기 전용)
     function renderComments(memo) {
         if (!memo.comments || memo.comments.length === 0) {
-            return '<div class="no-comments">댓글이 없습니다.</div>';
+            return '<div class="no-comments">참고자료가 없습니다.</div>';
         }
         return memo.comments.map(comment => {
             let commentText = comment.text;
@@ -619,7 +619,7 @@ window.addEventListener('DOMContentLoaded', function() {
         }).join('');
     }
 
-    // 댓글 날짜 포맷팅 함수
+    // 참고자료 날짜 포맷팅 함수
     function formatCommentDate(dateString) {
         const date = new Date(dateString);
         const now = new Date();
@@ -642,7 +642,7 @@ window.addEventListener('DOMContentLoaded', function() {
         return `${year}-${month}-${day}`;
     }
 
-    // 댓글 섹션 토글 함수 (뷰어용)
+    // 참고자료 섹션 토글 함수 (뷰어용)
     window.toggleCommentSection = function(listId, memoId) {
         const commentSection = document.getElementById(`commentSection-${memoId}`);
         if (!commentSection) return;
@@ -655,13 +655,13 @@ window.addEventListener('DOMContentLoaded', function() {
         commentSection.style.display = isVisible ? 'none' : 'block';
     };
 
-    // 뷰어용 메모 아이템 HTML 생성 함수 (댓글 버튼/섹션 추가)
+    // 뷰어용 메모 아이템 HTML 생성 함수 (참고자료 버튼/섹션 추가)
     function createViewerMemoItemHTML(memo, listId) {
         const wins = typeof memo.wins === 'number' ? memo.wins : 0;
         const losses = typeof memo.losses === 'number' ? memo.losses : 0;
         const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
         const commentCount = memo.comments ? memo.comments.length : 0;
-        const commentButtonText = commentCount > 0 ? `댓글 (${commentCount})` : '댓글';
+        const commentButtonText = commentCount > 0 ? `참고자료 (${commentCount})` : '참고자료';
         return `
             <div class="memo-item" data-memo-id="${memo.id}">
                 <div class="memo-content">
