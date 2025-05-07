@@ -14,6 +14,10 @@ function hideViewerRestrictedButtons() {
     const addTemporaryBtn = document.getElementById('addTemporaryBtn');
     if (addTemporaryBtn) addTemporaryBtn.style.display = 'none';
 
+    // 참고URL 입력창 섹션 제거
+    const referenceUrlSection = document.querySelector('.reference-url-section');
+    if (referenceUrlSection) referenceUrlSection.remove();
+
     // 2. 메모 추가 입력창 및 버튼 숨김
     document.querySelectorAll('input[id^="newMemoInput-"]').forEach(input => {
         input.style.display = 'none';
