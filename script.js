@@ -2827,6 +2827,20 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
         
         // 메모 텍스트 업데이트
         memo.text = newText;
+
+        // 참고URL 확인 및 자동 댓글 추가
+        const referenceUrlInput = document.getElementById('referenceUrlInput');
+        if (referenceUrlInput && referenceUrlInput.value.trim()) {
+            const referenceUrl = referenceUrlInput.value.trim();
+            const autoComment = {
+                id: Date.now().toString() + Math.random().toString(16).slice(2),
+                text: `참고자료: ${referenceUrl}`,
+                isReference: true,
+                url: referenceUrl,
+                createdAt: new Date().toISOString()
+            };
+            memo.comments.push(autoComment);
+        }
         
         // DOM에서 메모 요소 찾기
         let memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
