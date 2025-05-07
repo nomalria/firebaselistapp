@@ -773,4 +773,26 @@ window.addEventListener('DOMContentLoaded', function() {
         if (!temporaryListsContainer) return;
         temporaryListsContainer.innerHTML = temporaryLists.map(renderViewerList).join('');
     };
+
+    // Firebase 데이터 업로드 제한
+    const originalSaveToFirebase = window.saveToFirebase;
+    window.saveToFirebase = async function() {
+        console.log('Viewer 모드에서는 데이터 업로드가 제한됩니다.');
+        return false;
+    };
+
+    // Firebase 데이터 저장 함수 제한
+    const originalSaveLists = window.saveLists;
+    window.saveLists = function() {
+        console.log('Viewer 모드에서는 데이터 저장이 제한됩니다.');
+        localStorage.setItem('lists', JSON.stringify(lists));
+        updateStats();
+    };
+
+    // Firebase 임시 목록 저장 함수 제한
+    const originalSaveTemporaryLists = window.saveTemporaryLists;
+    window.saveTemporaryLists = function() {
+        console.log('Viewer 모드에서는 임시 목록 저장이 제한됩니다.');
+        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+    };
 }); 
