@@ -1745,11 +1745,12 @@ function renderComments(memo) {
     return memo.comments.map(comment => {
         let commentText = comment.text;
         // 참고자료 댓글인 경우 클릭 가능한 링크로 변환
-        if (comment.isReference && comment.url) {
-            const urlPart = comment.url;
+        if ((comment.isReference && comment.url) ||
+            (!comment.isReference && typeof comment.text === 'string' && /^(https?:\/\/[^\s]+)$/.test(comment.text.trim()))) {
+            // isReference가 있으면 url 사용, 없으면 text 사용
+            const urlPart = comment.url || comment.text.trim();
             commentText = `참고자료: <a href="${urlPart}" target="_blank" class="reference-link">${urlPart}</a>`;
         }
-
         return `
             <div class="comment-item" data-comment-id="${comment.id}">
                 <div class="comment-text">${commentText}</div>
