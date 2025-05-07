@@ -832,7 +832,9 @@ function addMemo(listId, isTemporary = false) {
         const referenceUrl = referenceUrlInput.value.trim();
         const autoComment = {
             id: Date.now().toString() + Math.random().toString(16).slice(2),
-            text: referenceUrl,
+            text: `참고자료: ${referenceUrl}`,
+            isReference: true, // 참고자료 댓글 표시를 위한 플래그
+            url: referenceUrl, // 원본 URL 저장
             createdAt: new Date().toISOString()
         };
         newMemo.comments.push(autoComment);
@@ -1740,13 +1742,22 @@ function renderComments(memo) {
         return '<div class="no-comments">댓글이 없습니다.</div>';
     }
     
-    return memo.comments.map(comment => `
-        <div class="comment-item" data-comment-id="${comment.id}">
-            <div class="comment-text">${comment.text}</div>
-            <div class="comment-date">${formatCommentDate(comment.createdAt)}</div>
-            <button class="delete-comment-btn" onclick="deleteComment('${memo.id}', '${comment.id}')">삭제</button>
-        </div>
-    `).join('');
+    return memo.comments.map(comment => {
+        let commentText = comment.text;
+        // 참고자료 댓글인 경우 클릭 가능한 링크로 변환
+        if (comment.isReference && comment.url) {
+            const urlPart = comment.url;
+            commentText = `참고자료: <a href="${urlPart}" target="_blank" class="reference-link">${urlPart}</a>`;
+        }
+
+        return `
+            <div class="comment-item" data-comment-id="${comment.id}">
+                <div class="comment-text">${commentText}</div>
+                <div class="comment-date">${formatCommentDate(comment.createdAt)}</div>
+                <button class="delete-comment-btn" onclick="deleteComment('${memo.id}', '${comment.id}')">삭제</button>
+            </div>
+        `;
+    }).join('');
 }
 
 // 댓글 날짜 포맷팅 함수

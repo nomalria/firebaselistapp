@@ -1997,4 +1997,15 @@ h1 {
     margin-top: 8px;
     max-height: 200px;
     overflow-y: auto;
+}
+
+.reference-link {
+    color: #2196F3;
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.reference-link:hover {
+    text-decoration: underline;
+    color: #1976D2;
 } 
