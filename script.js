@@ -822,8 +822,21 @@ function addMemo(listId, isTemporary = false) {
         text: memoText,
         status: null,
         wins: 0,
-        losses: 0
+        losses: 0,
+        comments: [] // comments 배열 초기화
     };
+
+    // 참고URL 확인 및 자동 댓글 추가
+    const referenceUrlInput = document.getElementById('referenceUrl');
+    if (referenceUrlInput && referenceUrlInput.value.trim()) {
+        const referenceUrl = referenceUrlInput.value.trim();
+        const autoComment = {
+            id: Date.now().toString() + Math.random().toString(16).slice(2),
+            text: referenceUrl,
+            createdAt: new Date().toISOString()
+        };
+        newMemo.comments.push(autoComment);
+    }
 
     // 메모 추가
     list.memos.unshift(newMemo);  // 맨 앞에 추가
