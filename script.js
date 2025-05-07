@@ -9,8 +9,14 @@ const firebaseConfig = {
     measurementId: "G-NGSN7YLFXT"
 };
 
-// Firebase 앱 초기화
-const app = firebase.initializeApp(firebaseConfig);
+// Firebase 앱 초기화 (중복 초기화 방지)
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+    console.log('Firebase가 성공적으로 초기화되었습니다.');
+} else {
+    console.log('Firebase가 이미 초기화되어 있습니다.');
+}
+
 const db = firebase.firestore();
 const auth = firebase.auth();
 

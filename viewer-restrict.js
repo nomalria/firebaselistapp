@@ -66,10 +66,15 @@ function hideViewerRestrictedButtons() {
 
 // toggleMemos 오버라이드: viewer에서는 목록을 열 때 해당 list-item 전체가 화면에 오도록 스크롤
 function toggleMemos(listId) {
+    console.log('[viewer] toggleMemos 호출', listId);
     const memoSection = document.getElementById(`memoSection-${listId}`);
-    if (!memoSection) return;
+    if (!memoSection) {
+        console.log('[viewer] memoSection 찾을 수 없음:', `memoSection-${listId}`);
+        return;
+    }
 
     const isExpanded = memoSection.style.display === 'block';
+    console.log('[viewer] 현재 isExpanded:', isExpanded);
     document.querySelectorAll('.memo-section').forEach(section => {
         if (section !== memoSection) {
             section.style.display = 'none';
@@ -77,17 +82,22 @@ function toggleMemos(listId) {
     });
     if (!isExpanded) {
         memoSection.style.display = 'block';
+        console.log('[viewer] memoSection display=block 설정');
         setTimeout(() => {
             // 해당 목록 전체(list-item)가 화면에 오도록 스크롤
             const listItem = memoSection.closest('.list-item');
             if (listItem) {
                 const rect = listItem.getBoundingClientRect();
                 const scrollTop = window.scrollY + rect.top - 40; // 약간의 여유
+                console.log('[viewer] 스크롤 이동', scrollTop);
                 window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+            } else {
+                console.log('[viewer] listItem(closest .list-item) 없음');
             }
         }, 150);
     } else {
         memoSection.style.display = 'none';
+        console.log('[viewer] memoSection display=none 설정');
     }
 }
 

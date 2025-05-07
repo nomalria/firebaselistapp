@@ -161,12 +161,16 @@
                 measurementId: "G-NGSN7YLFXT"
             };
 
-            // Firebase 초기화
-            firebase.initializeApp(firebaseConfig);
+            // Firebase 초기화 (중복 초기화 방지)
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+                console.log('Firebase가 성공적으로 초기화되었습니다.');
+            } else {
+                console.log('Firebase가 이미 초기화되어 있습니다.');
+            }
+            
             window.db = firebase.firestore();
             window.firestore = firebase.firestore;
-
-            console.log('Firebase가 성공적으로 초기화되었습니다.');
 
             // Google 로그인 설정
             const provider = new firebase.auth.GoogleAuthProvider();
