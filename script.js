@@ -349,23 +349,11 @@ async function loadLists() {
 function saveLists() {
     localStorage.setItem('lists', JSON.stringify(lists));
     updateStats();
-    // Firebase에도 저장
-    saveToFirebase().catch(error => {
-        console.error('Firebase 저장 실패:', error);
-        // Firebase 저장 실패 시에도 로컬 스토리지에는 저장
-        localStorage.setItem('lists', JSON.stringify(lists));
-    });
 }
 
 // 임시 방덱 목록 저장 함수 추가
 function saveTemporaryLists() {
     localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-    // Firebase에도 저장
-    saveToFirebase().catch(error => {
-        console.error('Firebase 저장 실패:', error);
-        // Firebase 저장 실패 시에도 로컬 스토리지에는 저장
-        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-    });
 }
 
 // 방덱 검색
@@ -2173,13 +2161,6 @@ function processImportedJson(data) {
         // 화면에 메시지 표시
         const message = `${importedCount}개 목록 추가, ${updatedCount}개 목록 업데이트 완료`;
         updateActionStatus(document.getElementById('importJsonBtn'), message, 3000);
-        
-        // 이후 Firebase에 비동기 저장 (실패해도 로컬 데이터는 보존됨)
-        saveToFirebase().then((firebaseSuccess) => {
-            console.log(firebaseSuccess ? 'Firebase 저장 성공' : 'Firebase 저장 실패 (로컬 데이터는 보존됨)');
-        }).catch(error => {
-            console.error('Firebase 저장 오류:', error);
-        });
     } catch (error) {
         console.error('데이터 처리 오류:', error);
         updateActionStatus(document.getElementById('importJsonBtn'), '데이터 처리 중 오류 발생', 3000);
@@ -3398,9 +3379,6 @@ async function changeListId(listId) {
                 titleElement.setAttribute('onclick', `toggleMemos('${newId}')`);
             }
         }
-
-        // Firebase에 저장
-        await saveToFirebase();
 
         // 성공 메시지 표시
         showNotification('목록 ID가 성공적으로 변경되었습니다.', 'changeIdSection');
