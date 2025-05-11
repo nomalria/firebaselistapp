@@ -79,76 +79,37 @@ async function saveToFirebase() {
             return false;
         }
 
-        // 현재 Firebase에 저장된 데이터 가져오기
-        const mainListsDoc = await db.collection('lists').doc('main').get();
-        const tempListsDoc = await db.collection('lists').doc('temporary').get();
-        
-        const currentMainLists = mainListsDoc.exists ? mainListsDoc.data().lists : [];
-        const currentTempLists = tempListsDoc.exists ? tempListsDoc.data().lists : [];
+        // 현재 시간을 타임스탬프로 저장
+        const currentTime = new Date();
+        const timestamp = {
+            lastUpdated: currentTime.toISOString()
+        };
 
-        // 변경된 메인 목록 찾기
-        const changedMainLists = lists.filter(list => {
-            if (!currentMainLists) return true;
-            const currentList = currentMainLists.find(l => l && l.id === list.id);
-            if (!currentList) return true;
-            if (currentList.title !== list.title) return true;
-            if (currentList.memos.length !== list.memos.length) return true;
-            return list.memos.some(memo => {
-                const currentMemo = currentList.memos.find(m => m.id === memo.id);
-                if (!currentMemo) return true;
-                return currentMemo.text !== memo.text || 
-                        currentMemo.status !== memo.status ||
-                        currentMemo.wins !== memo.wins ||
-                        currentMemo.losses !== memo.losses;
-            });
+        // 메인 목록 저장
+        await db.collection('lists').doc('main').set({
+            lists: lists,
+            ...timestamp
         });
 
-        // 변경된 임시 목록 찾기
-        const changedTempLists = temporaryLists.filter(list => {
-            if (!currentTempLists) return true;
-            const currentList = currentTempLists.find(l => l && l.id === list.id);
-            if (!currentList) return true;
-            if (currentList.title !== list.title) return true;
-            if (currentList.memos.length !== list.memos.length) return true;
-            return list.memos.some(memo => {
-                const currentMemo = currentList.memos.find(m => m.id === memo.id);
-                if (!currentMemo) return true;
-                return currentMemo.text !== memo.text || 
-                        currentMemo.status !== memo.status ||
-                        currentMemo.wins !== memo.wins ||
-                        currentMemo.losses !== memo.losses;
-            });
+        // 임시 목록 저장
+        await db.collection('lists').doc('temporary').set({
+            lists: temporaryLists,
+            ...timestamp
         });
 
-        // 변경사항이 있는 경우에만 저장
-        if (changedMainLists.length > 0 || changedTempLists.length > 0) {
-            // 현재 시간을 타임스탬프로 저장
-            const currentTime = new Date();
-            const timestamp = {
-                lastUpdated: currentTime.toISOString()
-            };
-
-            // 메인 목록 저장
-            await db.collection('lists').doc('main').set({
-                lists: lists,
-                ...timestamp
-            });
-
-            // 임시 목록 저장
-            await db.collection('lists').doc('temporary').set({
-                lists: temporaryLists,
-                ...timestamp
-            });
-
-            // 최근 업로드 시간 표시 업데이트
-            updateLastUploadTimeDisplay(currentTime);
-        }
-
+        // 최근 업로드 시간 표시 업데이트
+        updateLastUploadTimeDisplay(currentTime);
         return true;
     } catch (error) {
         console.error('Firebase 저장 오류:', error);
         return false;
     }
+}
+
+// 로컬 스토리지에 데이터 저장
+function saveToLocalStorage() {
+    localStorage.setItem('lists', JSON.stringify(lists));
+    localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
 }
 
 // 최근 업로드 시간 표시 업데이트 함수
@@ -611,6 +572,9 @@ function addNewList() {
     updateStats();
     saveTemporaryLists();
     saveLists();
+    
+    // 로컬 스토리지에만 저장
+    saveToLocalStorage();
 }
 
 // 기존 목록에 생성 시간 추가
@@ -858,6 +822,9 @@ function addMemo(listId, isTemporary = false) {
     
     // 클립보드 단축키 이벤트 리스너 재등록
     addClipboardShortcutListener(memoInput);
+    
+    // 로컬 스토리지에만 저장
+    saveToLocalStorage();
 }
 
 // 메모 중복 체크 함수
