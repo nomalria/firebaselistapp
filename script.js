@@ -2522,9 +2522,9 @@ function addTemporaryToLists() {
     // 임시 목록 초기화
     temporaryLists = [];
     
-    // 변경사항 저장
-    saveLists();
-    saveTemporaryLists();
+    // 변경사항 저장 (Firebase 저장 호출 제거, 로컬스토리지만 저장)
+    localStorage.setItem('lists', JSON.stringify(lists));
+    localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
     
     // UI 업데이트
     renderLists();
