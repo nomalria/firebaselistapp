@@ -85,15 +85,9 @@ async function saveToFirebase() {
             lastUpdated: currentTime.toISOString()
         };
 
-        // 메인 목록 저장
+        // 메인 목록만 저장 (임시목록은 업로드하지 않음)
         await db.collection('lists').doc('main').set({
             lists: lists,
-            ...timestamp
-        });
-
-        // 임시 목록 저장
-        await db.collection('lists').doc('temporary').set({
-            lists: temporaryLists,
             ...timestamp
         });
 
