@@ -517,11 +517,13 @@ function addNewList() {
         });
         
         if (matchingLists.length > 0) {
-            lists = lists.filter(list => !matchingLists.includes(list));
-            temporaryLists = [...matchingLists, ...temporaryLists];
-            saveLists();
-            renderLists();
+            // 기존 목록에서 제거하지 않고 복사해서 임시목록에 붙여넣기
+            // 깊은 복사로 임시목록에 추가 (comments 등 포함)
+            const copiedLists = matchingLists.map(list => JSON.parse(JSON.stringify(list)));
+            temporaryLists = [...copiedLists, ...temporaryLists];
             renderTemporaryLists();
+            // 기존 목록은 그대로 두므로 saveLists() 불필요
+            renderLists();
         } else {
             const newList = {
                 id: Date.now().toString(),
@@ -2489,15 +2491,28 @@ function addTemporaryToLists() {
         return;
     }
     
-    // 임시 목록을 정규 목록에 추가
-    temporaryLists.forEach(list => {
-        // ID 재생성하여 중복 방지
-        const newList = {
-            ...list,
-            id: Date.now().toString() + Math.random().toString(16).slice(2),
-            createdAt: new Date().toISOString()
-        };
-        lists.push(newList);
+    // 임시 목록을 정규 목록에 추가 (제목 중복 → 덮어쓰기, 제목 다르면 id 중복 검사)
+    temporaryLists.forEach(tempList => {
+        // 1. 제목 중복 검사
+        const existingTitleIndex = lists.findIndex(list => list.title === tempList.title);
+        if (existingTitleIndex !== -1) {
+            // 제목이 같으면 덮어쓰기
+            lists[existingTitleIndex] = { ...tempList };
+        } else {
+            // 2. 제목이 다르면 id 중복 검사
+            const existingIdIndex = lists.findIndex(list => list.id === tempList.id);
+            if (existingIdIndex !== -1) {
+                // id가 중복되면 새로운 id로 변경
+                let newId;
+                do {
+                    newId = Date.now().toString() + Math.random().toString(16).slice(2);
+                } while (lists.some(list => list.id === newId));
+                lists.push({ ...tempList, id: newId });
+            } else {
+                // 제목과 id 모두 다르면 그대로 추가
+                lists.push({ ...tempList });
+            }
+        }
     });
     
     // 임시 목록 초기화
