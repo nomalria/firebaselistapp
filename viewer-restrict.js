@@ -408,15 +408,41 @@ window.addEventListener('DOMContentLoaded', function() {
         const keywords = query.split(/\s+/).map(w => w.trim()).filter(Boolean);
         if (keywords.length === 0) return;
 
-        const matched = lists.filter(list => {
-            return list.memos && list.memos.some(memo => {
-                const memoWords = memo.text.split(/\s+/);
-                return keywords.every(kw => memoWords.includes(kw));
-            });
-        });
+        // 검색 모드 확인
+        const mode = document.querySelector('input[name="memoSearchMode"]:checked')?.value || 'list';
 
-        temporaryLists = matched;
-        lists = lists.filter(list => !matched.includes(list));
+        if (mode === 'list') {
+            // 기존 방식: 해당 단어를 포함하는 메모가 있는 목록 전체를 표시
+            const matched = lists.filter(list => {
+                return list.memos && list.memos.some(memo => {
+                    const memoWords = memo.text.split(/\s+/);
+                    return keywords.every(kw => memoWords.includes(kw));
+                });
+            });
+            temporaryLists = matched;
+            lists = lists.filter(list => !matched.includes(list));
+        } else if (mode === 'memo') {
+            // 새로운 방식: 해당 단어를 포함하는 메모만 추출하여 하나의 가상 목록으로 묶어서 표시
+            let foundMemos = [];
+            lists.forEach(list => {
+                if (list.memos) {
+                    list.memos.forEach(memo => {
+                        const memoWords = memo.text.split(/\s+/);
+                        if (keywords.every(kw => memoWords.includes(kw))) {
+                            // 메모에 listTitle, listId 정보도 추가(출처 표시용)
+                            foundMemos.push({ ...memo, _listTitle: list.title, _listId: list.id });
+                        }
+                    });
+                }
+            });
+            // 임시목록에 '검색결과'라는 가상 목록 하나로 표시
+            temporaryLists = foundMemos.length > 0 ? [{
+                id: 'search-result',
+                title: '검색결과',
+                memos: foundMemos,
+                createdAt: new Date().toISOString()
+            }] : [];
+        }
 
         if (typeof renderLists === 'function') renderLists(1);
         if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
@@ -537,11 +563,15 @@ window.addEventListener('DOMContentLoaded', function() {
         sortAndMoveBtn.onclick = function() {
             // 1. 목록 및 메모 정렬 (기존 sortBtn 기능)
             if (typeof sortListsAndMemos === 'function') sortListsAndMemos();
-            // 2. 임시목록 기존목록으로 이동 (기존 moveTempToMainBtn 기능)
+            
+            // 2. 임시목록 기존목록으로 이동 (검색 결과 목록 제외)
             if (temporaryLists && temporaryLists.length > 0) {
-                lists = lists.concat(temporaryLists);
+                // 검색 결과 목록 제외
+                const nonSearchResults = temporaryLists.filter(list => list.id !== 'search-result');
+                lists = lists.concat(nonSearchResults);
                 temporaryLists = [];
             }
+            
             // 3. 화면 갱신
             if (typeof renderLists === 'function') renderLists(1);
             if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
@@ -662,9 +692,12 @@ window.addEventListener('DOMContentLoaded', function() {
         const winRate = (wins + losses) > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
         const commentCount = memo.comments ? memo.comments.length : 0;
         const commentButtonText = commentCount > 0 ? `참고자료 (${commentCount})` : '참고자료';
+        // 검색결과(해당 메모만 보기) 모드에서 원래 목록 제목 표시
+        const listTitleInfo = memo._listTitle ? `<div class="memo-list-title" style="color:#2196F3;font-size:13px;margin-bottom:2px;">[목록: ${memo._listTitle}]</div>` : '';
         return `
             <div class="memo-item" data-memo-id="${memo.id}">
                 <div class="memo-content">
+                    ${listTitleInfo}
                     <div class="memo-text">${memo.text}</div>
                     <div class="memo-stats">
                         <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>

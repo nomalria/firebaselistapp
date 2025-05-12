@@ -22,6 +22,10 @@
                     <div class="input-group">
                         <input type="text" id="memoSearchInput" placeholder="메모 검색 (공백으로 단어 구분)">
                         <button id="memoSearchBtn" class="add-btn">검색</button>
+                        <div style="margin-top:6px;">
+                            <label style="margin-right:10px;"><input type="radio" name="memoSearchMode" value="list" checked> 목록들 보기</label>
+                            <label><input type="radio" name="memoSearchMode" value="memo"> 메모만 보기</label>
+                        </div>
                     </div>
                     <div id="memoSearchSuggestions" class="search-results"></div>
                 </div>
@@ -38,7 +42,7 @@
         </div>
         <div class="button-container">
             <div class="button-wrapper">
-                <button id="sortAndMoveBtn" class="action-btn">정렬 및 임시목록 이동</button>
+                <button id="sortAndMoveBtn" class="action-btn">기존목록 이동</button>
             </div>
         </div>
         <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
