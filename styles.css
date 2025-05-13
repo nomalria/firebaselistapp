@@ -2011,35 +2011,35 @@ h1 {
 }
 
 @media screen and (max-width: 768px) {
-    @media screen and (max-width: 768px) {
-        .search-section .input-group {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            width: 100%;
-            padding: 0 8px;
-            box-sizing: border-box;
-            gap: 8px; /* 검색창과 버튼 사이 간격 */
-        }
-    
-        #viewerSearchInput {
-            flex: 1 1 0;
-            min-width: 0;
-            max-width: 100%;
-            font-size: 16px;
-            padding: 12px;
-            height: 44px;
-            box-sizing: border-box;
-        }
-    
-        .search-section .add-btn,  /* 검색 버튼 클래스가 다를 경우 id나 class에 맞게 수정 */
-        .search-section button {
-            flex: 0 0 auto;
-            height: 44px;
-            padding: 0 18px;
-            font-size: 16px;
-            white-space: nowrap;
-            border-radius: 6px;
-        }
+    .search-section .input-group {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        padding: 0 8px;
+        box-sizing: border-box;
+        gap: 8px;
+    }
+
+    #viewerSearchInput {
+        flex: 7 1 0%;
+        min-width: 0;
+        max-width: 100%;
+        font-size: 16px;
+        padding: 12px;
+        height: 44px;
+        box-sizing: border-box;
+    }
+
+    .search-section .add-btn,
+    .search-section button {
+        flex: 3 1 0%;
+        height: 44px;
+        padding: 0 0; /* 좌우 여백은 필요에 따라 조절 */
+        font-size: 16px;
+        white-space: nowrap;
+        border-radius: 6px;
+        min-width: 0;
+        box-sizing: border-box;
     }
 }
