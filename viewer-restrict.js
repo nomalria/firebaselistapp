@@ -334,8 +334,21 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // 검색창 입력 시 추천단어 갱신
     if (searchInput) {
-        searchInput.addEventListener('input', updateSuggestions);
-        // 방향키, 탭, 스페이스바 등 네비게이션
+        searchInput.addEventListener('input', function(e) {
+            // 모바일 환경 감지
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (!isMobile) return;
+            if (!suggestionWords.length) return;
+            // 입력값의 마지막 문자가 스페이스인지 확인
+            if (this.value.endsWith(' ')) {
+                const words = this.value.trim().split(/\s+/);
+                if (words.length > 0 && suggestionWords.length > 0) {
+                    words[words.length - 1] = suggestionWords[0];
+                    this.value = words.join(' ') + ' ';
+                    updateSuggestions();
+                }
+            }
+        });
         searchInput.addEventListener('keydown', function(e) {
             if (!suggestionWords.length) return;
             // 모바일 환경 감지
