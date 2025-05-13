@@ -2014,32 +2014,15 @@ h1 {
     .search-section .input-group {
         width: 100%;
         margin-bottom: 10px;
-    }
-
-    .search-section input {
-        width: 100%;
-        font-size: 16px;
-        padding: 12px;
-        height: 48px;
-    }
-
-    .search-section .add-btn {
-        height: 48px;
-        padding: 0 20px;
-        font-size: 16px;
+        padding: 0 12px; /* 좌우 여백 추가 */
+        box-sizing: border-box;
     }
 
     #viewerSearchInput {
         width: 100%;
-        font-size: 16px;
-        padding: 12px;
-        height: 48px;
-        min-width: 100%;
-        max-width: 100%;
-    }
-
-    #memoSearchInput {
-        width: 100%;
+        max-width: 400px;   /* 최대 너비 제한 */
+        margin: 0 auto;     /* 가운데 정렬 */
+        display: block;
         font-size: 16px;
         padding: 12px;
         height: 48px;
