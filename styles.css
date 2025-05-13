@@ -2018,15 +2018,15 @@ h1 {
 
     .search-section input {
         width: 100%;
-        font-size: 16px; /* 모바일에서 더 큰 폰트 사이즈 */
-        padding: 12px; /* 더 큰 패딩 */
-        height: 48px; /* 더 큰 높이 */
+        font-size: 16px;
+        padding: 12px;
+        height: 48px;
     }
 
     .search-section .add-btn {
-        height: 48px; /* 입력창과 동일한 높이 */
-        padding: 0 20px; /* 더 큰 패딩 */
-        font-size: 16px; /* 더 큰 폰트 사이즈 */
+        height: 48px;
+        padding: 0 20px;
+        font-size: 16px;
     }
 
     #viewerSearchInput {
@@ -2034,6 +2034,8 @@ h1 {
         font-size: 16px;
         padding: 12px;
         height: 48px;
+        min-width: 100%;
+        max-width: 100%;
     }
 
     #memoSearchInput {
