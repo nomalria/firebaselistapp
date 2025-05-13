@@ -338,6 +338,24 @@ window.addEventListener('DOMContentLoaded', function() {
         // 방향키, 탭, 스페이스바 등 네비게이션
         searchInput.addEventListener('keydown', function(e) {
             if (!suggestionWords.length) return;
+            // 모바일 환경 감지
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                // 모바일: 스페이스바로 첫 번째 추천단어 적용
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    // 첫 번째 추천단어가 있으면 적용
+                    if (suggestionWords.length > 0) {
+                        const words = this.value.trim().split(/\s+/);
+                        words[words.length - 1] = suggestionWords[0];
+                        this.value = words.join(' ') + ' ';
+                        updateSuggestions();
+                    }
+                }
+                // 방향키/탭키는 무시(아무 동작 없음)
+                return;
+            }
+            // PC: 기존 동작 유지
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
                 selectedSuggestionIndex = (selectedSuggestionIndex + 1) % suggestionWords.length;
