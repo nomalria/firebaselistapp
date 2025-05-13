@@ -2012,19 +2012,22 @@ h1 {
 
 @media screen and (max-width: 768px) {
     .search-section .input-group {
-        width: 100%;
-        margin-bottom: 10px;
-        padding: 0 12px; /* 좌우 여백 추가 */
+        width: 100vw;
+        max-width: 100vw;
+        margin-left: -12px;  /* 기존 padding 보정 */
+        margin-right: -12px;
+        padding: 0;
         box-sizing: border-box;
     }
 
     #viewerSearchInput {
-        width: 100%;
-        max-width: 980px;   /* 최대 너비를 480px로 늘림 */
+        width: 100vw;
+        max-width: 100vw;
         margin: 0 auto;
         display: block;
         font-size: 16px;
         padding: 12px;
         height: 48px;
+        box-sizing: border-box;
     }
 } 
