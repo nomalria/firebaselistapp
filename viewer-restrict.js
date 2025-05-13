@@ -335,6 +335,7 @@ window.addEventListener('DOMContentLoaded', function() {
     // 검색창 입력 시 추천단어 갱신
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
+            updateSuggestions(); // 항상 추천단어 갱신
             // 모바일 환경 감지
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             if (!isMobile) return;
