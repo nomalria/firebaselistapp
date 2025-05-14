@@ -2043,3 +2043,29 @@ h1 {
         box-sizing: border-box;
     }
 }
+
+@media screen and (max-width: 768px) {
+    #memoSearchDropdown .input-group {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+    }
+    #memoSearchDropdown .input-group > input,
+    #memoSearchDropdown .input-group > button {
+      width: 100%;
+      margin-bottom: 8px;
+      box-sizing: border-box;
+    }
+    #memoSearchDropdown .input-group > div {
+      margin-top: 0;
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      gap: 16px;
+    }
+    #memoSearchDropdown .input-group > div label {
+      margin: 0 8px 0 0;
+      font-size: 15px;
+    }
+  }
