@@ -2039,7 +2039,7 @@ function importJsonFile() {
         fileInput.click();
     } catch (error) {
         console.error('파일 선택 오류:', error);
-        updateActionStatus(document.getElementById('importJsonBtn'), '파일 선택 오류', 3000);
+        showNotification('파일 선택 오류', 'importJsonBtn');
     }
 }
 
@@ -2066,7 +2066,7 @@ function handleJsonFileUpload(event) {
                 // 파일 데이터 자체도 백업
                 localStorage.setItem('last_imported_json', e.target.result);
             } catch (error) {
-                updateActionStatus(document.getElementById('importJsonBtn'), '올바른 JSON 형식이 아닙니다', 3000);
+                showNotification('올바른 JSON 형식이 아닙니다', 'importJsonBtn');
                 console.error('JSON 파싱 오류:', error);
             }
         };
@@ -2074,7 +2074,7 @@ function handleJsonFileUpload(event) {
         event.target.value = ''; // 입력 필드 초기화
     } catch (error) {
         console.error('파일 읽기 오류:', error);
-        updateActionStatus(document.getElementById('importJsonBtn'), '파일 읽기 오류', 3000);
+        showNotification('파일 읽기 오류', 'importJsonBtn');
     }
 }
 
@@ -2088,7 +2088,7 @@ function processImportedJson(data) {
         if (!Array.isArray(data) && data.lists && Array.isArray(data.lists)) {
             data = data.lists; // 'lists' 키 내의 배열을 사용
         } else if (!Array.isArray(data)) {
-            updateActionStatus(document.getElementById('importJsonBtn'), '유효한 목록 데이터가 없습니다', 3000);
+            showNotification('유효한 목록 데이터가 없습니다', 'importJsonBtn');
             return;
         }
         
@@ -2156,10 +2156,10 @@ function processImportedJson(data) {
         
         // 화면에 메시지 표시
         const message = `${importedCount}개 목록 추가, ${updatedCount}개 목록 업데이트 완료`;
-        updateActionStatus(document.getElementById('importJsonBtn'), message, 3000);
+        showNotification(message, 'importJsonBtn');
     } catch (error) {
         console.error('데이터 처리 오류:', error);
-        updateActionStatus(document.getElementById('importJsonBtn'), '데이터 처리 중 오류 발생', 3000);
+        showNotification('데이터 처리 중 오류 발생', 'importJsonBtn');
     }
 }
 
@@ -2199,7 +2199,7 @@ function exportLists() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 완료!', 3000);
+        showNotification('내보내기 완료!', 'exportJsonBtn');
     } catch (error) {
         console.error('JSON 내보내기 오류:', error);
         showNotification('내보내기 실패', 'exportJsonBtn');
@@ -3305,7 +3305,7 @@ function exportLists() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 완료!', 3000);
+        showNotification('내보내기 완료!', 'exportJsonBtn');
     } catch (error) {
         console.error('JSON 내보내기 오류:', error);
         showNotification('내보내기 실패', 'exportJsonBtn');
