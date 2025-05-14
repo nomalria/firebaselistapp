@@ -2051,10 +2051,14 @@ h1 {
       align-items: stretch;
       gap: 0;
     }
-    #memoSearchDropdown .input-group > input,
+    #memoSearchDropdown .input-group > input {
+      flex: 7 1 0%;
+      min-width: 0;
+      margin-bottom: 0;
+      box-sizing: border-box;
+    }
     #memoSearchDropdown .input-group > button {
-      width: auto;
-      flex: 1 1 0;
+      flex: 3 1 0%;
       min-width: 0;
       margin-bottom: 0;
       box-sizing: border-box;
