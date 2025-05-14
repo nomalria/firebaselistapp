@@ -3528,3 +3528,27 @@ function removeMemoSuggestionBox() {
     memoSuggestionList = [];
     memoSuggestionActiveInput = null;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+
+    // firebase데이터 삭제 버튼 이벤트 리스너 추가
+    const deleteBtn = document.getElementById('deleteFirebaseBtn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async function() {
+            const input = prompt('정말로 Firebase 데이터를 삭제하시려면 숫자 3578을 입력하세요.\n이 작업은 되돌릴 수 없습니다!');
+            if (input === '3578') {
+                try {
+                    // Firestore lists/main, lists/temporary 문서 삭제
+                    await db.collection('lists').doc('main').delete();
+                    await db.collection('lists').doc('temporary').delete();
+                    showNotification('Firebase 데이터가 완전히 삭제되었습니다.', 'deleteFirebaseBtn');
+                } catch (error) {
+                    showNotification('삭제 실패: ' + error.message, 'deleteFirebaseBtn');
+                }
+            } else if (input !== null) {
+                showNotification('잘못된 숫자입니다. 삭제가 취소되었습니다.', 'deleteFirebaseBtn');
+            }
+        });
+    }
+});
