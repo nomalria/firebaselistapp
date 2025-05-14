@@ -2163,49 +2163,6 @@ function processImportedJson(data) {
     }
 }
 
-// JSON 내보내기 함수 (추가 기능)
-function exportLists() {
-    try {
-        // 내보낼 데이터 준비
-        let exportData;
-        
-        // 로컬 스토리지와 메모리 모두 확인하여 최신 데이터 사용
-        let localLists = [];
-        const savedLists = localStorage.getItem('lists');
-        if (savedLists) {
-            localLists = JSON.parse(savedLists);
-        }
-        let localTemporaryLists = [];
-        const savedTempLists = localStorage.getItem('temporaryLists');
-        if (savedTempLists) {
-            localTemporaryLists = JSON.parse(savedTempLists);
-        }
-        // 메모리에 있는 데이터와 로컬 스토리지의 데이터 중 더 많은 항목이 있는 쪽 선택
-        const dataToExport = localLists.length > lists.length ? localLists : lists;
-        const tempToExport = localTemporaryLists.length > temporaryLists.length ? localTemporaryLists : temporaryLists;
-        exportData = {
-            lists: dataToExport,
-            temporaryLists: tempToExport,
-            exportDate: new Date().toISOString(),
-            version: '1.1'
-        };
-        const jsonString = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `방덱목록_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showNotification('내보내기 완료!', 'exportJsonBtn');
-    } catch (error) {
-        console.error('JSON 내보내기 오류:', error);
-        showNotification('내보내기 실패', 'exportJsonBtn');
-    }
-}
-
 // 함수를 전역 스코프에 등록하여 HTML에서 직접 호출 가능하도록 함
 window.updateCounter = updateCounter;
 
