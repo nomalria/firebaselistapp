@@ -542,7 +542,24 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 
     if (memoSearchInput) {
-        memoSearchInput.addEventListener('input', updateMemoSuggestions);
+        memoSearchInput.addEventListener('input', function(e) {
+            updateMemoSuggestions();
+            // 모바일 환경 감지
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (!isMobile) return;
+            if (!memoSuggestionWords.length) return;
+            // 입력값의 마지막 문자가 스페이스인지 확인
+            if (this.value.endsWith(' ')) {
+                const words = this.value.trim().split(/\s+/);
+                if (words.length > 0 && memoSuggestionWords.length > 0) {
+                    words[words.length - 1] = memoSuggestionWords[0];
+                    this.value = words.join(' ') + ' ';
+                    updateMemoSuggestions();
+                    // 커서 맨 끝으로 이동
+                    this.selectionStart = this.selectionEnd = this.value.length;
+                }
+            }
+        });
         memoSearchInput.addEventListener('keydown', function(e) {
             if (!memoSuggestionWords.length) return;
             if (e.key === 'ArrowDown') {
