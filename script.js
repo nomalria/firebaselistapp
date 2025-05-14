@@ -2202,7 +2202,7 @@ function exportLists() {
         updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 완료!', 3000);
     } catch (error) {
         console.error('JSON 내보내기 오류:', error);
-        updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 실패', 3000);
+        showNotification('내보내기 실패', 'exportJsonBtn');
     }
 }
 
@@ -3308,7 +3308,7 @@ function exportLists() {
         updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 완료!', 3000);
     } catch (error) {
         console.error('JSON 내보내기 오류:', error);
-        updateActionStatus(document.getElementById('exportJsonBtn'), '내보내기 실패', 3000);
+        showNotification('내보내기 실패', 'exportJsonBtn');
     }
 }
 
