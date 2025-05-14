@@ -557,13 +557,16 @@ window.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 selectedMemoSuggestionIndex = (selectedMemoSuggestionIndex + 1) % memoSuggestionWords.length;
                 updateMemoSuggestionHighlight();
-            } else if (e.key === ' ') {
+            } else if (e.key === ' ' || e.key === 'Spacebar') {
+                // 모바일 환경에서도 스페이스로 추천단어 선택이 항상 동작하도록 보완
                 if (selectedMemoSuggestionIndex >= 0) {
                     e.preventDefault();
                     const words = this.value.trim().split(/\s+/);
                     words[words.length - 1] = memoSuggestionWords[selectedMemoSuggestionIndex];
                     this.value = words.join(' ') + ' ';
                     updateMemoSuggestions();
+                    // 커서 맨 끝으로 이동 (모바일 대응)
+                    this.selectionStart = this.selectionEnd = this.value.length;
                 }
             }
         });
