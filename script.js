@@ -1,5 +1,13 @@
-// Firebase 초기화 코드 제거
-const { saveToSheets, loadFromSheets } = require('./sheets-api');
+// Firebase 초기화
+const firebaseConfig = {
+    apiKey: "AIzaSyCzu8BvgrCepm3yqElubr4AKlIVwu_21_k",
+    authDomain: "listapps-23091.firebaseapp.com",
+    projectId: "listapps-23091",
+    storageBucket: "listapps-23091.firebasestorage.app",
+    messagingSenderId: "158638855824",
+    appId: "1:158638855824:web:5ec8e743771128ee65ea15",
+    measurementId: "G-NGSN7YLFXT"
+};
 
 // Firebase 앱 초기화 (중복 초기화 방지)
 if (!firebase.apps.length) {
@@ -59,25 +67,9 @@ function formatCreatedAt(dateStr) {
     return dateStr.replace(/-(\d{2})-(\d{2})$/, ' $1:$2');
 }
 
-// Firebase에 데이터 저장 함수를 Google Sheets 저장 함수로 교체
+// Firebase에 데이터 저장
 async function saveToFirebase() {
-    try {
-        const data = {
-            lists: lists,
-            temporaryLists: temporaryLists
-        };
-        
-        const success = await saveToSheets(data);
-        if (success) {
-            // 최근 업로드 시간 표시 업데이트
-            updateLastUploadTimeDisplay(new Date());
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error('Google Sheets 저장 오류:', error);
-        return false;
-    }
+    return await saveToSheets();
 }
 
 // 로컬 스토리지에 데이터 저장
@@ -104,23 +96,9 @@ function updateLastUploadTimeDisplay(timestamp) {
     }
 }
 
-// Firebase에서 데이터 로드 함수를 Google Sheets 로드 함수로 교체
+// Firebase에서 데이터 로드
 async function loadFromFirebase() {
-    try {
-        const data = await loadFromSheets();
-        lists = data.lists || [];
-        temporaryLists = data.temporaryLists || [];
-        
-        // 최근 업로드 시간 표시
-        if (data.lastUpdated) {
-            updateLastUploadTimeDisplay(new Date(data.lastUpdated));
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Google Sheets 로드 오류:', error);
-        return false;
-    }
+    return await loadFromSheets();
 }
 
 // 방덱 목록 불러오기 (메모 구조 변환 로직 추가)
@@ -431,16 +409,16 @@ function isSameList(list1, list2) {
 
 // 방덱 추가
 function addNewList() {
-    const user = firebase.auth().currentUser;
-    if (!user) {
-        alert('로그인이 필요합니다.');
-        return;
-    }
+    //const user = firebase.auth().currentUser;
+    //if (!user) {
+        //alert('로그인이 필요합니다.');
+        //return;
+    //}
     
-    if (!checkAdminPermission(user)) {
-        alert('이 기능은 관리자만 사용할 수 있습니다.');
-        return;
-    }
+    //if (!checkAdminPermission(user)) {
+        //alert('이 기능은 관리자만 사용할 수 있습니다.');
+        //return;
+    //}
     
     const searchInput = document.getElementById('searchInput');
     const title = searchInput.value.trim();
@@ -3517,3 +3495,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// GAS Web API URL
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz3oPo3Kd9b3gVE9foPaEgDMUkCtlzjj88WiUK2uKbPWt8zBUL0G6ZaK-KBb1SnwA1A-A/exec';
+
+// 데이터 저장 (MainLists)
+async function saveToSheets() {
+    try {
+        const response = await fetch(GAS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sheet: 'MainLists',
+                data: lists
+            })
+        });
+        const result = await response.json();
+        return result.result === 'success';
+    } catch (error) {
+        console.error('GAS 저장 오류:', error);
+        return false;
+    }
+}
+
+// 데이터 불러오기 (MainLists)
+async function loadFromSheets() {
+    try {
+        const response = await fetch(GAS_API_URL + '?sheet=MainLists');
+        const data = await response.json();
+        lists = data ? JSON.parse(data) : [];
+        return true;
+    } catch (error) {
+        console.error('GAS 불러오기 오류:', error);
+        return false;
+    }
+}
