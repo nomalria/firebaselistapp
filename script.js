@@ -1,13 +1,5 @@
-// Firebase 초기화
-const firebaseConfig = {
-    apiKey: "AIzaSyCzu8BvgrCepm3yqElubr4AKlIVwu_21_k",
-    authDomain: "listapps-23091.firebaseapp.com",
-    projectId: "listapps-23091",
-    storageBucket: "listapps-23091.firebasestorage.app",
-    messagingSenderId: "158638855824",
-    appId: "1:158638855824:web:5ec8e743771128ee65ea15",
-    measurementId: "G-NGSN7YLFXT"
-};
+// Firebase 초기화 코드 제거
+const { saveToSheets, loadFromSheets } = require('./sheets-api');
 
 // Firebase 앱 초기화 (중복 초기화 방지)
 if (!firebase.apps.length) {
@@ -67,35 +59,23 @@ function formatCreatedAt(dateStr) {
     return dateStr.replace(/-(\d{2})-(\d{2})$/, ' $1:$2');
 }
 
-// Firebase에 데이터 저장
+// Firebase에 데이터 저장 함수를 Google Sheets 저장 함수로 교체
 async function saveToFirebase() {
     try {
-        const db = window.db;
-        
-        if (!db) {
-            console.error('Firebase가 초기화되지 않았습니다.');
-            localStorage.setItem('lists', JSON.stringify(lists));
-            localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-            return false;
-        }
-
-        // 현재 시간을 타임스탬프로 저장
-        const currentTime = new Date();
-        const timestamp = {
-            lastUpdated: currentTime.toISOString()
-        };
-
-        // 메인 목록만 저장 (임시목록은 업로드하지 않음)
-        await db.collection('lists').doc('main').set({
+        const data = {
             lists: lists,
-            ...timestamp
-        });
-
-        // 최근 업로드 시간 표시 업데이트
-        updateLastUploadTimeDisplay(currentTime);
-        return true;
+            temporaryLists: temporaryLists
+        };
+        
+        const success = await saveToSheets(data);
+        if (success) {
+            // 최근 업로드 시간 표시 업데이트
+            updateLastUploadTimeDisplay(new Date());
+            return true;
+        }
+        return false;
     } catch (error) {
-        console.error('Firebase 저장 오류:', error);
+        console.error('Google Sheets 저장 오류:', error);
         return false;
     }
 }
@@ -124,36 +104,21 @@ function updateLastUploadTimeDisplay(timestamp) {
     }
 }
 
-// Firebase에서 데이터 로드
+// Firebase에서 데이터 로드 함수를 Google Sheets 로드 함수로 교체
 async function loadFromFirebase() {
     try {
-        const db = window.db;
-        if (!db) {
-            console.error('Firebase가 초기화되지 않았습니다.');
-            return false;
+        const data = await loadFromSheets();
+        lists = data.lists || [];
+        temporaryLists = data.temporaryLists || [];
+        
+        // 최근 업로드 시간 표시
+        if (data.lastUpdated) {
+            updateLastUploadTimeDisplay(new Date(data.lastUpdated));
         }
-
-        const mainListsDoc = await db.collection('lists').doc('main').get();
-        const tempListsDoc = await db.collection('lists').doc('temporary').get();
-
-        if (mainListsDoc.exists) {
-            const data = mainListsDoc.data();
-            lists = data.lists || [];
-            
-            // 최근 업로드 시간 표시
-            if (data.lastUpdated) {
-                updateLastUploadTimeDisplay(new Date(data.lastUpdated));
-            }
-        }
-
-        if (tempListsDoc.exists) {
-            const data = tempListsDoc.data();
-            temporaryLists = data.lists || [];
-        }
-
+        
         return true;
     } catch (error) {
-        console.error('Firebase 로드 오류:', error);
+        console.error('Google Sheets 로드 오류:', error);
         return false;
     }
 }
