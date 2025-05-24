@@ -3192,6 +3192,14 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
         const value = this.value.slice(0, cursor);
         const words = value.split(' ');
         const currentWord = words[words.length - 1];
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        // 모바일: 마지막 입력이 스페이스일 때 추천단어 자동 적용
+        if (isMobile() && this.value.length > 0 && this.value[cursor - 1] === ' ' && memoSuggestionWords && memoSuggestionWords.length > 0) {
+            selectMemoSuggestion(0);
+            return;
+        }
         if (currentWord && currentWord.length > 0) {
             renderMemoSuggestions(this, currentWord);
         } else {
@@ -3202,6 +3210,10 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
     memoInput.addEventListener('keydown', function(e) {
         const box = document.getElementById('memoSuggestionBox');
         if (!box || memoSuggestionWords.length === 0) return;
+        // 모바일 환경 감지
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
@@ -3215,9 +3227,17 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
             memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
             updateMemoSuggestionBox();
         } else if (e.key === ' ') {
-            if (memoSuggestionIndex >= 0) {
-                e.preventDefault();
-                selectMemoSuggestion(memoSuggestionIndex);
+            // 모바일: 스페이스바로 첫 번째 추천단어 선택
+            if (isMobile()) {
+                if (memoSuggestionWords.length > 0) {
+                    e.preventDefault();
+                    selectMemoSuggestion(0);
+                }
+            } else {
+                if (memoSuggestionIndex >= 0) {
+                    e.preventDefault();
+                    selectMemoSuggestion(memoSuggestionIndex);
+                }
             }
         } else if (e.key === 'Escape') {
             removeMemoSuggestionBox();
