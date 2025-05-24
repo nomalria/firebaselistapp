@@ -681,34 +681,14 @@ async function deleteList(listId, isTemporary = false) {
 
     if (confirm('해당 목록을 삭제하시겠습니까?')) {
         try {
-            const db = window.db;
-            
-            // Firebase에서 해당 목록 삭제
-            if (db) {
-                const collectionName = isTemporary ? 'temporary' : 'main';
-                const docRef = db.collection('lists').doc(collectionName);
-                
-                // 해당 목록을 제외한 나머지 목록만 Firebase에 저장
-                if (isTemporary) {
-                    temporaryLists = temporaryLists.filter(list => list.id.toString() !== listId.toString());
-                    await docRef.set({
-                        lists: temporaryLists,
-                        updated_at: new Date().toISOString()
-                    });
-                } else {
-                    lists = lists.filter(list => list.id.toString() !== listId.toString());
-                    await docRef.set({
-                        lists: lists,
-                        updated_at: new Date().toISOString()
-                    });
-                }
-            }
-
-            // 로컬 데이터 업데이트 및 화면 갱신
+            // 로컬 데이터 업데이트
             if (isTemporary) {
+                temporaryLists = temporaryLists.filter(list => list.id.toString() !== listId.toString());
                 renderTemporaryLists();
                 saveTemporaryLists();
             } else {
+                lists = lists.filter(list => list.id.toString() !== listId.toString());
+                
                 // 삭제 후 현재 페이지에 아이템이 남아있는지 확인
                 const totalItems = lists.filter(list => {
                     if (currentFilterType === 'all') return true;
