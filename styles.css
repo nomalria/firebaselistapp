@@ -283,13 +283,17 @@ h1 {
 }
 
 .list-created-at {
-    position: absolute;
-    right: 15px;
-    bottom: 10px;
-    font-size: 0.8em;
+    display: block;
+    font-size: 12px;
     color: #666;
-    min-width: 140px;
-    text-align: right;
+    margin-bottom: 8px;
+}
+
+.list-author {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
 }
 
 .memo-count {
@@ -333,14 +337,9 @@ h1 {
 
 /* 메모 섹션 */
 .memo-section {
-    display: none;
-    background-color: #f9f9f9;
-    border-radius: 0 0 4px 4px;
-    padding: 15px;
-    position: relative;
-    margin-top: -1px;
-    transition: all 0.3s ease;
-    padding-bottom: 35px;  /* 생성 날짜를 위한 여백 확보 */
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #eee;
 }
 
 .memo-section.expanded {

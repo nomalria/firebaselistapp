@@ -555,7 +555,8 @@ function addNewList() {
                 id: Date.now().toString(),
                 title: title,
                 memos: [],
-                createdAt: createdAt
+                createdAt: createdAt,
+                author: 'longway7098@gmail.com'  // 작성자 정보 추가
             };
             temporaryLists.unshift(newList);
             renderTemporaryLists();
@@ -577,7 +578,8 @@ function addNewList() {
                 id: Date.now().toString(),
                 title: title,
                 memos: [],
-                createdAt: createdAt
+                createdAt: createdAt,
+                author: 'longway7098@gmail.com'  // 작성자 정보 추가
             };
             temporaryLists.unshift(newList);
             renderTemporaryLists();
@@ -1021,6 +1023,7 @@ function renderLists(page = 1) {
             </div>
             <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
                 <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
+                <span class="list-author">작성자: ${list.author || 'longway7098@gmail.com'}</span>
                 <div class="input-group">
                     <input type="text" id="newMemoInput-${list.id}" placeholder="메모 추가..." onkeypress="if(event.key === 'Enter') addMemo('${list.id}')">
                     <button onclick="addMemo('${list.id}')">추가</button>
@@ -3238,6 +3241,9 @@ firebase.auth().onAuthStateChanged((user) => {
         // 헤더에는 '로그인하기'만 표시
         loginStatus.textContent = '로그인하기';
         if (mainContainer) mainContainer.style.display = '';
+        
+        // 기존 목록들의 작성자 정보 업데이트
+        updateExistingListsAuthor();
     } else {
         loginStatus.textContent = '로그인하기';
         if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = 'none';
@@ -3597,3 +3603,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// 기존 목록들의 작성자 정보 업데이트
+function updateExistingListsAuthor() {
+    lists.forEach(list => {
+        if (!list.author) {
+            list.author = 'longway7098@gmail.com';
+        }
+    });
+    saveLists();
+}
