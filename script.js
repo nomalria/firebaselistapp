@@ -910,39 +910,26 @@ function deleteMemo(listId, memoId, isTemporary = false) {
     }
     if (confirm('해당 메모를 삭제하시겠습니까?')) {
         try {
-            // 로컬 데이터 업데이트
+            // 메모만 삭제하고 목록은 유지
+            list.memos = list.memos.filter(m => m.id.toString() !== memoId.toString());
+            
+            // UI 업데이트
             if (isTemporary) {
-                temporaryLists = temporaryLists.filter(list => list.id.toString() !== listId.toString());
                 renderTemporaryLists();
                 saveTemporaryLists();
             } else {
-                lists = lists.filter(list => list.id.toString() !== listId.toString());
-                
-                // 삭제 후 현재 페이지에 아이템이 남아있는지 확인
-                const totalItems = lists.filter(list => {
-                    if (currentFilterType === 'all') return true;
-                    if (currentFilterType === '4방덱') return list.title.startsWith('4방덱');
-                    if (currentFilterType === '5방덱') return list.title.startsWith('5방덱');
-                    if (currentFilterType === '기타') return !list.title.startsWith('4방덱') && !list.title.startsWith('5방덱');
-                    return true;
-                }).length;
-                
-                const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-                // 현재 페이지가 삭제 후 존재하지 않으면 이전 페이지나 1페이지로 이동
-                if (currentPage > totalPages && totalPages > 0) {
-                    renderLists(totalPages);
-                } else if (totalItems === 0) {
-                    renderLists(1); // 아이템이 없으면 1페이지 (빈 화면)
-                } else {
-                    renderLists(currentPage); // 현재 페이지 다시 로드
-                }
-                updateStats();
+                renderLists(currentPage);
                 saveLists();
             }
+            
+            // 통계 업데이트
+            updateStats();
+            
+            // 로컬 스토리지에 저장
+            saveToLocalStorage();
         } catch (error) {
-            console.error('목록 삭제 중 오류 발생:', error);
-            alert('목록 삭제 중 오류가 발생했습니다.');
+            console.error('메모 삭제 중 오류 발생:', error);
+            alert('메모 삭제 중 오류가 발생했습니다.');
         }
     }
 }
