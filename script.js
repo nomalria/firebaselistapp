@@ -3640,16 +3640,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ... existing code ...
 document.addEventListener('DOMContentLoaded', function() {
     // ... existing code ...
-
-    // 모바일 환경 감지 후 알림
-    function isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
-    if (isMobile()) {
-        alert('크롬으로 해당 주소를 열어주세요');
-    }
-
-    // ... existing code ...
 });
 // ... existing code ...
 
