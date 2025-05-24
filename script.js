@@ -1406,9 +1406,16 @@ function updateDropdownItems(stats) {
 
 // 방덱 편집 시작
 function startEditList(listId, isTemporary = false) {
+    const user = firebase.auth().currentUser;
     const targetLists = isTemporary ? temporaryLists : lists;
     const list = targetLists.find(l => l.id.toString() === listId.toString());
     if (!list) return;
+    const isAdmin = user && user.email === 'longway7098@gmail.com';
+    const isProtectedAuthor = !list.author || list.author === '섬세포분열' || list.author === 'longway7098@gmail.com';
+    if (isProtectedAuthor && !isAdmin) {
+        alert('이 목록은 관리자만 편집할 수 있습니다.');
+        return;
+    }
 
     const editSection = document.getElementById(`editSection-${listId}`);
     if (!editSection) return;
@@ -1426,6 +1433,17 @@ function startEditList(listId, isTemporary = false) {
 
 // 방덱 편집 저장
 function saveListEdit(listId, isTemporary = false) {
+    const user = firebase.auth().currentUser;
+    const targetLists = isTemporary ? temporaryLists : lists;
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    if (!list) return;
+    const isAdmin = user && user.email === 'longway7098@gmail.com';
+    const isProtectedAuthor = !list.author || list.author === '섬세포분열' || list.author === 'longway7098@gmail.com';
+    if (isProtectedAuthor && !isAdmin) {
+        alert('이 목록은 관리자만 편집할 수 있습니다.');
+        return;
+    }
+
     const input = document.getElementById(`editListInput-${listId}`);
     if (!input) return;
 
@@ -1507,6 +1525,19 @@ function cancelListEdit(listId, isTemporary = false) {
 
 // 메모 편집 시작
 function startEditMemo(listId, memoId, isTemporary = false) {
+    const user = firebase.auth().currentUser;
+    const targetLists = isTemporary ? temporaryLists : lists;
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    if (!list) return;
+    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    if (!memo) return;
+    const isAdmin = user && user.email === 'longway7098@gmail.com';
+    const isProtectedAuthor = !memo.author || memo.author === '섬세포분열' || memo.author === 'longway7098@gmail.com';
+    if (isProtectedAuthor && !isAdmin) {
+        alert('이 메모는 관리자만 편집할 수 있습니다.');
+        return;
+    }
+
     try {
         console.log(`메모 편집 시작: listId=${listId}, memoId=${memoId}, isTemporary=${isTemporary}`);
         
@@ -2783,6 +2814,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 메모 편집 저장
 function saveMemoEdit(listId, memoId, isTemporary = false) {
+    const user = firebase.auth().currentUser;
+    const targetLists = isTemporary ? temporaryLists : lists;
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    if (!list) return;
+    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    if (!memo) return;
+    const isAdmin = user && user.email === 'longway7098@gmail.com';
+    const isProtectedAuthor = !memo.author || memo.author === '섬세포분열' || memo.author === 'longway7098@gmail.com';
+    if (isProtectedAuthor && !isAdmin) {
+        alert('이 메모는 관리자만 편집할 수 있습니다.');
+        return;
+    }
+
     try {
         console.log(`메모 편집 저장: listId=${listId}, memoId=${memoId}, isTemporary=${isTemporary}`);
         
