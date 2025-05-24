@@ -3365,3 +3365,35 @@ function removeMemoSuggestionBox() {
     memoSuggestionActiveInput = null;
 }
 // GAS Web API URL
+
+// 목록과 메모 정렬 함수
+function sortListsAndMemos() {
+    // 목록 정렬 (생성일 기준 내림차순)
+    sortListsByCreatedAt(lists, 'desc');
+    
+    // 각 목록의 메모 정렬 (알파벳 순)
+    lists.forEach(list => {
+        if (list.memos && list.memos.length > 0) {
+            list.memos = sortMemosByAlphabetical(list.memos);
+        }
+    });
+    
+    // 임시 목록도 동일하게 정렬
+    sortListsByCreatedAt(temporaryLists, 'desc');
+    temporaryLists.forEach(list => {
+        if (list.memos && list.memos.length > 0) {
+            list.memos = sortMemosByAlphabetical(list.memos);
+        }
+    });
+    
+    // 변경사항 저장
+    saveToLocalStorage();
+    
+    // 화면 갱신
+    renderTemporaryLists();
+    renderLists(currentPage);
+    updateStats();
+    
+    // 정렬 완료 알림
+    showNotification('목록과 메모가 정렬되었습니다.', 'sortBtn');
+}
