@@ -3636,6 +3636,32 @@ function selectMemoSuggestion(idx) {
     memoSuggestionList = [];
     memoSuggestionActiveInput = null; // 활성 입력창 참조도 제거
     removeMemoSuggestionBox();
+    
+    // 모바일 환경에서 스페이스바와 백스페이스바 순차 실행
+    setTimeout(() => {
+        // 스페이스바 이벤트
+        const spaceEvent = new KeyboardEvent('keydown', {
+            key: ' ',
+            code: 'Space',
+            keyCode: 32,
+            which: 32,
+            bubbles: true
+        });
+        input.dispatchEvent(spaceEvent);
+        
+        // 백스페이스바 이벤트 (약간의 지연 후)
+        setTimeout(() => {
+            const backspaceEvent = new KeyboardEvent('keydown', {
+                key: 'Backspace',
+                code: 'Backspace',
+                keyCode: 8,
+                which: 8,
+                bubbles: true
+            });
+            input.dispatchEvent(backspaceEvent);
+        }, 50);
+    }, 50);
+    
     input.focus();
 }
 
