@@ -3623,7 +3623,6 @@ function selectMemoSuggestion(idx) {
     // 새로운 값 설정 (이전 입력값 유지)
     const newValue = leftWords.join(' ') + (right.startsWith(' ') ? right : ' ' + right);
     
-    // 모바일 환경에서 스페이스바와 백스페이스바 효과를 직접 구현
     // 1. 추천 단어 입력
     input.value = newValue;
     
@@ -3633,14 +3632,68 @@ function selectMemoSuggestion(idx) {
                      memoSuggestionList[idx].length + 1; // 추천 단어 길이 + 공백
     input.setSelectionRange(newCursor, newCursor);
     
-    // 3. 백스페이스 효과 (공백 제거)
+    // 3. 스페이스바 입력 이벤트 발생
     setTimeout(() => {
-        const currentValue = input.value;
-        const currentCursor = input.selectionStart;
-        if (currentValue[currentCursor - 1] === ' ') {
-            input.value = currentValue.slice(0, currentCursor - 1) + currentValue.slice(currentCursor);
-            input.setSelectionRange(currentCursor - 1, currentCursor - 1);
-        }
+        // input 이벤트 발생
+        const inputEvent = new InputEvent('input', {
+            inputType: 'insertText',
+            data: ' ',
+            bubbles: true,
+            cancelable: true
+        });
+        input.dispatchEvent(inputEvent);
+        
+        // keydown 이벤트 발생
+        const keydownEvent = new KeyboardEvent('keydown', {
+            key: ' ',
+            code: 'Space',
+            keyCode: 32,
+            which: 32,
+            bubbles: true
+        });
+        input.dispatchEvent(keydownEvent);
+        
+        // keyup 이벤트 발생
+        const keyupEvent = new KeyboardEvent('keyup', {
+            key: ' ',
+            code: 'Space',
+            keyCode: 32,
+            which: 32,
+            bubbles: true
+        });
+        input.dispatchEvent(keyupEvent);
+        
+        // 4. 백스페이스 이벤트 발생
+        setTimeout(() => {
+            // keydown 이벤트 발생
+            const backspaceKeydownEvent = new KeyboardEvent('keydown', {
+                key: 'Backspace',
+                code: 'Backspace',
+                keyCode: 8,
+                which: 8,
+                bubbles: true
+            });
+            input.dispatchEvent(backspaceKeydownEvent);
+            
+            // input 이벤트 발생
+            const backspaceInputEvent = new InputEvent('input', {
+                inputType: 'deleteContentBackward',
+                data: null,
+                bubbles: true,
+                cancelable: true
+            });
+            input.dispatchEvent(backspaceInputEvent);
+            
+            // keyup 이벤트 발생
+            const backspaceKeyupEvent = new KeyboardEvent('keyup', {
+                key: 'Backspace',
+                code: 'Backspace',
+                keyCode: 8,
+                which: 8,
+                bubbles: true
+            });
+            input.dispatchEvent(backspaceKeyupEvent);
+        }, 50);
     }, 50);
     
     // 추천 단어 관련 상태 완전 초기화
