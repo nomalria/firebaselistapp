@@ -3688,6 +3688,7 @@ window.addEventListener('DOMContentLoaded', function() {
     const helpBtn = document.getElementById('helpBtn');
     const helpModal = document.getElementById('helpModal');
     const closeHelpModal = document.getElementById('closeHelpModal');
+    const closeHelpModalX = document.getElementById('closeHelpModalX');
     if (helpBtn && helpModal && closeHelpModal) {
         helpBtn.addEventListener('click', function() {
             helpModal.style.display = 'flex';
@@ -3695,6 +3696,12 @@ window.addEventListener('DOMContentLoaded', function() {
         closeHelpModal.addEventListener('click', function() {
             helpModal.style.display = 'none';
         });
+        // X 버튼도 닫기
+        if (closeHelpModalX) {
+            closeHelpModalX.addEventListener('click', function() {
+                helpModal.style.display = 'none';
+            });
+        }
         // 모달 바깥 클릭 시 닫기
         helpModal.addEventListener('click', function(e) {
             if (e.target === helpModal) {
