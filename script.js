@@ -203,6 +203,11 @@ async function loadLists() {
         
         if (savedLists) {
             lists = JSON.parse(savedLists);
+            // author가 없으면 '섬세포분열'로 할당
+            lists = lists.map(list => ({
+                ...list,
+                author: list.author ? list.author : '섬세포분열'
+            }));
             console.log(`로컬 스토리지에서 ${lists.length}개의 목록 로드됨`);
             localDataExists = lists.length > 0;
         } else {
@@ -211,6 +216,11 @@ async function loadLists() {
         
         if (savedTempLists) {
             temporaryLists = JSON.parse(savedTempLists);
+            // author가 없으면 '섬세포분열'로 할당
+            temporaryLists = temporaryLists.map(list => ({
+                ...list,
+                author: list.author ? list.author : '섬세포분열'
+            }));
             console.log(`로컬 스토리지에서 ${temporaryLists.length}개의 임시 목록 로드됨`);
             localDataExists = localDataExists || temporaryLists.length > 0;
         } else {
@@ -353,6 +363,11 @@ async function loadLists() {
         
         if (savedLists) {
             lists = JSON.parse(savedLists);
+            // author가 없으면 '섬세포분열'로 할당
+            lists = lists.map(list => ({
+                ...list,
+                author: list.author ? list.author : '섬세포분열'
+            }));
             console.log(`오류 발생, 로컬 스토리지에서 ${lists.length}개의 목록 복구됨`);
         } else {
                 lists = [];
@@ -360,6 +375,11 @@ async function loadLists() {
         
         if (savedTempLists) {
             temporaryLists = JSON.parse(savedTempLists);
+            // author가 없으면 '섬세포분열'로 할당
+            temporaryLists = temporaryLists.map(list => ({
+                ...list,
+                author: list.author ? list.author : '섬세포분열'
+            }));
             console.log(`오류 발생, 로컬 스토리지에서 ${temporaryLists.length}개의 임시 목록 복구됨`);
         } else {
                 temporaryLists = [];
