@@ -1621,7 +1621,8 @@ function updateCounter(listId, memoId, counterType, change, isTemporary = false)
     const memo = list.memos.find(m => m.id === memoId);
     if (!memo) return;
     
-    if (!checkAuthorPermission(list, memo)) {
+    // 승패 조작 권한 체크
+    if (list.author === '섬세포분열' && memo.author !== '외부 사용자') {
         showNotification('해당 메모의 카운터는 변경할 수 없습니다.', 'counterBtn');
         return;
     }
@@ -3645,29 +3646,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 작성자 권한 체크 함수 추가
 function checkAuthorPermission(list, memo = null) {
-    const user = firebase.auth().currentUser;
-    const isAdmin = user && user.email === 'longway7098@gmail.com';
-    
-    // 관리자는 모든 목록과 메모를 수정/삭제할 수 있음
-    if (isAdmin) return true;
-    
-    // 목록 권한 체크 - 목록이 "섬세포분열"이 작성한 경우 수정/삭제 불가
+    // 목록이 "섬세포분열"이 작성한 경우
     if (list.author === '섬세포분열') {
+        // 메모가 있는 경우
+        if (memo) {
+            // 메모가 "외부 사용자"가 작성한 경우에만 수정/삭제 가능
+            if (memo.author === '외부 사용자') {
+                return true;
+            }
+            // 그 외의 경우는 수정/삭제 불가
+            showNotification('해당 메모는 수정/삭제할 수 없습니다.', 'editMemoBtn');
+            return false;
+        }
+        // 목록 자체는 수정/삭제 불가
         showNotification('해당 목록은 수정/삭제할 수 없습니다.', 'editListBtn');
         return false;
     }
     
-    // 메모 권한 체크
-    if (memo) {
-        // 섬세포분열이 작성한 메모는 수정/삭제할 수 없음
-        if (memo.author === '섬세포분열') {
+    // 목록이 "외부 사용자"가 작성한 경우
+    if (list.author === '외부 사용자') {
+        // 메모가 있는 경우
+        if (memo) {
+            // 메모가 "외부 사용자"가 작성한 경우에만 수정/삭제 가능
+            if (memo.author === '외부 사용자') {
+                return true;
+            }
+            // 그 외의 경우는 수정/삭제 불가
             showNotification('해당 메모는 수정/삭제할 수 없습니다.', 'editMemoBtn');
             return false;
         }
-        // 외부 사용자가 작성한 메모는 수정/삭제 가능
-        if (memo.author === '외부 사용자') {
-            return true;
-        }
+        // 목록 자체는 수정/삭제 가능
+        return true;
     }
     
     // 그 외의 경우는 수정/삭제 가능
