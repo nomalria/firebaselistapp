@@ -3682,3 +3682,24 @@ function checkAuthorPermission(list, memo = null) {
     // 그 외의 경우는 수정/삭제 가능
     return true;
 }
+
+// 도움말 모달 동작 추가
+window.addEventListener('DOMContentLoaded', function() {
+    const helpBtn = document.getElementById('helpBtn');
+    const helpModal = document.getElementById('helpModal');
+    const closeHelpModal = document.getElementById('closeHelpModal');
+    if (helpBtn && helpModal && closeHelpModal) {
+        helpBtn.addEventListener('click', function() {
+            helpModal.style.display = 'flex';
+        });
+        closeHelpModal.addEventListener('click', function() {
+            helpModal.style.display = 'none';
+        });
+        // 모달 바깥 클릭 시 닫기
+        helpModal.addEventListener('click', function(e) {
+            if (e.target === helpModal) {
+                helpModal.style.display = 'none';
+            }
+        });
+    }
+});
