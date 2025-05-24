@@ -3646,6 +3646,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 작성자 권한 체크 함수 추가
 function checkAuthorPermission(list, memo = null) {
+    // 현재 로그인한 사용자 확인
+    const user = firebase.auth().currentUser;
+    
+    // 관리자 계정인 경우 바로 true 반환
+    if (user && user.email === 'longway7098@gmail.com') {
+        return true;
+    }
+    
     // 목록이 "섬세포분열"이 작성한 경우
     if (list.author === '섬세포분열') {
         // 메모가 있는 경우
@@ -3679,8 +3687,8 @@ function checkAuthorPermission(list, memo = null) {
         return true;
     }
     
-    // 그 외의 경우는 수정/삭제 가능
-    return true;
+    // 그 외의 경우는 수정/삭제 불가
+    return false;
 }
 
 // 도움말 모달 동작 추가
