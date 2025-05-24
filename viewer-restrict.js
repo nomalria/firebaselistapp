@@ -150,16 +150,16 @@ window.addEventListener('DOMContentLoaded', function() {
             const db = firebase.firestore();
             
             // 메인 목록 불러오기
-            const mainRef = db.collection('lists').doc('main');
-            const mainDoc = await mainRef.get();
+            const mainMetadataRef = db.collection('lists_metadata').doc('main');
+            const mainMetadataDoc = await mainMetadataRef.get();
             
-            if (mainDoc.exists) {
-                const metadata = mainDoc.data().metadata;
-                const totalPages = Math.ceil(metadata.totalCount / 20);
+            if (mainMetadataDoc.exists) {
+                const metadata = mainMetadataDoc.data();
+                const totalPages = metadata.totalPages;
                 
                 lists = [];
                 for (let i = 1; i <= totalPages; i++) {
-                    const pageDoc = await mainRef.collection('pages').doc(`page${i}`).get();
+                    const pageDoc = await db.collection('lists_pages').doc(`main_page_${i}`).get();
                     if (pageDoc.exists) {
                         lists = lists.concat(pageDoc.data().lists);
                     }
@@ -168,16 +168,16 @@ window.addEventListener('DOMContentLoaded', function() {
             }
             
             // 임시 목록 불러오기
-            const tempRef = db.collection('lists').doc('temporary');
-            const tempDoc = await tempRef.get();
+            const tempMetadataRef = db.collection('lists_metadata').doc('temporary');
+            const tempMetadataDoc = await tempMetadataRef.get();
             
-            if (tempDoc.exists) {
-                const metadata = tempDoc.data().metadata;
-                const totalPages = Math.ceil(metadata.totalCount / 20);
+            if (tempMetadataDoc.exists) {
+                const metadata = tempMetadataDoc.data();
+                const totalPages = metadata.totalPages;
                 
                 temporaryLists = [];
                 for (let i = 1; i <= totalPages; i++) {
-                    const pageDoc = await tempRef.collection('pages').doc(`page${i}`).get();
+                    const pageDoc = await db.collection('lists_pages').doc(`temp_page_${i}`).get();
                     if (pageDoc.exists) {
                         temporaryLists = temporaryLists.concat(pageDoc.data().lists);
                     }
