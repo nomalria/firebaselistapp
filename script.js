@@ -3629,18 +3629,20 @@ function renderMemoSuggestions(input, currentWord) {
 function selectMemoSuggestion(idx) {
     if (!memoSuggestionActiveInput) return;
     const input = memoSuggestionActiveInput;
-    const value = input.value;
     const cursor = input.selectionStart;
+    const value = input.value;
     // 현재 커서 위치에서 단어 찾기
+    // 왼쪽(커서 전)과 오른쪽(커서 후) 분리
     const left = value.slice(0, cursor);
     const right = value.slice(cursor);
     const leftWords = left.split(' ');
     const currentWord = leftWords[leftWords.length - 1];
     leftWords[leftWords.length - 1] = memoSuggestionList[idx];
-    const newValue = leftWords.join(' ') + (right.startsWith(' ') ? right : ' ' + right);
-    input.value = newValue.trimEnd() + ' ';
-    // 커서 위치 조정
-    const newCursor = left.slice(0, -currentWord.length).length + memoSuggestionList[idx].length + 1;
+    // 추천단어 뒤에 공백 추가(모바일/PC 모두 일관성)
+    const newLeft = leftWords.join(' ') + ' ';
+    input.value = newLeft + right.replace(/^\s+/, ''); // 기존 오른쪽 공백 제거
+    // 커서 위치 조정: 추천단어 뒤 +1
+    const newCursor = newLeft.length;
     input.setSelectionRange(newCursor, newCursor);
     removeMemoSuggestionBox();
     input.focus();
