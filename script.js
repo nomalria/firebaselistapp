@@ -571,7 +571,7 @@ function addNewList() {
                 title: title,
                 memos: [],
                 createdAt: createdAt,
-                author: 'longway7098@gmail.com'  // 작성자 정보 추가
+                author: user.email === 'longway7098@gmail.com' ? user.email : '외부 사용자'  // 관리자가 아닌 경우 "외부 사용자"로 설정
             };
             temporaryLists.unshift(newList);
             renderTemporaryLists();
@@ -594,7 +594,7 @@ function addNewList() {
                 title: title,
                 memos: [],
                 createdAt: createdAt,
-                author: 'longway7098@gmail.com'  // 작성자 정보 추가
+                author: user.email === 'longway7098@gmail.com' ? user.email : '외부 사용자'  // 관리자가 아닌 경우 "외부 사용자"로 설정
             };
             temporaryLists.unshift(newList);
             renderTemporaryLists();
