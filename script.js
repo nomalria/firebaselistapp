@@ -35,14 +35,13 @@ let memoSuggestionList = [];
 let memoSuggestionActiveInput = null;
 
 // Google Sheets API URL
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby-X1OxS0Yr7Wfsbwt2rnG6tyaanYLzZJjFV1oRt6jm9GV_rm0CyruSi5WgAz7MASce/exec';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyeJmP3xTBAzSu-YReVptkxpnv2ifZspTeMtaXrcLAlOhHRK3Ncm17FhWO4eHQ3ktXW/exec';
 
 // 데이터 저장 (MainLists)
 async function saveToSheets() {
     try {
         const response = await fetch(GAS_API_URL, {
             method: 'POST',
-            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 sheet: 'MainLists',
@@ -50,10 +49,14 @@ async function saveToSheets() {
             })
         });
         
-        // no-cors 모드에서는 response.json()을 사용할 수 없으므로
-        // 성공했다고 가정하고 진행
-        updateLastUploadTimeDisplay(new Date().getTime());
-        return true;
+        const result = await response.json();
+        if (result.success) {
+            updateLastUploadTimeDisplay(new Date().getTime());
+            return true;
+        } else {
+            console.error('GAS 저장 실패:', result.message);
+            return false;
+        }
     } catch (error) {
         console.error('GAS 저장 오류:', error);
         return false;
