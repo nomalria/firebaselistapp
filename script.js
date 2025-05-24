@@ -3247,9 +3247,6 @@ firebase.auth().onAuthStateChanged((user) => {
         // 헤더에는 '로그인하기'만 표시
         loginStatus.textContent = '로그인하기';
         if (mainContainer) mainContainer.style.display = '';
-        
-        // 기존 목록들의 작성자 정보 업데이트
-        updateExistingListsAuthor();
     } else {
         loginStatus.textContent = '로그인하기';
         if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = 'none';
