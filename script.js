@@ -3606,7 +3606,6 @@ function selectMemoSuggestion(idx) {
     if (!memoSuggestionActiveInput) return;
     const input = memoSuggestionActiveInput;
     
-    // 현재 입력값과 커서 위치 저장
     const value = input.value;
     const cursor = input.selectionStart;
     
@@ -3616,61 +3615,40 @@ function selectMemoSuggestion(idx) {
         currentWordStart--;
     }
     
-    // 현재 입력 중인 단어와 이전 입력값 분리
     const previousInput = value.slice(0, currentWordStart);
     const currentWord = value.slice(currentWordStart, cursor);
     const remainingInput = value.slice(cursor);
-    
-    // 입력값 완전 초기화
-    input.value = '';
-    
-    // 새로운 값 설정 (이전 입력값 + 추천 단어 + 공백 + 남은 입력값)
-    const newValue = previousInput + memoSuggestionList[idx] + ' ' + remainingInput;
-    
-    // 1. 추천 단어 입력
+
+    // 새 값 구성
+    const selectedWord = memoSuggestionList[idx];
+    const newValue = previousInput + selectedWord + ' ' + remainingInput;
+
+    // IME 조합 상태를 강제 종료하고 값 설정
+    input.blur();  // 조합 종료 유도
     input.value = newValue;
-    
-    // 2. 커서 위치 설정 (추천 단어 다음 공백 뒤)
-    const newCursor = previousInput.length + memoSuggestionList[idx].length + 1;
-    input.setSelectionRange(newCursor, newCursor);
-    
-    // 3. 스페이스바 입력 이벤트 발생 (이벤트 버블링 방지)
-    setTimeout(() => {
-        const inputEvent = new InputEvent('input', {
-            inputType: 'insertText',
-            data: ' ',
-            bubbles: false,  // 이벤트 버블링 방지
-            cancelable: true
-        });
-        input.dispatchEvent(inputEvent);
-        
-        const keydownEvent = new KeyboardEvent('keydown', {
-            key: ' ',
-            code: 'Space',
-            keyCode: 32,
-            which: 32,
-            bubbles: false  // 이벤트 버블링 방지
-        });
-        input.dispatchEvent(keydownEvent);
-        
-        const keyupEvent = new KeyboardEvent('keyup', {
-            key: ' ',
-            code: 'Space',
-            keyCode: 32,
-            which: 32,
-            bubbles: false  // 이벤트 버블링 방지
-        });
-        input.dispatchEvent(keyupEvent);
-    }, 50);
-    
-    // 추천 단어 관련 상태 완전 초기화
+    input.setSelectionRange(
+        previousInput.length + selectedWord.length + 1,
+        previousInput.length + selectedWord.length + 1
+    );
+    input.focus(); // 다시 포커스 줘서 커서 복원
+
+    // 추천어 관련 상태 초기화
     memoSuggestionWords = [];
-    memoSuggestionIndex = -1;
+    memoSuggestionIndex = [];
     memoSuggestionList = [];
     memoSuggestionActiveInput = null;
     removeMemoSuggestionBox();
-    input.focus();
+
+    // 필요 시 input 이벤트만 트리거 (keydown 등은 생략)
+    const inputEvent = new InputEvent('input', {
+        inputType: 'insertText',
+        data: ' ',
+        bubbles: true,  // 필요에 따라 true로 설정
+        cancelable: true
+    });
+    input.dispatchEvent(inputEvent);
 }
+
 
 function removeMemoSuggestionBox() {
     const box = document.getElementById('memoSuggestionBox');
