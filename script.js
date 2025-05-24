@@ -3368,21 +3368,21 @@ function removeMemoSuggestionBox() {
 
 // 목록과 메모 정렬 함수
 function sortListsAndMemos() {
-    // 목록 정렬 (생성일 기준 내림차순)
-    sortListsByCreatedAt(lists, 'desc');
+    // 목록 정렬 (단어순)
+    lists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
     
-    // 각 목록의 메모 정렬 (알파벳 순)
+    // 각 목록의 메모 정렬 (단어순)
     lists.forEach(list => {
         if (list.memos && list.memos.length > 0) {
-            list.memos = sortMemosByAlphabetical(list.memos);
+            list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
         }
     });
     
     // 임시 목록도 동일하게 정렬
-    sortListsByCreatedAt(temporaryLists, 'desc');
+    temporaryLists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
     temporaryLists.forEach(list => {
         if (list.memos && list.memos.length > 0) {
-            list.memos = sortMemosByAlphabetical(list.memos);
+            list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
         }
     });
     
@@ -3394,6 +3394,38 @@ function sortListsAndMemos() {
     renderLists(currentPage);
     updateStats();
     
-    // 정렬 완료 알림
-    showNotification('목록과 메모가 정렬되었습니다.', 'sortBtn');
+    // 정렬 완료 메시지 표시
+    const sortBtn = document.getElementById('sortBtn');
+    if (sortBtn) {
+        // 기존 메시지가 있다면 제거
+        const existingMessage = document.querySelector('.sort-complete-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        const message = document.createElement('div');
+        message.textContent = '정렬이 완료되었습니다';
+        message.className = 'sort-complete-message';
+        message.style.position = 'absolute';
+        message.style.color = '#4CAF50';
+        message.style.fontSize = '14px';
+        message.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        message.style.padding = '4px 8px';
+        message.style.borderRadius = '4px';
+        message.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        message.style.zIndex = '1000';
+        
+        // 버튼의 위치를 기준으로 메시지 위치 설정
+        const buttonRect = sortBtn.getBoundingClientRect();
+        message.style.top = `${buttonRect.bottom + 5}px`;
+        message.style.left = `${buttonRect.left}px`;
+        
+        // 메시지를 body에 추가
+        document.body.appendChild(message);
+        
+        // 3초 후 메시지 제거
+        setTimeout(() => {
+            message.remove();
+        }, 3000);
+    }
 }
