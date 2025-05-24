@@ -524,11 +524,6 @@ function addNewList() {
         return;
     }
     
-    if (!checkAdminPermission(user)) {
-        alert('이 기능은 관리자만 사용할 수 있습니다.');
-        return;
-    }
-    
     const searchInput = document.getElementById('searchInput');
     const title = searchInput.value.trim();
     
@@ -745,11 +740,6 @@ function addMemo(listId, isTemporary = false) {
     const user = firebase.auth().currentUser;
     if (!user) {
         alert('로그인이 필요합니다.');
-        return;
-    }
-    
-    if (!checkAdminPermission(user)) {
-        alert('이 기능은 관리자만 사용할 수 있습니다.');
         return;
     }
     
@@ -3284,7 +3274,7 @@ function updateUIForUser(user) {
     if (searchInput && addListBtn) {
         if (user) {
             searchInput.style.display = 'block';
-            addListBtn.style.display = isAdmin ? 'block' : 'none';
+            addListBtn.style.display = 'block'; // 관리자 여부와 상관없이 보이게
         } else {
             searchInput.style.display = 'none';
             addListBtn.style.display = 'none';
@@ -3293,7 +3283,7 @@ function updateUIForUser(user) {
     
     // 기존목록 추가 버튼 표시/숨김
     if (addTemporaryBtn) {
-        addTemporaryBtn.style.display = isAdmin ? 'block' : 'none';
+        addTemporaryBtn.style.display = user ? 'block' : 'none'; // 관리자 여부와 상관없이 보이게
     }
 
     // Firebase 데이터 삭제 버튼 표시/숨김
