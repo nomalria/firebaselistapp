@@ -3195,6 +3195,7 @@ function updateUIForUser(user) {
     const searchInput = document.getElementById('searchInput');
     const addListBtn = document.getElementById('addListBtn');
     const addTemporaryBtn = document.getElementById('addTemporaryBtn');
+    const deleteFirebaseBtn = document.getElementById('deleteFirebaseBtn');
     
     // 검색 입력창과 추가 버튼 표시/숨김
     if (searchInput && addListBtn) {
@@ -3210,6 +3211,11 @@ function updateUIForUser(user) {
     // 기존목록 추가 버튼 표시/숨김
     if (addTemporaryBtn) {
         addTemporaryBtn.style.display = isAdmin ? 'block' : 'none';
+    }
+
+    // Firebase 데이터 삭제 버튼 표시/숨김
+    if (deleteFirebaseBtn) {
+        deleteFirebaseBtn.style.display = isAdmin ? 'block' : 'none';
     }
     
     // 모든 메모 입력창 숨김
