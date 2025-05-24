@@ -2077,3 +2077,15 @@ h1 {
       font-size: 15px;
     }
   }
+
+@media screen and (max-width: 768px) {
+    .memo-section .input-group {
+        display: flex;
+    }
+    .memo-section .input-group input {
+        flex: 7 1 0%;
+    }
+    .memo-section .input-group button {
+        flex: 3 1 0%;
+    }
+}
