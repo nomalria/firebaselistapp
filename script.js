@@ -3195,8 +3195,8 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
         function isMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
-        // 모바일: inputType이 insertText이고 data가 ' '일 때만 추천단어 자동 적용
-        if (isMobile() && e.inputType === 'insertText' && e.data === ' ' && memoSuggestionWords && memoSuggestionWords.length > 0) {
+        // 모바일: 추천단어가 떠 있고 inputType이 insertText이고 data가 ' '일 때만 추천단어 자동 적용
+        if (isMobile() && document.getElementById('memoSuggestionBox') && e.inputType === 'insertText' && e.data === ' ' && memoSuggestionWords && memoSuggestionWords.length > 0) {
             // 입력 중이던 마지막 단어만 추천단어로 대체
             const beforeCursor = this.value.slice(0, cursor - 1); // 스페이스 전까지
             const afterCursor = this.value.slice(cursor); // 커서 이후
