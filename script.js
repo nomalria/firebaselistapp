@@ -694,9 +694,10 @@ async function deleteList(listId, isTemporary = false) {
     // 권한 체크
     const isAdmin = user.email === 'longway7098@gmail.com';
     const isOldList = list && list.createdAt === '2025-04-22 09:30';
+    const isProtectedAuthor = !list.author || list.author === '섬세포분열' || list.author === 'longway7098@gmail.com';
 
-    if (!isTemporary && isOldList && !isAdmin) {
-        alert('이전 목록은 관리자만 삭제할 수 있습니다.');
+    if ((!isTemporary && isOldList && !isAdmin) || (isProtectedAuthor && !isAdmin)) {
+        alert('이 목록은 관리자만 삭제할 수 있습니다.');
         return;
     }
 
