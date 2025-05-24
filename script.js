@@ -519,11 +519,6 @@ function isSameList(list1, list2) {
 // 방덱 추가
 function addNewList() {
     const user = firebase.auth().currentUser;
-    if (!user) {
-        alert('로그인이 필요합니다.');
-        return;
-    }
-    
     const searchInput = document.getElementById('searchInput');
     const title = searchInput.value.trim();
     
@@ -571,7 +566,7 @@ function addNewList() {
                 title: title,
                 memos: [],
                 createdAt: createdAt,
-                author: user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 작성자 표시 로직 수정
+                author: user && user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 로그인 상태에 따른 작성자 설정
             };
             temporaryLists.unshift(newList);
             renderTemporaryLists();
@@ -594,7 +589,7 @@ function addNewList() {
                 title: title,
                 memos: [],
                 createdAt: createdAt,
-                author: user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 작성자 표시 로직 수정
+                author: user && user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 로그인 상태에 따른 작성자 설정
             };
             temporaryLists.unshift(newList);
             renderTemporaryLists();
@@ -682,7 +677,7 @@ async function deleteList(listId, isTemporary = false) {
     if (!list) return;
     
     if (!checkAuthorPermission(list)) {
-        showNotification('섬세포분열이 작성한 목록은 삭제할 수 없습니다.', 'deleteListBtn');
+        showNotification('해당 목록은 삭제할 수 없습니다.', 'deleteListBtn');
         return;
     }
     
@@ -729,19 +724,6 @@ async function deleteList(listId, isTemporary = false) {
 // 메모 추가 (키워드 기반 자동 상태 설정 및 텍스트 제거 - 로그 제거)
 function addMemo(listId, isTemporary = false) {
     const user = firebase.auth().currentUser;
-    if (!user) {
-        alert('로그인이 필요합니다.');
-        return;
-    }
-    
-    const memoInput = document.getElementById(`newMemoInput-${listId}`);
-    const memoText = memoInput.value.trim();
-    
-    if (!memoText) {
-        alert('메모 내용을 입력해주세요.');
-        return;
-    }
-    
     const targetLists = isTemporary ? temporaryLists : lists;
     const list = targetLists.find(l => l.id === listId);
     
@@ -749,6 +731,14 @@ function addMemo(listId, isTemporary = false) {
 
     if (list.memos.length >= 100) {
         alert('한 방덱에는 최대 100개의 메모만 추가할 수 있습니다.');
+        return;
+    }
+
+    const memoInput = document.getElementById(`newMemoInput-${listId}`);
+    const memoText = memoInput.value.trim();
+    
+    if (!memoText) {
+        alert('메모 내용을 입력해주세요.');
         return;
     }
 
@@ -789,7 +779,7 @@ function addMemo(listId, isTemporary = false) {
         wins: 0,
         losses: 0,
         comments: [],
-        author: user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 작성자 표시 로직 수정
+        author: user && user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 로그인 상태에 따른 작성자 설정
     };
 
     // 참고URL 확인 및 자동 참고자료 추가
@@ -898,7 +888,7 @@ function deleteMemo(listId, memoId, isTemporary = false) {
     if (!memo) return;
     
     if (!checkAuthorPermission(list, memo)) {
-        showNotification('섬세포분열이 작성한 메모는 삭제할 수 없습니다.', 'deleteMemoBtn');
+        showNotification('해당 메모는 삭제할 수 없습니다.', 'deleteMemoBtn');
         return;
     }
     
@@ -1385,7 +1375,7 @@ function startEditList(listId, isTemporary = false) {
     if (!list) return;
     
     if (!checkAuthorPermission(list)) {
-        showNotification('섬세포분열이 작성한 목록은 수정할 수 없습니다.', 'editListBtn');
+        showNotification('해당 목록은 수정할 수 없습니다.', 'editListBtn');
         return;
     }
     
@@ -1507,7 +1497,7 @@ function startEditMemo(listId, memoId, isTemporary = false) {
     if (!memo) return;
     
     if (!checkAuthorPermission(list, memo)) {
-        showNotification('섬세포분열이 작성한 메모는 수정할 수 없습니다.', 'editMemoBtn');
+        showNotification('해당 메모는 수정할 수 없습니다.', 'editMemoBtn');
         return;
     }
     
@@ -1632,7 +1622,7 @@ function updateCounter(listId, memoId, counterType, change, isTemporary = false)
     if (!memo) return;
     
     if (!checkAuthorPermission(list, memo)) {
-        showNotification('섬세포분열이 작성한 메모의 카운터는 변경할 수 없습니다.', 'counterBtn');
+        showNotification('해당 메모의 카운터는 변경할 수 없습니다.', 'counterBtn');
         return;
     }
     
@@ -2324,7 +2314,7 @@ function setMemoStatus(listId, memoId, status, isTemporary = false) {
     if (!memo) return;
     
     if (!checkAuthorPermission(list, memo)) {
-        showNotification('섬세포분열이 작성한 메모의 상태는 변경할 수 없습니다.', 'statusBtn');
+        showNotification('해당당 메모의 상태는 변경할 수 없습니다.', 'statusBtn');
         return;
     }
     
