@@ -675,36 +675,27 @@ function renderTemporaryLists() {
 
 // 방덱 삭제
 async function deleteList(listId, isTemporary = false) {
-    // 로그인 상태 확인
-    const user = firebase.auth().currentUser;
-    if (!user) {
-        alert('목록 삭제는 로그인 후 가능합니다.');
-        return;
-    }
-
     const list = isTemporary ? 
-        temporaryLists.find(l => l.id.toString() === listId.toString()) :
-        lists.find(l => l.id.toString() === listId.toString());
-
-    // 권한 체크
-    const isAdmin = user.email === 'longway7098@gmail.com';
-    const isOldList = list && list.createdAt === '2025-04-22 09:30';
-    const isProtectedAuthor = !list.author || list.author === '섬세포분열' || list.author === 'longway7098@gmail.com';
-
-    if ((!isTemporary && isOldList && !isAdmin) || (isProtectedAuthor && !isAdmin)) {
-        alert('이 목록은 관리자만 삭제할 수 있습니다.');
+        temporaryLists.find(l => l.id === listId) : 
+        lists.find(l => l.id === listId);
+    
+    if (!list) return;
+    
+    if (!checkAuthorPermission(list)) {
+        showNotification('섬세포분열이 작성한 목록은 삭제할 수 없습니다.', 'deleteListBtn');
         return;
     }
-
-    if (confirm('해당 목록을 삭제하시겠습니까?')) {
+    
+    // 기존 삭제 로직
+    if (confirm('정말로 이 목록을 삭제하시겠습니까?')) {
         try {
             // 로컬 데이터 업데이트
             if (isTemporary) {
-                temporaryLists = temporaryLists.filter(list => list.id.toString() !== listId.toString());
+                temporaryLists = temporaryLists.filter(list => list.id !== listId);
                 renderTemporaryLists();
                 saveTemporaryLists();
             } else {
-                lists = lists.filter(list => list.id.toString() !== listId.toString());
+                lists = lists.filter(list => list.id !== listId);
                 
                 // 삭제 후 현재 페이지에 아이템이 남아있는지 확인
                 const totalItems = lists.filter(list => {
@@ -752,7 +743,7 @@ function addMemo(listId, isTemporary = false) {
     }
     
     const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    const list = targetLists.find(l => l.id === listId);
     
     if (!list) return;
 
@@ -897,21 +888,24 @@ function updateMemoListUI(listId, memos, isTemporary) {
 
 // 메모 삭제
 function deleteMemo(listId, memoId, isTemporary = false) {
-    const user = firebase.auth().currentUser;
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    const list = isTemporary ? 
+        temporaryLists.find(l => l.id === listId) : 
+        lists.find(l => l.id === listId);
+    
     if (!list) return;
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
-    const isAdmin = user && user.email === 'longway7098@gmail.com';
-    const isProtectedAuthor = !memo.author || memo.author === '섬세포분열' || memo.author === 'longway7098@gmail.com';
-    if (isProtectedAuthor && !isAdmin) {
-        alert('이 메모는 관리자만 삭제할 수 있습니다.');
+    
+    const memo = list.memos.find(m => m.id === memoId);
+    if (!memo) return;
+    
+    if (!checkAuthorPermission(list, memo)) {
+        showNotification('섬세포분열이 작성한 메모는 삭제할 수 없습니다.', 'deleteMemoBtn');
         return;
     }
+    
     if (confirm('해당 메모를 삭제하시겠습니까?')) {
         try {
             // 메모만 삭제하고 목록은 유지
-            list.memos = list.memos.filter(m => m.id.toString() !== memoId.toString());
+            list.memos = list.memos.filter(m => m.id !== memoId);
             
             // UI 업데이트
             if (isTemporary) {
@@ -1384,17 +1378,17 @@ function updateDropdownItems(stats) {
 
 // 방덱 편집 시작
 function startEditList(listId, isTemporary = false) {
-    const user = firebase.auth().currentUser;
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    const list = isTemporary ? 
+        temporaryLists.find(l => l.id === listId) : 
+        lists.find(l => l.id === listId);
+    
     if (!list) return;
-    const isAdmin = user && user.email === 'longway7098@gmail.com';
-    const isProtectedAuthor = !list.author || list.author === '섬세포분열' || list.author === 'longway7098@gmail.com';
-    if (isProtectedAuthor && !isAdmin) {
-        alert('이 목록은 관리자만 편집할 수 있습니다.');
+    
+    if (!checkAuthorPermission(list)) {
+        showNotification('섬세포분열이 작성한 목록은 수정할 수 없습니다.', 'editListBtn');
         return;
     }
-
+    
     const editSection = document.getElementById(`editSection-${listId}`);
     if (!editSection) return;
 
@@ -1503,19 +1497,20 @@ function cancelListEdit(listId, isTemporary = false) {
 
 // 메모 편집 시작
 function startEditMemo(listId, memoId, isTemporary = false) {
-    const user = firebase.auth().currentUser;
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    const list = isTemporary ? 
+        temporaryLists.find(l => l.id === listId) : 
+        lists.find(l => l.id === listId);
+    
     if (!list) return;
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    
+    const memo = list.memos.find(m => m.id === memoId);
     if (!memo) return;
-    const isAdmin = user && user.email === 'longway7098@gmail.com';
-    const isProtectedAuthor = !memo.author || memo.author === '섬세포분열' || memo.author === 'longway7098@gmail.com';
-    if (isProtectedAuthor && !isAdmin) {
-        alert('이 메모는 관리자만 편집할 수 있습니다.');
+    
+    if (!checkAuthorPermission(list, memo)) {
+        showNotification('섬세포분열이 작성한 메모는 수정할 수 없습니다.', 'editMemoBtn');
         return;
     }
-
+    
     try {
         console.log(`메모 편집 시작: listId=${listId}, memoId=${memoId}, isTemporary=${isTemporary}`);
         
@@ -1628,78 +1623,37 @@ function updateMemoStatusByWinRate(memo) {
 
 // 메모의 승패 카운터 업데이트 함수
 function updateCounter(listId, memoId, counterType, change, isTemporary = false) {
-    // 대상 목록 배열 결정
     const targetLists = isTemporary ? temporaryLists : lists;
+    const list = targetLists.find(l => l.id === listId);
     
-    // 목록 찾기
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
     if (!list) return;
-
-    // 메모 찾기
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    
+    const memo = list.memos.find(m => m.id === memoId);
     if (!memo) return;
-
-    // 승수 또는 패수 업데이트
-    if (counterType === 'wins') {
-        memo.wins = (typeof memo.wins === 'number' ? memo.wins : 0) + change;
-        // 음수가 되지 않도록 처리
-        if (memo.wins < 0) memo.wins = 0;
-    } else if (counterType === 'losses') {
-        memo.losses = (typeof memo.losses === 'number' ? memo.losses : 0) + change;
-        // 음수가 되지 않도록 처리
-        if (memo.losses < 0) memo.losses = 0;
+    
+    if (!checkAuthorPermission(list, memo)) {
+        showNotification('섬세포분열이 작성한 메모의 카운터는 변경할 수 없습니다.', 'counterBtn');
+        return;
     }
     
-    // 승패 비율에 따라 상태 자동 업데이트
+    // 승수 또는 패수 업데이트
+    if (counterType === 'win') {
+        memo.winCount = (memo.winCount || 0) + change;
+    } else if (counterType === 'loss') {
+        memo.lossCount = (memo.lossCount || 0) + change;
+    }
+    
+    // 승률 업데이트
     updateMemoStatusByWinRate(memo);
     
-    // 변경 사항 저장
+    // UI 업데이트
+    updateMemoListUI(listId, list.memos, isTemporary);
+    
+    // 데이터 저장
     if (isTemporary) {
         saveTemporaryLists();
     } else {
         saveLists();
-    }
-
-    // UI 업데이트
-    const memoElement = document.querySelector(`.list-item[data-list-id="${listId}"] .memo-item[data-memo-id="${memoId}"]`);
-    if (memoElement) {
-        // 승률 계산
-        const winRate = (memo.wins + memo.losses) > 0 ? 
-            ((memo.wins / (memo.wins + memo.losses)) * 100).toFixed(1) : 0;
-        
-        // 카운터 텍스트 업데이트
-        const counterText = memoElement.querySelector('.counter-text');
-        if (counterText) {
-            counterText.textContent = `${memo.wins}승 ${memo.losses}패 (${winRate}%)`;
-        }
-
-        // 상태 아이콘 업데이트
-        const statusDisplay = memoElement.querySelector('.memo-status-display');
-        if (statusDisplay) {
-            const statusIcon = memo.status === 'success' ? '✅' : 
-                             memo.status === 'fail' ? '❌' : '';
-            
-            if (statusIcon) {
-                // CSS 클래스를 포함하여 상태 아이콘 업데이트
-                const statusClass = memo.status === 'success' ? 'status-success' : 
-                                   memo.status === 'fail' ? 'status-fail' : '';
-                statusDisplay.innerHTML = `<span class="status-icon ${statusClass}">${statusIcon}</span>`;
-            } else {
-                statusDisplay.innerHTML = '';
-            }
-        }
-        
-        // 상태 버튼 활성화 상태 업데이트
-        const successBtn = memoElement.querySelector('.success-btn');
-        const failBtn = memoElement.querySelector('.fail-btn');
-        
-        if (successBtn) {
-            successBtn.classList.toggle('active', memo.status === 'success');
-        }
-        
-        if (failBtn) {
-            failBtn.classList.toggle('active', memo.status === 'fail');
-        }
     }
 }
 
@@ -1738,10 +1692,10 @@ function createMemoItemHTML(memo, listId, isTemporary) {
                     <button class="comment-btn" onclick="toggleCommentSection('${listId}', '${memo.id}', ${isTemporary})">${commentButtonText}</button>
                 </div>
                 <div class="memo-counter">
-                    <button class="counter-btn plus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', 1, ${isTemporary})">+승</button>
-                    <button class="counter-btn minus-win" onclick="updateCounter('${listId}', '${memo.id}', 'wins', -1, ${isTemporary})">-승</button>
-                    <button class="counter-btn plus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', 1, ${isTemporary})">+패</button>
-                    <button class="counter-btn minus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'losses', -1, ${isTemporary})">-패</button>
+                    <button class="counter-btn plus-win" onclick="updateCounter('${listId}', '${memo.id}', 'win', 1, ${isTemporary})">+승</button>
+                    <button class="counter-btn minus-win" onclick="updateCounter('${listId}', '${memo.id}', 'win', -1, ${isTemporary})">-승</button>
+                    <button class="counter-btn plus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'loss', 1, ${isTemporary})">+패</button>
+                    <button class="counter-btn minus-loss" onclick="updateCounter('${listId}', '${memo.id}', 'loss', -1, ${isTemporary})">-패</button>
                 </div>
                 <div class="memo-status-buttons">
                     <button class="status-btn success-btn ${memo.status === 'success' ? 'active' : ''}" 
@@ -2360,17 +2314,20 @@ function toggleClipboardContent() {
 
 // setMemoStatus 함수 추가
 function setMemoStatus(listId, memoId, status, isTemporary = false) {
-    // 대상 목록 배열 결정
-    const targetLists = isTemporary ? temporaryLists : lists;
+    const list = isTemporary ? 
+        temporaryLists.find(l => l.id === listId) : 
+        lists.find(l => l.id === listId);
     
-    // 목록 찾기
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
     if (!list) return;
-
-    // 메모 찾기
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
+    
+    const memo = list.memos.find(m => m.id === memoId);
     if (!memo) return;
-
+    
+    if (!checkAuthorPermission(list, memo)) {
+        showNotification('섬세포분열이 작성한 메모의 상태는 변경할 수 없습니다.', 'statusBtn');
+        return;
+    }
+    
     // 현재 상태와 동일하면 상태 제거, 다르면 설정
     memo.status = memo.status === status ? null : status;
     
@@ -3144,7 +3101,7 @@ function addCounterHotkeyListener(memoInput, listId, isTemporary = false) {
             const list = targetLists.find(l => l.id.toString() === listId.toString());
             if (list && list.memos.length > 0) {
                 const memoId = list.memos[0].id;
-                updateCounter(listId, memoId, 'wins', 1, isTemporary);
+                updateCounter(listId, memoId, 'win', 1, isTemporary);
             }
         }
         // Alt + Shift + ↑ : 승리 -1
@@ -3154,7 +3111,7 @@ function addCounterHotkeyListener(memoInput, listId, isTemporary = false) {
             const list = targetLists.find(l => l.id.toString() === listId.toString());
             if (list && list.memos.length > 0) {
                 const memoId = list.memos[0].id;
-                updateCounter(listId, memoId, 'wins', -1, isTemporary);
+                updateCounter(listId, memoId, 'win', -1, isTemporary);
             }
         }
         // Alt + ↓ : 패배 +1
@@ -3164,7 +3121,7 @@ function addCounterHotkeyListener(memoInput, listId, isTemporary = false) {
             const list = targetLists.find(l => l.id.toString() === listId.toString());
             if (list && list.memos.length > 0) {
                 const memoId = list.memos[0].id;
-                updateCounter(listId, memoId, 'losses', 1, isTemporary);
+                updateCounter(listId, memoId, 'loss', 1, isTemporary);
             }
         }
         // Alt + Shift + ↓ : 패배 -1
@@ -3174,7 +3131,7 @@ function addCounterHotkeyListener(memoInput, listId, isTemporary = false) {
             const list = targetLists.find(l => l.id.toString() === listId.toString());
             if (list && list.memos.length > 0) {
                 const memoId = list.memos[0].id;
-                updateCounter(listId, memoId, 'losses', -1, isTemporary);
+                updateCounter(listId, memoId, 'loss', -1, isTemporary);
             }
         }
     };
@@ -3264,33 +3221,28 @@ function updateUIForUser(user) {
     
     // 검색 입력창과 추가 버튼 표시/숨김
     if (searchInput && addListBtn) {
-        if (user) {
-            searchInput.style.display = 'block';
-            addListBtn.style.display = 'block'; // 관리자 여부와 상관없이 보이게
-        } else {
-            searchInput.style.display = 'none';
-            addListBtn.style.display = 'none';
-        }
+        searchInput.style.display = 'block';
+        addListBtn.style.display = 'block';
     }
     
     // 기존목록 추가 버튼 표시/숨김
     if (addTemporaryBtn) {
-        addTemporaryBtn.style.display = user ? 'block' : 'none'; // 관리자 여부와 상관없이 보이게
+        addTemporaryBtn.style.display = 'block';
     }
 
-    // Firebase 데이터 삭제 버튼 표시/숨김
+    // Firebase 데이터 삭제 버튼 표시/숨김 (관리자만)
     if (deleteFirebaseBtn) {
         deleteFirebaseBtn.style.display = isAdmin ? 'block' : 'none';
     }
     
-    // 모든 메모 입력창 숨김
+    // 모든 메모 입력창 표시
     document.querySelectorAll('input[type="text"][id^="newMemoInput-"]').forEach(input => {
-        input.style.display = isAdmin ? 'block' : 'none';
+        input.style.display = 'block';
     });
     
-    // 모든 메모 추가 버튼 숨김
+    // 모든 메모 추가 버튼 표시
     document.querySelectorAll('button[onclick^="addMemo"]').forEach(button => {
-        button.style.display = isAdmin ? 'block' : 'none';
+        button.style.display = 'block';
     });
 }
 
@@ -3299,21 +3251,20 @@ firebase.auth().onAuthStateChanged((user) => {
     const loginStatus = document.getElementById('loginStatus');
     const lastUploadTimeDisplay = document.getElementById('lastUploadTimeDisplay');
     const mainContainer = document.getElementById('mainContainer');
-    const provider = new firebase.auth.GoogleAuthProvider();
+    
     if (user) {
-        // 권한 체크: longway7098@gmail.com이 아니면 알림만 띄우고 화면은 숨기지 않음
-        if (user.email !== 'longway7098@gmail.com') {
-            alert('관리자 권한이 아닙니다. 일부 기능이 제한됩니다.');
+        // 관리자 계정일 경우에만 이메일 표시
+        if (user.email === 'longway7098@gmail.com') {
+            loginStatus.textContent = user.email;
+        } else {
+            loginStatus.textContent = '일반 사용자';
         }
-        loginStatus.textContent = '로그인하기';
         if (mainContainer) mainContainer.style.display = '';
         if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = '';
     } else {
-        loginStatus.textContent = '로그인하기';
+        loginStatus.textContent = '일반 사용자';
+        if (mainContainer) mainContainer.style.display = '';
         if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = 'none';
-        if (mainContainer) mainContainer.style.display = 'none';
-        // 로그인하지 않은 경우 자동으로 로그인 팝업
-        firebase.auth().signInWithPopup(provider).catch(() => {});
     }
     updateUIForUser(user);
 });
@@ -3711,3 +3662,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // ... existing code ...
 });
 // ... existing code ...
+
+// 작성자 권한 체크 함수 추가
+function checkAuthorPermission(list, memo = null) {
+    const isAdmin = firebase.auth().currentUser && firebase.auth().currentUser.email === 'longway7098@gmail.com';
+    if (isAdmin) return true;
+    
+    // 목록 작성자 체크
+    if (list.author === '섬세포분열') return false;
+    
+    // 메모 작성자 체크 (메모가 있는 경우)
+    if (memo && memo.author === '섬세포분열') return false;
+    
+    return true;
+}
