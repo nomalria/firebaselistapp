@@ -143,8 +143,12 @@
     <div id="lastUploadTimeDisplay" style="position:fixed; right:20px; bottom:60px; background:rgba(255,255,255,0.9); padding:8px 16px; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); font-size:0.95em; color:#666; z-index:9999; min-width:180px; text-align:right; display:none;"></div>
     <script src="script.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            loadLists();
+        window.onload = function() {
+            if (typeof loadLists === 'function') {
+                loadLists();
+            } else {
+                console.error('loadLists 함수를 찾을 수 없습니다.');
+            }
             
             // 검색 입력 필드에 이벤트 리스너 추가
             document.getElementById('searchInput').addEventListener('input', function() {
@@ -158,7 +162,6 @@
             
             // Enter 키 이벤트 처리
             document.getElementById('searchInput').addEventListener('keypress', function(e) {
-                // Enter 키만 검색
                 if (e.key === 'Enter') {
                     const query = this.value.trim();
                     if (query) {
@@ -170,7 +173,7 @@
             // 추가 버튼 이벤트 리스너
             document.getElementById('addListBtn').addEventListener('click', addNewList);
             
-            // 기존목록 추가 버튼 이벤트 리스너 (새로 추가)
+            // 기존목록 추가 버튼 이벤트 리스너
             document.getElementById('addTemporaryBtn').addEventListener('click', addTemporaryToLists);
             
             // 정렬 버튼 이벤트 리스너
@@ -183,7 +186,7 @@
             document.getElementById('importJsonBtn').addEventListener('click', importJsonFile);
             document.getElementById('exportJsonBtn').addEventListener('click', exportLists);
             document.getElementById('jsonFileInput').addEventListener('change', handleJsonFileUpload);
-        });
+        };
     </script>
 </body>
 </html>
