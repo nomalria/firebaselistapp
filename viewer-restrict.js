@@ -111,14 +111,20 @@ function toggleMemos(listId) {
     }
 }
 
-window.addEventListener('DOMContentLoaded', function() {
-    // 기존 제한 코드 및 클립보드/로그인 숨김 등...
+// 뷰어 모드에서 필요한 추가 기능 처리
+function afterRenderPatch() {
+    // 뷰어 모드에서 제한된 버튼 숨기기
     hideViewerRestrictedButtons();
-    // 클립보드 관련 UI, 로그인 UI 등 숨김/무력화 (생략)
-    // ...
+    
+    // 메모 상태 아이콘 업데이트
+    document.querySelectorAll('.memo-item').forEach(memoElement => {
+        checkMemoIcon(memoElement);
+    });
+}
 
-    // localStorage에서 목록 불러오기
-    async function loadListsForViewer() {
+// localStorage에서 목록 불러오기
+async function loadListsForViewer() {
+    try {
         // localStorage에서 목록 불러오기
         const savedLists = localStorage.getItem('lists');
         const savedTempLists = localStorage.getItem('temporaryLists');
@@ -129,8 +135,21 @@ window.addEventListener('DOMContentLoaded', function() {
         if (typeof renderLists === 'function') renderLists(1);
         if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
         if (typeof updateStats === 'function') updateStats();
+        
+        // 추가 기능 적용
         afterRenderPatch();
+    } catch (error) {
+        console.error('목록 로드 중 오류 발생:', error);
     }
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    // 기존 제한 코드 및 클립보드/로그인 숨김 등...
+    hideViewerRestrictedButtons();
+    // 클립보드 관련 UI, 로그인 UI 등 숨김/무력화 (생략)
+    // ...
+
+    // localStorage에서 목록 불러오기
     loadListsForViewer();
 
     // JSON 불러오기 버튼 동작: 로그인/권한 체크 없이 동작하도록 별도 구현
