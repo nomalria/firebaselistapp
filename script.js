@@ -3192,23 +3192,6 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
         const value = this.value.slice(0, cursor);
         const words = value.split(' ');
         const currentWord = words[words.length - 1];
-        function isMobile() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        }
-        // 모바일: inputType이 insertText이고 data가 ' '일 때만 추천단어 자동 적용
-        if (isMobile() && e.inputType === 'insertText' && e.data === ' ' && memoSuggestionWords && memoSuggestionWords.length > 0) {
-            // 입력 중이던 마지막 단어만 추천단어로 대체
-            const beforeCursor = this.value.slice(0, cursor - 1); // 스페이스 전까지
-            const afterCursor = this.value.slice(cursor); // 커서 이후
-            const words = beforeCursor.split(' ');
-            words[words.length - 1] = memoSuggestionWords[0]; // 마지막 단어를 추천단어로 대체
-            this.value = words.join(' ') + ' ' + afterCursor;
-            // 커서 위치 조정 (추천단어 뒤 +1)
-            const newCursor = words.join(' ').length + 1;
-            this.setSelectionRange(newCursor, newCursor);
-            removeMemoSuggestionBox();
-            return;
-        }
         if (currentWord && currentWord.length > 0) {
             renderMemoSuggestions(this, currentWord);
         } else {
@@ -3219,10 +3202,6 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
     memoInput.addEventListener('keydown', function(e) {
         const box = document.getElementById('memoSuggestionBox');
         if (!box || memoSuggestionWords.length === 0) return;
-        // 모바일 환경 감지
-        function isMobile() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        }
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
@@ -3236,17 +3215,9 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
             memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
             updateMemoSuggestionBox();
         } else if (e.key === ' ') {
-            // 모바일: 스페이스바로 첫 번째 추천단어 선택
-            if (isMobile()) {
-                if (memoSuggestionWords.length > 0) {
-                    e.preventDefault();
-                    selectMemoSuggestion(0);
-                }
-            } else {
-                if (memoSuggestionIndex >= 0) {
-                    e.preventDefault();
-                    selectMemoSuggestion(memoSuggestionIndex);
-                }
+            if (memoSuggestionIndex >= 0) {
+                e.preventDefault();
+                selectMemoSuggestion(memoSuggestionIndex);
             }
         } else if (e.key === 'Escape') {
             removeMemoSuggestionBox();
@@ -3629,10 +3600,19 @@ function renderMemoSuggestions(input, currentWord) {
 function selectMemoSuggestion(idx) {
     if (!memoSuggestionActiveInput) return;
     const input = memoSuggestionActiveInput;
-    // 추천단어만 남기고 입력값 초기화
-    const selectedWord = memoSuggestionList[idx];
-    input.value = selectedWord + ' ';
-    input.setSelectionRange(input.value.length, input.value.length);
+    const value = input.value;
+    const cursor = input.selectionStart;
+    // 현재 커서 위치에서 단어 찾기
+    const left = value.slice(0, cursor);
+    const right = value.slice(cursor);
+    const leftWords = left.split(' ');
+    const currentWord = leftWords[leftWords.length - 1];
+    leftWords[leftWords.length - 1] = memoSuggestionList[idx];
+    const newValue = leftWords.join(' ') + (right.startsWith(' ') ? right : ' ' + right);
+    input.value = newValue.trimEnd() + ' ';
+    // 커서 위치 조정
+    const newCursor = left.slice(0, -currentWord.length).length + memoSuggestionList[idx].length + 1;
+    input.setSelectionRange(newCursor, newCursor);
     removeMemoSuggestionBox();
     input.focus();
 }
