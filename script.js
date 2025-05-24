@@ -3634,34 +3634,31 @@ function selectMemoSuggestion(idx) {
     const newCursor = previousInput.length + memoSuggestionList[idx].length + 1;
     input.setSelectionRange(newCursor, newCursor);
     
-    // 3. 스페이스바 입력 이벤트 발생
+    // 3. 스페이스바 입력 이벤트 발생 (이벤트 버블링 방지)
     setTimeout(() => {
-        // input 이벤트 발생
         const inputEvent = new InputEvent('input', {
             inputType: 'insertText',
             data: ' ',
-            bubbles: true,
+            bubbles: false,  // 이벤트 버블링 방지
             cancelable: true
         });
         input.dispatchEvent(inputEvent);
         
-        // keydown 이벤트 발생
         const keydownEvent = new KeyboardEvent('keydown', {
             key: ' ',
             code: 'Space',
             keyCode: 32,
             which: 32,
-            bubbles: true
+            bubbles: false  // 이벤트 버블링 방지
         });
         input.dispatchEvent(keydownEvent);
         
-        // keyup 이벤트 발생
         const keyupEvent = new KeyboardEvent('keyup', {
             key: ' ',
             code: 'Space',
             keyCode: 32,
             which: 32,
-            bubbles: true
+            bubbles: false  // 이벤트 버블링 방지
         });
         input.dispatchEvent(keyupEvent);
     }, 50);
