@@ -571,7 +571,7 @@ function addNewList() {
                 title: title,
                 memos: [],
                 createdAt: createdAt,
-                author: user.email === 'longway7098@gmail.com' ? user.email : '외부 사용자'  // 관리자가 아닌 경우 "외부 사용자"로 설정
+                author: user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 작성자 표시 로직 수정
             };
             temporaryLists.unshift(newList);
             renderTemporaryLists();
@@ -594,7 +594,7 @@ function addNewList() {
                 title: title,
                 memos: [],
                 createdAt: createdAt,
-                author: user.email === 'longway7098@gmail.com' ? user.email : '외부 사용자'  // 관리자가 아닌 경우 "외부 사용자"로 설정
+                author: user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 작성자 표시 로직 수정
             };
             temporaryLists.unshift(newList);
             renderTemporaryLists();
@@ -798,7 +798,7 @@ function addMemo(listId, isTemporary = false) {
         wins: 0,
         losses: 0,
         comments: [],
-        author: isTemporary ? '외부 사용자' : 'longway7098@gmail.com'
+        author: user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 작성자 표시 로직 수정
     };
 
     // 참고URL 확인 및 자동 참고자료 추가
