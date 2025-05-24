@@ -3610,26 +3610,25 @@ function selectMemoSuggestion(idx) {
     const value = input.value;
     const cursor = input.selectionStart;
     
-    // 현재 커서 위치에서 단어 찾기
-    const left = value.slice(0, cursor);
-    const right = value.slice(cursor);
-    const leftWords = left.split(' ');
-    
-    // 현재 입력 중인 단어만 추천 단어로 대체
-    if (leftWords.length > 0) {
-        leftWords[leftWords.length - 1] = memoSuggestionList[idx];
+    // 현재 커서 위치에서 왼쪽으로 이동하며 공백을 만날 때까지의 단어 찾기
+    let currentWordStart = cursor;
+    while (currentWordStart > 0 && value[currentWordStart - 1] !== ' ') {
+        currentWordStart--;
     }
     
-    // 새로운 값 설정 (이전 입력값 유지)
-    const newValue = leftWords.join(' ') + (right.startsWith(' ') ? right : ' ' + right);
+    // 현재 입력 중인 단어와 이전 입력값 분리
+    const previousInput = value.slice(0, currentWordStart);
+    const currentWord = value.slice(currentWordStart, cursor);
+    const remainingInput = value.slice(cursor);
+    
+    // 새로운 값 설정 (이전 입력값 + 추천 단어 + 공백 + 남은 입력값)
+    const newValue = previousInput + memoSuggestionList[idx] + ' ' + remainingInput;
     
     // 1. 추천 단어 입력
     input.value = newValue;
     
     // 2. 커서 위치 설정 (추천 단어 다음 공백 뒤)
-    const newCursor = leftWords.slice(0, -1).join(' ').length + 
-                     (leftWords.length > 1 ? 1 : 0) + // 이전 단어들 사이의 공백
-                     memoSuggestionList[idx].length + 1; // 추천 단어 길이 + 공백
+    const newCursor = previousInput.length + memoSuggestionList[idx].length + 1;
     input.setSelectionRange(newCursor, newCursor);
     
     // 3. 스페이스바 입력 이벤트 발생
@@ -3662,38 +3661,6 @@ function selectMemoSuggestion(idx) {
             bubbles: true
         });
         input.dispatchEvent(keyupEvent);
-        
-        // 4. 백스페이스 이벤트 발생
-        setTimeout(() => {
-            // keydown 이벤트 발생
-            const backspaceKeydownEvent = new KeyboardEvent('keydown', {
-                key: 'Backspace',
-                code: 'Backspace',
-                keyCode: 8,
-                which: 8,
-                bubbles: true
-            });
-            input.dispatchEvent(backspaceKeydownEvent);
-            
-            // input 이벤트 발생
-            const backspaceInputEvent = new InputEvent('input', {
-                inputType: 'deleteContentBackward',
-                data: null,
-                bubbles: true,
-                cancelable: true
-            });
-            input.dispatchEvent(backspaceInputEvent);
-            
-            // keyup 이벤트 발생
-            const backspaceKeyupEvent = new KeyboardEvent('keyup', {
-                key: 'Backspace',
-                code: 'Backspace',
-                keyCode: 8,
-                which: 8,
-                bubbles: true
-            });
-            input.dispatchEvent(backspaceKeyupEvent);
-        }, 50);
     }, 50);
     
     // 추천 단어 관련 상태 완전 초기화
