@@ -3621,6 +3621,9 @@ function selectMemoSuggestion(idx) {
     const currentWord = value.slice(currentWordStart, cursor);
     const remainingInput = value.slice(cursor);
     
+    // 입력값 완전 초기화
+    input.value = '';
+    
     // 새로운 값 설정 (이전 입력값 + 추천 단어 + 공백 + 남은 입력값)
     const newValue = previousInput + memoSuggestionList[idx] + ' ' + remainingInput;
     
