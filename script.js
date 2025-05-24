@@ -3651,19 +3651,23 @@ function checkAuthorPermission(list, memo = null) {
     // 관리자는 모든 목록과 메모를 수정/삭제할 수 있음
     if (isAdmin) return true;
     
-    // 비로그인 사용자와 일반 사용자는 "섬세포분열"이 작성한 목록과 메모를 수정/삭제할 수 없음
+    // 메모 권한 체크
+    if (memo) {
+        // 섬세포분열이 작성한 메모는 수정/삭제할 수 없음
+        if (memo.author === '섬세포분열') {
+            showNotification('해당 메모는 수정/삭제할 수 없습니다.', 'editMemoBtn');
+            return false;
+        }
+        // 외부 사용자가 작성한 메모는 수정/삭제 가능
+        if (memo.author === '외부 사용자') {
+            return true;
+        }
+    }
+    
+    // 목록 권한 체크
     if (list.author === '섬세포분열') {
         showNotification('해당 목록은 수정/삭제할 수 없습니다.', 'editListBtn');
         return false;
-    }
-    if (memo && memo.author === '섬세포분열') {
-        showNotification('해당 메모는 수정/삭제할 수 없습니다.', 'editMemoBtn');
-        return false;
-    }
-    
-    // 외부 사용자가 작성한 메모는 해당 사용자만 수정/삭제할 수 있음
-    if (memo && memo.author === '외부 사용자') {
-        return true;
     }
     
     // 그 외의 경우는 수정/삭제 가능
