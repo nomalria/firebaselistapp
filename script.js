@@ -3560,3 +3560,100 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// 생성자 정보 표시 함수 추가
+function getDisplayCreator(creatorEmail) {
+    return creatorEmail === 'longway7098@gmail.com' ? '섬세포분열' : creatorEmail;
+}
+
+// 목록 렌더링 함수 수정
+function renderLists(page = 1) {
+    const listsContainer = document.getElementById('lists');
+    if (!listsContainer) return;
+
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentLists = lists.slice(startIndex, endIndex);
+
+    listsContainer.innerHTML = currentLists.map(list => {
+        const creatorInfo = list.createdBy ? 
+            `<div class="creator-info">작성자: ${getDisplayCreator(list.createdBy)}</div>` : '';
+        
+        return `
+            <div class="list-item" data-list-id="${list.id}">
+                <div class="list-header">
+                    <h3>${list.title}</h3>
+                    ${creatorInfo}
+                    <div class="list-buttons">
+                        <button class="edit-btn" onclick="event.stopPropagation(); startEditList('${list.id}')">수정</button>
+                        <button class="delete-btn" onclick="event.stopPropagation(); deleteList('${list.id}')">삭제</button>
+                    </div>
+                </div>
+                <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
+                    <div class="memo-list" id="memoList-${list.id}"></div>
+                    <div class="input-group">
+                        <input type="text" id="newMemoInput-${list.id}" placeholder="새 메모 입력">
+                        <button onclick="addMemo('${list.id}')">추가</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // 페이지네이션 컨트롤 업데이트
+    renderPaginationControls(lists.length);
+}
+
+// 임시 목록 렌더링 함수 수정
+function renderTemporaryLists() {
+    const temporaryListsContainer = document.getElementById('temporaryLists');
+    if (!temporaryListsContainer) return;
+
+    temporaryListsContainer.innerHTML = temporaryLists.map(list => {
+        const creatorInfo = list.createdBy ? 
+            `<div class="creator-info">작성자: ${getDisplayCreator(list.createdBy)}</div>` : '';
+        
+        return `
+            <div class="list-item" data-list-id="${list.id}">
+                <div class="list-header">
+                    <h3>${list.title}</h3>
+                    ${creatorInfo}
+                    <div class="list-buttons">
+                        <button class="edit-btn" onclick="event.stopPropagation(); startEditList('${list.id}', true)">수정</button>
+                        <button class="delete-btn" onclick="event.stopPropagation(); deleteList('${list.id}', true)">삭제</button>
+                    </div>
+                </div>
+                <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
+                    <div class="memo-list" id="memoList-${list.id}"></div>
+                    <div class="input-group">
+                        <input type="text" id="newMemoInput-${list.id}" placeholder="새 메모 입력">
+                        <button onclick="addMemo('${list.id}', true)">추가</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Firebase 데이터 삭제 버튼 가시성 제어 함수
+function updateDeleteButtonVisibility(user) {
+    const deleteButton = document.getElementById('deleteFirebaseBtn');
+    if (deleteButton) {
+        if (user && user.email === 'longway7098@gmail.com') {
+            deleteButton.style.display = 'inline-block';
+        } else {
+            deleteButton.style.display = 'none';
+        }
+    }
+}
+
+// Firebase 인증 상태 변경 감지
+firebase.auth().onAuthStateChanged(function(user) {
+    if (user) {
+        console.log('사용자가 로그인했습니다:', user.email);
+        updateDeleteButtonVisibility(user);
+    } else {
+        console.log('사용자가 로그아웃했습니다');
+        updateDeleteButtonVisibility(null);
+    }
+});
