@@ -3622,46 +3622,33 @@ function selectMemoSuggestion(idx) {
     
     // 새로운 값 설정 (이전 입력값 유지)
     const newValue = leftWords.join(' ') + (right.startsWith(' ') ? right : ' ' + right);
+    
+    // 모바일 환경에서 스페이스바와 백스페이스바 효과를 직접 구현
+    // 1. 추천 단어 입력
     input.value = newValue;
     
-    // 커서 위치 설정 (추천 단어 다음 공백 뒤)
+    // 2. 커서 위치 설정 (추천 단어 다음 공백 뒤)
     const newCursor = leftWords.slice(0, -1).join(' ').length + 
                      (leftWords.length > 1 ? 1 : 0) + // 이전 단어들 사이의 공백
                      memoSuggestionList[idx].length + 1; // 추천 단어 길이 + 공백
     input.setSelectionRange(newCursor, newCursor);
     
+    // 3. 백스페이스 효과 (공백 제거)
+    setTimeout(() => {
+        const currentValue = input.value;
+        const currentCursor = input.selectionStart;
+        if (currentValue[currentCursor - 1] === ' ') {
+            input.value = currentValue.slice(0, currentCursor - 1) + currentValue.slice(currentCursor);
+            input.setSelectionRange(currentCursor - 1, currentCursor - 1);
+        }
+    }, 50);
+    
     // 추천 단어 관련 상태 완전 초기화
     memoSuggestionWords = [];
     memoSuggestionIndex = -1;
     memoSuggestionList = [];
-    memoSuggestionActiveInput = null; // 활성 입력창 참조도 제거
+    memoSuggestionActiveInput = null;
     removeMemoSuggestionBox();
-    
-    // 모바일 환경에서 스페이스바와 백스페이스바 순차 실행
-    setTimeout(() => {
-        // 스페이스바 이벤트
-        const spaceEvent = new KeyboardEvent('keydown', {
-            key: ' ',
-            code: 'Space',
-            keyCode: 32,
-            which: 32,
-            bubbles: true
-        });
-        input.dispatchEvent(spaceEvent);
-        
-        // 백스페이스바 이벤트 (약간의 지연 후)
-        setTimeout(() => {
-            const backspaceEvent = new KeyboardEvent('keydown', {
-                key: 'Backspace',
-                code: 'Backspace',
-                keyCode: 8,
-                which: 8,
-                bubbles: true
-            });
-            input.dispatchEvent(backspaceEvent);
-        }, 50);
-    }, 50);
-    
     input.focus();
 }
 
