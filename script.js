@@ -1,3 +1,25 @@
+// Firebase 초기화
+const firebaseConfig = {
+    apiKey: "AIzaSyCzu8BvgrCepm3yqElubr4AKlIVwu_21_k",
+    authDomain: "listapps-23091.firebaseapp.com",
+    projectId: "listapps-23091",
+    storageBucket: "listapps-23091.firebasestorage.app",
+    messagingSenderId: "158638855824",
+    appId: "1:158638855824:web:5ec8e743771128ee65ea15",
+    measurementId: "G-NGSN7YLFXT"
+};
+
+// Firebase 앱 초기화 (중복 초기화 방지)
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+    console.log('Firebase가 성공적으로 초기화되었습니다.');
+} else {
+    console.log('Firebase가 이미 초기화되어 있습니다.');
+}
+
+const db = firebase.firestore();
+const auth = firebase.auth();
+
 // 전역 변수
 let lists = [];
 let temporaryLists = [];
@@ -34,56 +56,6 @@ let memoSuggestionIndex = -1;
 let memoSuggestionList = [];
 let memoSuggestionActiveInput = null;
 
-// Google Sheets API URL
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwqMDJIDaIe_zlby0y--IBnYxv35m0IHpuuelKtxwoV-55WMAKtcewgxwaOH6Yksn07/exec';
-
-// 데이터 저장 (MainLists)
-async function saveToSheets() {
-    try {
-        const response = await fetch(GAS_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sheet: 'MainLists',
-                data: lists
-            }),
-            redirect: 'follow'
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        if (result.success) {
-            updateLastUploadTimeDisplay(new Date().getTime());
-            return true;
-        } else {
-            console.error('GAS 저장 실패:', result.message);
-            return false;
-        }
-    } catch (error) {
-        console.error('GAS 저장 오류:', error);
-        return false;
-    }
-}
-
-// 데이터 불러오기 (MainLists)
-async function loadFromSheets() {
-    try {
-        const response = await fetch(GAS_API_URL + '?sheet=MainLists');
-        const data = await response.json();
-        if (data) {
-            lists = JSON.parse(data);
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error('GAS 불러오기 오류:', error);
-        return false;
-    }
-}
-
 // 시간 형식 변환 함수 수정
 function formatCreatedAt(dateStr) {
     if (!dateStr) return '2025-04-22 09:30';
@@ -93,6 +65,39 @@ function formatCreatedAt(dateStr) {
     
     // 하이픈 형식을 공백과 콜론 형식으로 변환
     return dateStr.replace(/-(\d{2})-(\d{2})$/, ' $1:$2');
+}
+
+// Firebase에 데이터 저장
+async function saveToFirebase() {
+    try {
+        const db = window.db;
+        
+        if (!db) {
+            console.error('Firebase가 초기화되지 않았습니다.');
+            localStorage.setItem('lists', JSON.stringify(lists));
+            localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+            return false;
+        }
+
+        // 현재 시간을 타임스탬프로 저장
+        const currentTime = new Date();
+        const timestamp = {
+            lastUpdated: currentTime.toISOString()
+        };
+
+        // 메인 목록만 저장 (임시목록은 업로드하지 않음)
+        await db.collection('lists').doc('main').set({
+            lists: lists,
+            ...timestamp
+        });
+
+        // 최근 업로드 시간 표시 업데이트
+        updateLastUploadTimeDisplay(currentTime);
+        return true;
+    } catch (error) {
+        console.error('Firebase 저장 오류:', error);
+        return false;
+    }
 }
 
 // 로컬 스토리지에 데이터 저장
@@ -461,6 +466,17 @@ function isSameList(list1, list2) {
 
 // 방덱 추가
 function addNewList() {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+    
+    if (!checkAdminPermission(user)) {
+        alert('이 기능은 관리자만 사용할 수 있습니다.');
+        return;
+    }
+    
     const searchInput = document.getElementById('searchInput');
     const title = searchInput.value.trim();
     
@@ -609,21 +625,52 @@ function renderTemporaryLists() {
 
 // 방덱 삭제
 async function deleteList(listId, isTemporary = false) {
-    // 로그인/권한 체크 코드 제거
+    // 로그인 상태 확인
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert('목록 삭제는 로그인 후 가능합니다.');
+        return;
+    }
 
     const list = isTemporary ? 
         temporaryLists.find(l => l.id.toString() === listId.toString()) :
         lists.find(l => l.id.toString() === listId.toString());
 
+    // 권한 체크
+    const isAdmin = user.email === 'longway7098@gmail.com';
+    const isOldList = list && list.createdAt === '2025-04-22 09:30';
+
+    if (!isTemporary && isOldList && !isAdmin) {
+        alert('이전 목록은 관리자만 삭제할 수 있습니다.');
+        return;
+    }
+
     if (confirm('해당 목록을 삭제하시겠습니까?')) {
         try {
-            if (isTemporary) {
-                temporaryLists = temporaryLists.filter(list => list.id.toString() !== listId.toString());
-            } else {
-                lists = lists.filter(list => list.id.toString() !== listId.toString());
+            const db = window.db;
+            
+            // Firebase에서 해당 목록 삭제
+            if (db) {
+                const collectionName = isTemporary ? 'temporary' : 'main';
+                const docRef = db.collection('lists').doc(collectionName);
+                
+                // 해당 목록을 제외한 나머지 목록만 Firebase에 저장
+                if (isTemporary) {
+                    temporaryLists = temporaryLists.filter(list => list.id.toString() !== listId.toString());
+                    await docRef.set({
+                        lists: temporaryLists,
+                        updated_at: new Date().toISOString()
+                    });
+                } else {
+                    lists = lists.filter(list => list.id.toString() !== listId.toString());
+                    await docRef.set({
+                        lists: lists,
+                        updated_at: new Date().toISOString()
+                    });
+                }
             }
-            await saveToSheets(); // 변경사항 저장
-            // UI 갱신 등 추가
+
+            // 로컬 데이터 업데이트 및 화면 갱신
             if (isTemporary) {
                 renderTemporaryLists();
                 saveTemporaryLists();
@@ -636,13 +683,16 @@ async function deleteList(listId, isTemporary = false) {
                     if (currentFilterType === '기타') return !list.title.startsWith('4방덱') && !list.title.startsWith('5방덱');
                     return true;
                 }).length;
+                
                 const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+                // 현재 페이지가 삭제 후 존재하지 않으면 이전 페이지나 1페이지로 이동
                 if (currentPage > totalPages && totalPages > 0) {
                     renderLists(totalPages);
                 } else if (totalItems === 0) {
-                    renderLists(1);
+                    renderLists(1); // 아이템이 없으면 1페이지 (빈 화면)
                 } else {
-                    renderLists(currentPage);
+                    renderLists(currentPage); // 현재 페이지 다시 로드
                 }
                 updateStats();
                 saveLists();
@@ -656,7 +706,16 @@ async function deleteList(listId, isTemporary = false) {
 
 // 메모 추가 (키워드 기반 자동 상태 설정 및 텍스트 제거 - 로그 제거)
 function addMemo(listId, isTemporary = false) {
-    // 로그인/권한 체크 코드 제거
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+    
+    if (!checkAdminPermission(user)) {
+        alert('이 기능은 관리자만 사용할 수 있습니다.');
+        return;
+    }
     
     const memoInput = document.getElementById(`newMemoInput-${listId}`);
     const memoText = memoInput.value.trim();
@@ -2086,12 +2145,12 @@ function processImportedJson(data) {
             }
         });
         
-        // 로컬 스토리지에 저장 (주요 변경점)
+        // Firebase 저장 전에 먼저 로컬 스토리지에 저장 (주요 변경점)
         localStorage.setItem('lists', JSON.stringify(lists));
         localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
         console.log('불러온 데이터가 먼저 로컬 스토리지에 저장됨');
         
-        // 목록 다시 렌더링 (즉시 화면 갱신)
+        // 목록 다시 렌더링 (Firebase 응답 기다리지 않고 즉시 화면 갱신)
         renderLists(currentPage);
         updateStats();
         
@@ -2164,6 +2223,9 @@ window.deleteMemo = deleteMemo;
                 list.memos = sortMemosByAlphabetical(list.memos);
             }
         });
+        
+        // 변경사항 저장
+        saveToFirebase();
         
         // UI 업데이트
         renderLists();
@@ -2413,7 +2475,7 @@ function addTemporaryToLists() {
         referenceUrlInput.value = '';
     }
     
-    // 변경사항 저장 (로컬스토리지만 저장)
+    // 변경사항 저장 (Firebase 저장 호출 제거, 로컬스토리지만 저장)
     localStorage.setItem('lists', JSON.stringify(lists));
     localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
     
@@ -3466,172 +3528,27 @@ function removeMemoSuggestionBox() {
     memoSuggestionList = [];
     memoSuggestionActiveInput = null;
 }
-// GAS Web API URL
 
-// 목록과 메모 정렬 함수
-function sortListsAndMemos() {
-    // 목록 정렬 (단어순)
-    lists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
-    
-    // 각 목록의 메모 정렬 (단어순)
-    lists.forEach(list => {
-        if (list.memos && list.memos.length > 0) {
-            list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
-        }
-    });
-    
-    // 임시 목록도 동일하게 정렬
-    temporaryLists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
-    temporaryLists.forEach(list => {
-        if (list.memos && list.memos.length > 0) {
-            list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
-        }
-    });
-    
-    // 변경사항 저장
-    saveToLocalStorage();
-    
-    // 구글 시트에 저장
-    saveToSheets().then(() => {
-        // 마지막 업로드 시간 업데이트
-        updateLastUploadTimeDisplay(new Date().getTime());
-    }).catch(error => {
-        console.error('구글 시트 저장 실패:', error);
-    });
-    
-    // 화면 갱신
-    renderTemporaryLists();
-    renderLists(currentPage);
-    updateStats();
-    
-    // 정렬 완료 메시지 표시
-    const sortBtn = document.getElementById('sortBtn');
-    if (sortBtn) {
-        // 기존 메시지가 있다면 제거
-        const existingMessage = document.querySelector('.sort-complete-message');
-        if (existingMessage) {
-            existingMessage.remove();
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
 
-        const message = document.createElement('div');
-        message.textContent = '정렬이 완료되었습니다';
-        message.className = 'sort-complete-message';
-        message.style.position = 'absolute';
-        message.style.color = '#4CAF50';
-        message.style.fontSize = '14px';
-        message.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-        message.style.padding = '4px 8px';
-        message.style.borderRadius = '4px';
-        message.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-        message.style.zIndex = '1000';
-        
-        // 버튼의 위치를 기준으로 메시지 위치 설정
-        const buttonRect = sortBtn.getBoundingClientRect();
-        message.style.top = `${buttonRect.bottom + 5}px`;
-        message.style.left = `${buttonRect.left}px`;
-        
-        // 메시지를 body에 추가
-        document.body.appendChild(message);
-        
-        // 3초 후 메시지 제거
-        setTimeout(() => {
-            message.remove();
-        }, 3000);
-    }
-}
-
-// Firebase에 데이터 저장
-async function saveToFirebase() {
-    try {
-        const db = firebase.firestore();
-        const batch = db.batch();
-        
-        // 메인 목록 저장
-        const mainMetadataRef = db.collection('lists_metadata').doc('main');
-        const mainPagesRef = db.collection('lists_pages');
-        const mainPages = Math.ceil(lists.length / 20);
-        
-        // 메타데이터 저장
-        batch.set(mainMetadataRef, {
-            lastUpdated: new Date(),
-            totalCount: lists.length,
-            totalPages: mainPages
-        });
-        
-        // 페이지별로 나누어 저장
-        for (let i = 0; i < mainPages; i++) {
-            const pageRef = mainRef.collection('pages').doc(`page${i + 1}`);
-            const pageLists = lists.slice(i * 20, (i + 1) * 20);
-            batch.set(pageRef, { lists: pageLists });
-        }
-        
-        // 임시 목록 저장
-        const tempRef = db.collection('lists').doc('temporary');
-        const tempPages = Math.ceil(temporaryLists.length / 20);
-        
-        batch.set(tempRef, {
-            metadata: {
-                lastUpdated: new Date(),
-                totalCount: temporaryLists.length
+    // firebase데이터 삭제 버튼 이벤트 리스너 추가
+    const deleteBtn = document.getElementById('deleteFirebaseBtn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async function() {
+            const input = prompt('정말로 Firebase 데이터를 삭제하시려면 숫자 3578을 입력하세요.\n이 작업은 되돌릴 수 없습니다!');
+            if (input === '3578') {
+                try {
+                    // Firestore lists/main, lists/temporary 문서 삭제
+                    await db.collection('lists').doc('main').delete();
+                    await db.collection('lists').doc('temporary').delete();
+                    showNotification('Firebase 데이터가 완전히 삭제되었습니다.', 'deleteFirebaseBtn');
+                } catch (error) {
+                    showNotification('삭제 실패: ' + error.message, 'deleteFirebaseBtn');
+                }
+            } else if (input !== null) {
+                showNotification('잘못된 숫자입니다. 삭제가 취소되었습니다.', 'deleteFirebaseBtn');
             }
         });
-        
-        for (let i = 0; i < tempPages; i++) {
-            const pageRef = tempRef.collection('pages').doc(`page${i + 1}`);
-            const pageLists = temporaryLists.slice(i * 20, (i + 1) * 20);
-            batch.set(pageRef, { lists: pageLists });
-        }
-        
-        await batch.commit();
-        return true;
-    } catch (error) {
-        console.error('Firebase 저장 오류:', error);
-        return false;
     }
-}
-
-// Firebase에서 데이터 불러오기
-async function loadFromFirebase() {
-    try {
-        const db = firebase.firestore();
-        
-        // 메인 목록 불러오기
-        const mainRef = db.collection('lists').doc('main');
-        const mainDoc = await mainRef.get();
-        
-        if (mainDoc.exists) {
-            const metadata = mainDoc.data().metadata;
-            const totalPages = Math.ceil(metadata.totalCount / 20);
-            
-            lists = [];
-            for (let i = 1; i <= totalPages; i++) {
-                const pageDoc = await mainRef.collection('pages').doc(`page${i}`).get();
-                if (pageDoc.exists) {
-                    lists = lists.concat(pageDoc.data().lists);
-                }
-            }
-        }
-        
-        // 임시 목록 불러오기
-        const tempRef = db.collection('lists').doc('temporary');
-        const tempDoc = await tempRef.get();
-        
-        if (tempDoc.exists) {
-            const metadata = tempDoc.data().metadata;
-            const totalPages = Math.ceil(metadata.totalCount / 20);
-            
-            temporaryLists = [];
-            for (let i = 1; i <= totalPages; i++) {
-                const pageDoc = await tempRef.collection('pages').doc(`page${i}`).get();
-                if (pageDoc.exists) {
-                    temporaryLists = temporaryLists.concat(pageDoc.data().lists);
-                }
-            }
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Firebase 불러오기 오류:', error);
-        return false;
-    }
-}
+});

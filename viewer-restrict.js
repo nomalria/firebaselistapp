@@ -148,52 +148,26 @@ window.addEventListener('DOMContentLoaded', function() {
         let loaded = false;
         try {
             const db = firebase.firestore();
-            
-            // 메인 목록 불러오기
-            const mainMetadataRef = db.collection('lists_metadata').doc('main');
-            const mainMetadataDoc = await mainMetadataRef.get();
-            
-            if (mainMetadataDoc.exists) {
-                const metadata = mainMetadataDoc.data();
-                const totalPages = metadata.totalPages;
-                
-                lists = [];
-                for (let i = 1; i <= totalPages; i++) {
-                    const pageDoc = await db.collection('lists_pages').doc(`main_page_${i}`).get();
-                    if (pageDoc.exists) {
-                        lists = lists.concat(pageDoc.data().lists);
-                    }
-                }
+            const mainListsDoc = await db.collection('lists').doc('main').get();
+            const tempListsDoc = await db.collection('lists').doc('temporary').get();
+            if (mainListsDoc.exists) {
+                const data = mainListsDoc.data();
+                lists = data.lists || [];
                 loaded = true;
             }
-            
-            // 임시 목록 불러오기
-            const tempMetadataRef = db.collection('lists_metadata').doc('temporary');
-            const tempMetadataDoc = await tempMetadataRef.get();
-            
-            if (tempMetadataDoc.exists) {
-                const metadata = tempMetadataDoc.data();
-                const totalPages = metadata.totalPages;
-                
-                temporaryLists = [];
-                for (let i = 1; i <= totalPages; i++) {
-                    const pageDoc = await db.collection('lists_pages').doc(`temp_page_${i}`).get();
-                    if (pageDoc.exists) {
-                        temporaryLists = temporaryLists.concat(pageDoc.data().lists);
-                    }
-                }
+            if (tempListsDoc.exists) {
+                const data = tempListsDoc.data();
+                temporaryLists = data.lists || [];
             }
         } catch (e) {
             loaded = false;
         }
-        
         if (!loaded) {
             const savedLists = localStorage.getItem('lists');
             const savedTempLists = localStorage.getItem('temporaryLists');
             lists = savedLists ? JSON.parse(savedLists) : [];
             temporaryLists = savedTempLists ? JSON.parse(savedTempLists) : [];
         }
-        
         if (typeof renderLists === 'function') renderLists(1);
         if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
         if (typeof updateStats === 'function') updateStats();
