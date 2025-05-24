@@ -3197,7 +3197,16 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
         }
         // 모바일: inputType이 insertText이고 data가 ' '일 때만 추천단어 자동 적용
         if (isMobile() && e.inputType === 'insertText' && e.data === ' ' && memoSuggestionWords && memoSuggestionWords.length > 0) {
-            selectMemoSuggestion(0);
+            // 입력 중이던 마지막 단어만 추천단어로 대체
+            const beforeCursor = this.value.slice(0, cursor - 1); // 스페이스 전까지
+            const afterCursor = this.value.slice(cursor); // 커서 이후
+            const words = beforeCursor.split(' ');
+            words[words.length - 1] = memoSuggestionWords[0]; // 마지막 단어를 추천단어로 대체
+            this.value = words.join(' ') + ' ' + afterCursor;
+            // 커서 위치 조정 (추천단어 뒤 +1)
+            const newCursor = words.join(' ').length + 1;
+            this.setSelectionRange(newCursor, newCursor);
+            removeMemoSuggestionBox();
             return;
         }
         if (currentWord && currentWord.length > 0) {
