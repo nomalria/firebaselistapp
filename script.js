@@ -3655,14 +3655,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 작성자 권한 체크 함수 추가
 function checkAuthorPermission(list, memo = null) {
-    const isAdmin = firebase.auth().currentUser && firebase.auth().currentUser.email === 'longway7098@gmail.com';
+    const user = firebase.auth().currentUser;
+    const isAdmin = user && user.email === 'longway7098@gmail.com';
+    
+    // 관리자는 모든 목록과 메모를 수정/삭제할 수 있음
     if (isAdmin) return true;
     
-    // 목록 작성자 체크
+    // 비로그인 사용자와 일반 사용자는 "섬세포분열"이 작성한 목록과 메모를 수정/삭제할 수 없음
     if (list.author === '섬세포분열') return false;
-    
-    // 메모 작성자 체크 (메모가 있는 경우)
     if (memo && memo.author === '섬세포분열') return false;
     
+    // 그 외의 경우는 수정/삭제 가능
     return true;
 }
