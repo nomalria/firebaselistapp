@@ -3605,32 +3605,18 @@ function renderMemoSuggestions(input, currentWord) {
 function selectMemoSuggestion(idx) {
     if (!memoSuggestionActiveInput) return;
     const input = memoSuggestionActiveInput;
-    const value = input.value;
-    const cursor = input.selectionStart;
     
-    // 현재 커서 위치에서 단어 찾기
-    const left = value.slice(0, cursor);
-    const right = value.slice(cursor);
-    const leftWords = left.split(' ');
-    const currentWord = leftWords[leftWords.length - 1];
-    
-    // 추천 단어로 대체하고 공백 추가
-    leftWords[leftWords.length - 1] = memoSuggestionList[idx];
-    const updatedValue = leftWords.join(' ') + ' ' + right;
-    
-    // 입력값 업데이트
-    input.value = updatedValue;
+    // 추천 단어만 입력하고 공백 추가
+    input.value = memoSuggestionList[idx] + ' ';
     
     // 커서 위치를 추천 단어 다음 공백 뒤로 설정
-    const newCursor = leftWords.slice(0, -1).join(' ').length + 
-                     (leftWords.length > 1 ? 1 : 0) + // 이전 단어들 사이의 공백
-                     memoSuggestionList[idx].length + 1; // 추천 단어 길이 + 공백
-    
+    const newCursor = memoSuggestionList[idx].length + 1;
     input.setSelectionRange(newCursor, newCursor);
     
     // 추천 단어 관련 상태 초기화
     memoSuggestionWords = [];
     memoSuggestionIndex = -1;
+    memoSuggestionList = [];
     removeMemoSuggestionBox();
     input.focus();
 }
