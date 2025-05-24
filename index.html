@@ -51,6 +51,37 @@
             text-align: right;
             margin-bottom: 20px;
         }
+        /* 도움말 버튼 반응형 */
+        #helpBtn.help-btn {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 15px;
+            padding: 6px 16px;
+            border-radius: 6px;
+            border: none;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            z-index: 2;
+        }
+        @media (max-width: 600px) {
+            .title-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            #helpBtn.help-btn {
+                position: static;
+                transform: none;
+                margin-bottom: 8px;
+                width: 100%;
+                max-width: 220px;
+                display: block;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
