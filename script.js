@@ -3274,17 +3274,13 @@ firebase.auth().onAuthStateChanged((user) => {
     const mainContainer = document.getElementById('mainContainer');
     const provider = new firebase.auth.GoogleAuthProvider();
     if (user) {
-        // 권한 체크: longway7098@gmail.com이 아니면 알림 후 로그아웃
+        // 권한 체크: longway7098@gmail.com이 아니면 알림만 띄우고 화면은 숨기지 않음
         if (user.email !== 'longway7098@gmail.com') {
-            alert('권한이 없습니다');
-            firebase.auth().signOut();
-            if (mainContainer) mainContainer.style.display = 'none';
-            if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = 'none';
-            return;
+            alert('관리자 권한이 아닙니다. 일부 기능이 제한됩니다.');
         }
-        // 헤더에는 '로그인하기'만 표시
         loginStatus.textContent = '로그인하기';
         if (mainContainer) mainContainer.style.display = '';
+        if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = '';
     } else {
         loginStatus.textContent = '로그인하기';
         if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = 'none';
