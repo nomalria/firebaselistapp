@@ -3202,6 +3202,7 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
     memoInput.addEventListener('keydown', function(e) {
         const box = document.getElementById('memoSuggestionBox');
         if (!box || memoSuggestionWords.length === 0) return;
+        
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
@@ -3214,10 +3215,14 @@ function addMemoInputListeners(memoInput, listId, isTemporary = false) {
             e.preventDefault();
             memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
             updateMemoSuggestionBox();
-        } else if (e.key === ' ') {
+        } else if (e.key === ' ' || e.key === 'Spacebar') {
             if (memoSuggestionIndex >= 0) {
                 e.preventDefault();
                 selectMemoSuggestion(memoSuggestionIndex);
+                // 스페이스바 입력 후 추천 단어 목록 초기화
+                memoSuggestionWords = [];
+                memoSuggestionIndex = -1;
+                removeMemoSuggestionBox();
             }
         } else if (e.key === 'Escape') {
             removeMemoSuggestionBox();
