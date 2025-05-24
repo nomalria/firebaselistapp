@@ -3394,6 +3394,9 @@ function sortListsAndMemos() {
     renderLists(currentPage);
     updateStats();
     
+    // 마지막 업로드 시간 업데이트
+    updateLastUploadTimeDisplay(new Date().getTime());
+    
     // 정렬 완료 메시지 표시
     const sortBtn = document.getElementById('sortBtn');
     if (sortBtn) {
