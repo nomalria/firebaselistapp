@@ -35,7 +35,7 @@ let memoSuggestionList = [];
 let memoSuggestionActiveInput = null;
 
 // Google Sheets API URL
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwfqcXy7XkuidsNNcRSR0FmU6Z6ck5Bl9QLxE3OVl4IydGIUctFYhXJ41t8Mhz7Yqe0/exec';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyqPd_yxqQs0Vh5J_3GETlYH2puiGnYRoXemIXhKr50SiXdXYi5XQh0LT9i2pefudsh/exec';
 
 // 데이터 저장 (MainLists)
 async function saveToSheets() {
