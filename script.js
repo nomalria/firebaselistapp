@@ -49,10 +49,13 @@ async function saveToSheets() {
             })
         });
         const result = await response.json();
-        if (result.result === 'success') {
+        if (result.success) {
             updateLastUploadTimeDisplay(new Date().getTime());
+            return true;
+        } else {
+            console.error('GAS 저장 실패:', result.message);
+            return false;
         }
-        return result.result === 'success';
     } catch (error) {
         console.error('GAS 저장 오류:', error);
         return false;
@@ -3389,13 +3392,18 @@ function sortListsAndMemos() {
     // 변경사항 저장
     saveToLocalStorage();
     
+    // 구글 시트에 저장
+    saveToSheets().then(() => {
+        // 마지막 업로드 시간 업데이트
+        updateLastUploadTimeDisplay(new Date().getTime());
+    }).catch(error => {
+        console.error('구글 시트 저장 실패:', error);
+    });
+    
     // 화면 갱신
     renderTemporaryLists();
     renderLists(currentPage);
     updateStats();
-    
-    // 마지막 업로드 시간 업데이트
-    updateLastUploadTimeDisplay(new Date().getTime());
     
     // 정렬 완료 메시지 표시
     const sortBtn = document.getElementById('sortBtn');
