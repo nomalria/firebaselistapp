@@ -3661,6 +3661,11 @@ function checkAuthorPermission(list, memo = null) {
         return false;
     }
     
+    // 외부 사용자가 작성한 메모는 해당 사용자만 수정/삭제할 수 있음
+    if (memo && memo.author === '외부 사용자') {
+        return true;
+    }
+    
     // 그 외의 경우는 수정/삭제 가능
     return true;
 }
