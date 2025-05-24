@@ -85,11 +85,29 @@ async function saveToFirebase() {
             lastUpdated: currentTime.toISOString()
         };
 
-        // 메인 목록만 저장 (임시목록은 업로드하지 않음)
-        await db.collection('lists').doc('main').set({
-            lists: lists,
+        // 데이터를 1000개 단위로 분할
+        const BATCH_SIZE = 1000;
+        const batches = [];
+        
+        for (let i = 0; i < lists.length; i += BATCH_SIZE) {
+            batches.push(lists.slice(i, i + BATCH_SIZE));
+        }
+
+        // 메타데이터 저장
+        await db.collection('lists').doc('metadata').set({
+            totalItems: lists.length,
+            totalBatches: batches.length,
             ...timestamp
         });
+
+        // 각 배치를 개별 문서로 저장
+        for (let i = 0; i < batches.length; i++) {
+            await db.collection('lists').doc(`batch_${i + 1}`).set({
+                items: batches[i],
+                batchNumber: i + 1,
+                ...timestamp
+            });
+        }
 
         // 최근 업로드 시간 표시 업데이트
         updateLastUploadTimeDisplay(currentTime);
@@ -133,22 +151,36 @@ async function loadFromFirebase() {
             return false;
         }
 
-        const mainListsDoc = await db.collection('lists').doc('main').get();
-        const tempListsDoc = await db.collection('lists').doc('temporary').get();
+        // 메타데이터 로드
+        const metadataDoc = await db.collection('lists').doc('metadata').get();
+        if (!metadataDoc.exists) {
+            console.log('메타데이터가 없습니다.');
+            return false;
+        }
 
-        if (mainListsDoc.exists) {
-            const data = mainListsDoc.data();
-            lists = data.lists || [];
-            
-            // 최근 업로드 시간 표시
-            if (data.lastUpdated) {
-                updateLastUploadTimeDisplay(new Date(data.lastUpdated));
+        const metadata = metadataDoc.data();
+        const totalBatches = metadata.totalBatches;
+
+        // 모든 배치 데이터 로드
+        lists = [];
+        for (let i = 1; i <= totalBatches; i++) {
+            const batchDoc = await db.collection('lists').doc(`batch_${i}`).get();
+            if (batchDoc.exists) {
+                const batchData = batchDoc.data();
+                lists = lists.concat(batchData.items);
             }
         }
 
+        // 임시 목록 로드
+        const tempListsDoc = await db.collection('lists').doc('temporary').get();
         if (tempListsDoc.exists) {
             const data = tempListsDoc.data();
             temporaryLists = data.lists || [];
+        }
+
+        // 최근 업로드 시간 표시
+        if (metadata.lastUpdated) {
+            updateLastUploadTimeDisplay(new Date(metadata.lastUpdated));
         }
 
         return true;
@@ -3539,9 +3571,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const input = prompt('정말로 Firebase 데이터를 삭제하시려면 숫자 3578을 입력하세요.\n이 작업은 되돌릴 수 없습니다!');
             if (input === '3578') {
                 try {
-                    // Firestore lists/main, lists/temporary 문서 삭제
-                    await db.collection('lists').doc('main').delete();
+                    // 메타데이터 로드
+                    const metadataDoc = await db.collection('lists').doc('metadata').get();
+                    if (metadataDoc.exists) {
+                        const metadata = metadataDoc.data();
+                        const totalBatches = metadata.totalBatches;
+
+                        // 모든 배치 데이터 삭제
+                        for (let i = 1; i <= totalBatches; i++) {
+                            await db.collection('lists').doc(`batch_${i}`).delete();
+                        }
+                    }
+
+                    // 메타데이터와 임시 목록 삭제
+                    await db.collection('lists').doc('metadata').delete();
                     await db.collection('lists').doc('temporary').delete();
+                    
                     showNotification('Firebase 데이터가 완전히 삭제되었습니다.', 'deleteFirebaseBtn');
                 } catch (error) {
                     showNotification('삭제 실패: ' + error.message, 'deleteFirebaseBtn');
