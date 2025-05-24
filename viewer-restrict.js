@@ -65,12 +65,6 @@ function hideViewerRestrictedButtons() {
     const mainContainer = document.getElementById('mainContainer');
     if (mainContainer) mainContainer.style.display = '';
 
-    // Firebase 인증 관련 함수 무력화 (handleLoginStatus 등)
-    window.handleLoginStatus = function() {};
-    if (window.firebase && window.firebase.auth) {
-        window.firebase.auth = function() { return { onAuthStateChanged: function(){} } };
-    }
-
     // .memo-buttons와 .comment-btn을 항상 보이도록 강제
     document.querySelectorAll('.memo-buttons').forEach(btn => {
         btn.style.display = '';
@@ -123,51 +117,15 @@ window.addEventListener('DOMContentLoaded', function() {
     // 클립보드 관련 UI, 로그인 UI 등 숨김/무력화 (생략)
     // ...
 
-    // Firebase/로컬 목록 불러오기 후에도 버튼 숨김 적용
-    function afterRenderPatch() {
-        setTimeout(hideViewerRestrictedButtons, 0);
-    }
-    // renderLists, renderTemporaryLists 후처리 패치
-    const origRenderLists = window.renderLists;
-    if (origRenderLists) {
-        window.renderLists = function(...args) {
-            origRenderLists.apply(this, args);
-            afterRenderPatch();
-        };
-    }
-    const origRenderTemporaryLists = window.renderTemporaryLists;
-    if (origRenderTemporaryLists) {
-        window.renderTemporaryLists = function(...args) {
-            origRenderTemporaryLists.apply(this, args);
-            afterRenderPatch();
-        };
-    }
-
-    // Firebase/로컬 불러오기
+    // localStorage에서 목록 불러오기
     async function loadListsForViewer() {
-        let loaded = false;
-        try {
-            const db = firebase.firestore();
-            const mainListsDoc = await db.collection('lists').doc('main').get();
-            const tempListsDoc = await db.collection('lists').doc('temporary').get();
-            if (mainListsDoc.exists) {
-                const data = mainListsDoc.data();
-                lists = data.lists || [];
-                loaded = true;
-            }
-            if (tempListsDoc.exists) {
-                const data = tempListsDoc.data();
-                temporaryLists = data.lists || [];
-            }
-        } catch (e) {
-            loaded = false;
-        }
-        if (!loaded) {
-            const savedLists = localStorage.getItem('lists');
-            const savedTempLists = localStorage.getItem('temporaryLists');
-            lists = savedLists ? JSON.parse(savedLists) : [];
-            temporaryLists = savedTempLists ? JSON.parse(savedTempLists) : [];
-        }
+        // localStorage에서 목록 불러오기
+        const savedLists = localStorage.getItem('lists');
+        const savedTempLists = localStorage.getItem('temporaryLists');
+        lists = savedLists ? JSON.parse(savedLists) : [];
+        temporaryLists = savedTempLists ? JSON.parse(savedTempLists) : [];
+
+        // 화면 갱신
         if (typeof renderLists === 'function') renderLists(1);
         if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
         if (typeof updateStats === 'function') updateStats();
@@ -859,25 +817,25 @@ window.addEventListener('DOMContentLoaded', function() {
         temporaryListsContainer.innerHTML = temporaryLists.map(renderViewerList).join('');
     };
 
-    // Firebase 데이터 업로드 제한
-    const originalSaveToFirebase = window.saveToFirebase;
-    window.saveToFirebase = async function() {
-        console.log('Viewer 모드에서는 데이터 업로드가 제한됩니다.');
+    // Google Sheets 데이터 업로드 제한
+    const originalSaveToSheets = window.saveToSheets;
+    window.saveToSheets = async function() {
+        console.log('Viewer 모드에서는 Google Sheets 업로드가 제한됩니다.');
         return false;
     };
 
-    // Firebase 데이터 저장 함수 제한
+    // 로컬 데이터 저장 함수 (localStorage만 사용)
     const originalSaveLists = window.saveLists;
     window.saveLists = function() {
-        console.log('Viewer 모드에서는 데이터 저장이 제한됩니다.');
+        console.log('Viewer 모드에서는 로컬 저장소(localStorage)만 사용됩니다.');
         localStorage.setItem('lists', JSON.stringify(lists));
         updateStats();
     };
 
-    // Firebase 임시 목록 저장 함수 제한
+    // 임시 목록 저장 함수 (localStorage만 사용)
     const originalSaveTemporaryLists = window.saveTemporaryLists;
     window.saveTemporaryLists = function() {
-        console.log('Viewer 모드에서는 임시 목록 저장이 제한됩니다.');
+        console.log('Viewer 모드에서는 로컬 저장소(localStorage)만 사용됩니다.');
         localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
     };
 }); 
