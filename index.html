@@ -141,10 +141,9 @@
         <div id="currentListIdDisplay" style="margin-top:8px; color:#555; font-size:13px;"></div>
     </div>
     <div id="lastUploadTimeDisplay" style="position:fixed; right:20px; bottom:60px; background:rgba(255,255,255,0.9); padding:8px 16px; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); font-size:0.95em; color:#666; z-index:9999; min-width:180px; text-align:right; display:none;"></div>
+    <script src="script.js"></script>
     <script>
-        // 페이지 로드 시 이벤트 리스너 추가
         document.addEventListener('DOMContentLoaded', function() {
-            // 초기 데이터 로드
             loadLists();
             
             // 검색 입력 필드에 이벤트 리스너 추가
@@ -174,8 +173,11 @@
             // 기존목록 추가 버튼 이벤트 리스너 (새로 추가)
             document.getElementById('addTemporaryBtn').addEventListener('click', addTemporaryToLists);
             
-            // 정렬 버튼 이벤트 리스너 (함수는 그대로 sortAll 호출)
-            document.getElementById('sortBtn').addEventListener('click', sortAll);
+            // 정렬 버튼 이벤트 리스너
+            document.getElementById('sortBtn').addEventListener('click', function() {
+                sortListsByCreatedAt(lists, 'desc');
+                renderLists();
+            });
             
             // JSON 관련 버튼 이벤트 리스너
             document.getElementById('importJsonBtn').addEventListener('click', importJsonFile);
