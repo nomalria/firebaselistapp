@@ -637,6 +637,7 @@ function renderTemporaryLists() {
             </div>
             <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
                 <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
+                <span class="list-author">작성자: ${list.author === 'longway7098@gmail.com' || !list.author ? '섬세포분열' : list.author}</span>
                 <div class="input-group">
                     <input type="text" id="newMemoInput-${list.id}" placeholder="메모 추가..." onkeypress="if(event.key === 'Enter') addMemo('${list.id}', true)">
                     <button onclick="addMemo('${list.id}', true)">추가</button>
