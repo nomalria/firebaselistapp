@@ -175,10 +175,10 @@
             // 로그인 상태 확인
             firebase.auth().onAuthStateChanged((user) => {
                 const loginStatus = document.getElementById('loginStatus');
-                if (user) {
+                if (user && user.email === 'longway7098@gmail.com') {
                     loginStatus.textContent = user.email;
                 } else {
-                    loginStatus.textContent = '로그인하기';
+                    loginStatus.textContent = '일반 사용자';
                 }
             });
             
@@ -186,11 +186,16 @@
             window.handleLoginStatus = async () => {
                 try {
                     const user = firebase.auth().currentUser;
-                    if (user) {
-                        // 로그아웃
+                    if (user && user.email === 'longway7098@gmail.com') {
+                        // 관리자 계정만 로그아웃 가능
                         await firebase.auth().signOut();
                     } else {
-                        // 로그인
+                        // 일반 사용자는 로그인 시도 시 관리자 계정으로만 로그인 가능
+                        const provider = new firebase.auth.GoogleAuthProvider();
+                        provider.setCustomParameters({
+                            prompt: 'select_account',
+                            login_hint: 'longway7098@gmail.com'
+                        });
                         await firebase.auth().signInWithPopup(provider);
                     }
                 } catch (error) {
