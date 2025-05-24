@@ -1621,10 +1621,15 @@ function updateCounter(listId, memoId, counterType, change, isTemporary = false)
     const memo = list.memos.find(m => m.id === memoId);
     if (!memo) return;
     
-    // 승패 조작 권한 체크
-    if (list.author === '섬세포분열' && memo.author !== '외부 사용자') {
-        showNotification('해당 메모의 카운터는 변경할 수 없습니다.', 'counterBtn');
-        return;
+    // 현재 로그인한 사용자 확인
+    const user = firebase.auth().currentUser;
+    
+    // 관리자 계정이 아닌 경우, "섬세포분열"이 작성한 메모는 승패 조작 불가
+    if (!user || user.email !== 'longway7098@gmail.com') {
+        if (list.author === '섬세포분열' && memo.author !== '외부 사용자') {
+            showNotification('해당 메모의 카운터는 변경할 수 없습니다.', 'counterBtn');
+            return;
+        }
     }
     
     // 승수 또는 패수 업데이트
