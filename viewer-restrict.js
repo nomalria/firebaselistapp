@@ -148,26 +148,52 @@ window.addEventListener('DOMContentLoaded', function() {
         let loaded = false;
         try {
             const db = firebase.firestore();
-            const mainListsDoc = await db.collection('lists').doc('main').get();
-            const tempListsDoc = await db.collection('lists').doc('temporary').get();
-            if (mainListsDoc.exists) {
-                const data = mainListsDoc.data();
-                lists = data.lists || [];
+            
+            // 메인 목록 불러오기
+            const mainRef = db.collection('lists').doc('main');
+            const mainDoc = await mainRef.get();
+            
+            if (mainDoc.exists) {
+                const metadata = mainDoc.data().metadata;
+                const totalPages = Math.ceil(metadata.totalCount / 20);
+                
+                lists = [];
+                for (let i = 1; i <= totalPages; i++) {
+                    const pageDoc = await mainRef.collection('pages').doc(`page${i}`).get();
+                    if (pageDoc.exists) {
+                        lists = lists.concat(pageDoc.data().lists);
+                    }
+                }
                 loaded = true;
             }
-            if (tempListsDoc.exists) {
-                const data = tempListsDoc.data();
-                temporaryLists = data.lists || [];
+            
+            // 임시 목록 불러오기
+            const tempRef = db.collection('lists').doc('temporary');
+            const tempDoc = await tempRef.get();
+            
+            if (tempDoc.exists) {
+                const metadata = tempDoc.data().metadata;
+                const totalPages = Math.ceil(metadata.totalCount / 20);
+                
+                temporaryLists = [];
+                for (let i = 1; i <= totalPages; i++) {
+                    const pageDoc = await tempRef.collection('pages').doc(`page${i}`).get();
+                    if (pageDoc.exists) {
+                        temporaryLists = temporaryLists.concat(pageDoc.data().lists);
+                    }
+                }
             }
         } catch (e) {
             loaded = false;
         }
+        
         if (!loaded) {
             const savedLists = localStorage.getItem('lists');
             const savedTempLists = localStorage.getItem('temporaryLists');
             lists = savedLists ? JSON.parse(savedLists) : [];
             temporaryLists = savedTempLists ? JSON.parse(savedTempLists) : [];
         }
+        
         if (typeof renderLists === 'function') renderLists(1);
         if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
         if (typeof updateStats === 'function') updateStats();
