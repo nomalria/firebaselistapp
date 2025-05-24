@@ -807,7 +807,8 @@ function addMemo(listId, isTemporary = false) {
         status: null,
         wins: 0,
         losses: 0,
-        comments: [] // comments 배열 초기화
+        comments: [],
+        author: isTemporary ? '외부 사용자' : 'longway7098@gmail.com'
     };
 
     // 참고URL 확인 및 자동 참고자료 추가
