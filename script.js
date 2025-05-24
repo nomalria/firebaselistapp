@@ -1628,9 +1628,9 @@ function updateCounter(listId, memoId, counterType, change, isTemporary = false)
     
     // 승수 또는 패수 업데이트
     if (counterType === 'win') {
-        memo.winCount = (memo.winCount || 0) + change;
+        memo.wins = (memo.wins || 0) + change;
     } else if (counterType === 'loss') {
-        memo.lossCount = (memo.lossCount || 0) + change;
+        memo.losses = (memo.losses || 0) + change;
     }
     
     // 승률 업데이트
