@@ -504,6 +504,11 @@ function addNewList() {
         return;
     }
     
+    if (!checkAdminPermission(user)) {
+        alert('이 기능은 관리자만 사용할 수 있습니다.');
+        return;
+    }
+    
     const searchInput = document.getElementById('searchInput');
     const title = searchInput.value.trim();
     
@@ -525,31 +530,59 @@ function addNewList() {
     
     // 입력된 단어 개수 확인
     const words = title.split(' ').filter(w => w);
-    if (words.length < 2) {
-        alert('방덱 이름은 최소 2단어 이상이어야 합니다.');
-        return;
+    
+    if (words.length <= 3) {
+        // 3개 이하의 단어 입력 시
+        const matchingLists = lists.filter(list => {
+            const listWords = list.title.split(' ').filter(w => w);
+            return words.every(word => 
+                listWords.some(listWord => 
+                    listWord.toLowerCase().includes(word.toLowerCase())
+                )
+            );
+        });
+        
+        if (matchingLists.length > 0) {
+            // 기존 목록에서 제거하지 않고 복사해서 임시목록에 붙여넣기
+            // 깊은 복사로 임시목록에 추가 (comments 등 포함)
+            const copiedLists = matchingLists.map(list => JSON.parse(JSON.stringify(list)));
+            temporaryLists = [...copiedLists, ...temporaryLists];
+            renderTemporaryLists();
+            // 기존 목록은 그대로 두므로 saveLists() 불필요
+            renderLists();
+        } else {
+            const newList = {
+                id: Date.now().toString(),
+                title: title,
+                memos: [],
+                createdAt: createdAt
+            };
+            temporaryLists.unshift(newList);
+            renderTemporaryLists();
+        }
+    } else {
+        const existingListIndex = lists.findIndex(list => isSameList(list.title, title));
+        const temporaryListIndex = temporaryLists.findIndex(list => isSameList(list.title, title));
+        
+        if (existingListIndex !== -1) {
+            const existingList = lists.splice(existingListIndex, 1)[0];
+            temporaryLists.unshift(existingList);
+            renderTemporaryLists();
+        } else if (temporaryListIndex !== -1) {
+            const existingList = temporaryLists.splice(temporaryListIndex, 1)[0];
+            temporaryLists.unshift(existingList);
+            renderTemporaryLists();
+        } else {
+            const newList = {
+                id: Date.now().toString(),
+                title: title,
+                memos: [],
+                createdAt: createdAt
+            };
+            temporaryLists.unshift(newList);
+            renderTemporaryLists();
+        }
     }
-    
-    // 중복 체크
-    const isDuplicate = lists.some(list => isSameList(list.title, title)) ||
-                       temporaryLists.some(list => isSameList(list.title, title));
-    
-    if (isDuplicate) {
-        alert('이미 존재하는 방덱입니다.');
-        return;
-    }
-    
-    // 새 목록 생성 (생성자 정보 포함)
-    const newList = addCreatorInfo({
-        id: Date.now().toString(),
-        title: title,
-        memos: [],
-        createdAt: createdAt
-    });
-    
-    // 임시 목록에 추가
-    temporaryLists.unshift(newList);
-    renderTemporaryLists();
     
     searchInput.value = '';
     updateStats();
@@ -710,54 +743,104 @@ function addMemo(listId, isTemporary = false) {
         alert('로그인이 필요합니다.');
         return;
     }
+    
+    if (!checkAdminPermission(user)) {
+        alert('이 기능은 관리자만 사용할 수 있습니다.');
+        return;
+    }
+    
+    const memoInput = document.getElementById(`newMemoInput-${listId}`);
+    const memoText = memoInput.value.trim();
+    
+    if (!memoText) {
+        alert('메모 내용을 입력해주세요.');
+        return;
+    }
+    
+    const targetLists = isTemporary ? temporaryLists : lists;
+    const list = targetLists.find(l => l.id.toString() === listId.toString());
+    
+    if (!list) return;
 
-    const list = isTemporary ? 
-        temporaryLists.find(l => l.id.toString() === listId.toString()) :
-        lists.find(l => l.id.toString() === listId.toString());
-
-    if (!list) {
-        console.error('목록을 찾을 수 없습니다.');
+    if (list.memos.length >= 100) {
+        alert('한 방덱에는 최대 100개의 메모만 추가할 수 있습니다.');
         return;
     }
 
-    // 권한 체크
-    if (!checkDataPermission(user, list)) {
-        alert('이 목록을 수정할 권한이 없습니다.');
-        return;
+    // 중복 메모 검사
+    const isDuplicate = findDuplicateMemo(list.memos, memoText);
+    if (isDuplicate) {
+        // 중복된 메모를 맨 위로 이동
+        const existingMemoIndex = list.memos.findIndex(memo => isSimilarMemo(memo.text, memoText));
+        if (existingMemoIndex > -1) {
+            const existingMemo = list.memos.splice(existingMemoIndex, 1)[0];
+            list.memos.unshift(existingMemo);
+            
+            // 변경사항 저장
+            if (isTemporary) {
+                saveTemporaryLists();
+            } else {
+                saveLists();
+            }
+            
+            // UI 업데이트 - 전체 메모 목록 다시 렌더링
+            updateMemoListUI(listId, list.memos, isTemporary);
+            
+            // 입력 필드 초기화
+            memoInput.value = '';
+            
+            // 알림 표시
+            showNotification(`이미 존재하는 메모입니다. '${existingMemo.text}'를 목록 맨 위로 이동했습니다.`, 'addMemoNotification');
+            
+            return;
+        }
     }
 
-    const input = document.getElementById(`newMemoInput-${listId}`);
-    const text = input.value.trim();
+    // 새 메모 객체 생성
+    const newMemo = {
+        id: Date.now().toString() + Math.random().toString(16).slice(2),
+        text: memoText,
+        status: null,
+        wins: 0,
+        losses: 0,
+        comments: [] // comments 배열 초기화
+    };
 
-    if (!text) {
-        return;
+    // 참고URL 확인 및 자동 참고자료 추가
+    const referenceUrlInput = document.getElementById('referenceUrlInput');
+    if (referenceUrlInput && referenceUrlInput.value.trim()) {
+        const referenceUrl = referenceUrlInput.value.trim();
+        const autoComment = {
+            id: Date.now().toString() + Math.random().toString(16).slice(2),
+            text: `참고자료: ${referenceUrl}`,
+            isReference: true, // 참고자료 표시를 위한 플래그
+            url: referenceUrl, // 원본 URL 저장
+            createdAt: new Date().toISOString()
+        };
+        newMemo.comments.push(autoComment);
     }
 
-    // 중복 메모 체크
-    if (findDuplicateMemo(list.memos, text)) {
-        alert('이미 존재하는 메모입니다.');
-        return;
-    }
+    // 메모 추가
+    list.memos.unshift(newMemo);  // 맨 앞에 추가
 
-    // 새 메모 생성 (생성자 정보 포함)
-    const newMemo = addCreatorInfo({
-        id: Date.now().toString(),
-        text: text,
-        createdAt: new Date().toISOString(),
-        winCount: 0,
-        lossCount: 0,
-        comments: []
-    });
-
-    list.memos.push(newMemo);
-    updateMemoListUI(listId, list.memos, isTemporary);
-    input.value = '';
-
+    // 변경사항 저장
     if (isTemporary) {
         saveTemporaryLists();
     } else {
         saveLists();
     }
+
+    // UI 업데이트 - 전체 메모 목록 다시 렌더링
+    updateMemoListUI(listId, list.memos, isTemporary);
+
+    // 입력 필드 초기화
+    memoInput.value = '';
+    
+    // 클립보드 단축키 이벤트 리스너 재등록
+    addClipboardShortcutListener(memoInput);
+    
+    // 로컬 스토리지에만 저장
+    saveToLocalStorage();
 }
 
 // 메모 중복 체크 함수
@@ -3103,30 +3186,7 @@ function checkAdminPermission(user) {
     return user && user.email === 'longway7098@gmail.com';
 }
 
-// 데이터 생성자 권한 체크 함수
-function checkDataPermission(user, data) {
-    // 관리자는 모든 데이터에 접근 가능
-    if (checkAdminPermission(user)) {
-        return true;
-    }
-    // 데이터에 생성자 정보가 없으면 기존 데이터로 간주하여 관리자만 접근 가능
-    if (!data.createdBy) {
-        return false;
-    }
-    // 생성자와 현재 사용자가 같은 경우에만 접근 가능
-    return user && data.createdBy === user.email;
-}
-
-// 데이터에 생성자 정보 추가
-function addCreatorInfo(data) {
-    const user = firebase.auth().currentUser;
-    if (user) {
-        data.createdBy = user.email;
-    }
-    return data;
-}
-
-// UI 업데이트 함수 수정
+// UI 업데이트 함수 추가
 function updateUIForUser(user) {
     const isAdmin = checkAdminPermission(user);
     const searchInput = document.getElementById('searchInput');
@@ -3137,7 +3197,7 @@ function updateUIForUser(user) {
     if (searchInput && addListBtn) {
         if (user) {
             searchInput.style.display = 'block';
-            addListBtn.style.display = 'block';
+            addListBtn.style.display = isAdmin ? 'block' : 'none';
         } else {
             searchInput.style.display = 'none';
             addListBtn.style.display = 'none';
@@ -3146,47 +3206,17 @@ function updateUIForUser(user) {
     
     // 기존목록 추가 버튼 표시/숨김
     if (addTemporaryBtn) {
-        addTemporaryBtn.style.display = user ? 'block' : 'none';
+        addTemporaryBtn.style.display = isAdmin ? 'block' : 'none';
     }
     
-    // 모든 목록의 수정/삭제 버튼 업데이트
-    document.querySelectorAll('.list-item').forEach(listElement => {
-        const listId = listElement.getAttribute('data-list-id');
-        const list = lists.find(l => l.id.toString() === listId) || 
-                    temporaryLists.find(l => l.id.toString() === listId);
-        
-        if (list) {
-            const canEdit = checkDataPermission(user, list);
-            const editBtn = listElement.querySelector('.edit-btn');
-            const deleteBtn = listElement.querySelector('.delete-btn');
-            const memoInput = listElement.querySelector(`#newMemoInput-${listId}`);
-            const addMemoBtn = listElement.querySelector('.input-group button');
-            
-            if (editBtn) editBtn.style.display = canEdit ? 'block' : 'none';
-            if (deleteBtn) deleteBtn.style.display = canEdit ? 'block' : 'none';
-            if (memoInput) memoInput.style.display = canEdit ? 'block' : 'none';
-            if (addMemoBtn) addMemoBtn.style.display = canEdit ? 'block' : 'none';
-        }
+    // 모든 메모 입력창 숨김
+    document.querySelectorAll('input[type="text"][id^="newMemoInput-"]').forEach(input => {
+        input.style.display = isAdmin ? 'block' : 'none';
     });
     
-    // 모든 메모의 수정/삭제 버튼 업데이트
-    document.querySelectorAll('.memo-item').forEach(memoElement => {
-        const memoId = memoElement.getAttribute('data-memo-id');
-        const listId = memoElement.closest('.list-item').getAttribute('data-list-id');
-        const list = lists.find(l => l.id.toString() === listId) || 
-                    temporaryLists.find(l => l.id.toString() === listId);
-        
-        if (list) {
-            const memo = list.memos.find(m => m.id.toString() === memoId);
-            if (memo) {
-                const canEdit = checkDataPermission(user, memo);
-                const editBtn = memoElement.querySelector('.edit-btn');
-                const deleteBtn = memoElement.querySelector('.delete-btn');
-                
-                if (editBtn) editBtn.style.display = canEdit ? 'block' : 'none';
-                if (deleteBtn) deleteBtn.style.display = canEdit ? 'block' : 'none';
-            }
-        }
+    // 모든 메모 추가 버튼 숨김
+    document.querySelectorAll('button[onclick^="addMemo"]').forEach(button => {
+        button.style.display = isAdmin ? 'block' : 'none';
     });
 }
 
@@ -3197,10 +3227,17 @@ firebase.auth().onAuthStateChanged((user) => {
     const mainContainer = document.getElementById('mainContainer');
     const provider = new firebase.auth.GoogleAuthProvider();
     if (user) {
+        // 권한 체크: longway7098@gmail.com이 아니면 알림 후 로그아웃
+        if (user.email !== 'longway7098@gmail.com') {
+            alert('권한이 없습니다');
+            firebase.auth().signOut();
+            if (mainContainer) mainContainer.style.display = 'none';
+            if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = 'none';
+            return;
+        }
         // 헤더에는 '로그인하기'만 표시
         loginStatus.textContent = '로그인하기';
         if (mainContainer) mainContainer.style.display = '';
-        if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = '';
     } else {
         loginStatus.textContent = '로그인하기';
         if (lastUploadTimeDisplay) lastUploadTimeDisplay.style.display = 'none';
