@@ -65,6 +65,12 @@ function hideViewerRestrictedButtons() {
     const mainContainer = document.getElementById('mainContainer');
     if (mainContainer) mainContainer.style.display = '';
 
+    // Firebase 인증 관련 함수 무력화 (handleLoginStatus 등)
+    window.handleLoginStatus = function() {};
+    if (window.firebase && window.firebase.auth) {
+        window.firebase.auth = function() { return { onAuthStateChanged: function(){} } };
+    }
+
     // .memo-buttons와 .comment-btn을 항상 보이도록 강제
     document.querySelectorAll('.memo-buttons').forEach(btn => {
         btn.style.display = '';
@@ -111,45 +117,62 @@ function toggleMemos(listId) {
     }
 }
 
-// 뷰어 모드에서 필요한 추가 기능 처리
-function afterRenderPatch() {
-    // 뷰어 모드에서 제한된 버튼 숨기기
-    hideViewerRestrictedButtons();
-    
-    // 메모 상태 아이콘 업데이트
-    document.querySelectorAll('.memo-item').forEach(memoElement => {
-        checkMemoIcon(memoElement);
-    });
-}
-
-// localStorage에서 목록 불러오기
-async function loadListsForViewer() {
-    try {
-        // localStorage에서 목록 불러오기
-        const savedLists = localStorage.getItem('lists');
-        const savedTempLists = localStorage.getItem('temporaryLists');
-        lists = savedLists ? JSON.parse(savedLists) : [];
-        temporaryLists = savedTempLists ? JSON.parse(savedTempLists) : [];
-
-        // 화면 갱신
-        if (typeof renderLists === 'function') renderLists(1);
-        if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
-        if (typeof updateStats === 'function') updateStats();
-        
-        // 추가 기능 적용
-        afterRenderPatch();
-    } catch (error) {
-        console.error('목록 로드 중 오류 발생:', error);
-    }
-}
-
 window.addEventListener('DOMContentLoaded', function() {
     // 기존 제한 코드 및 클립보드/로그인 숨김 등...
     hideViewerRestrictedButtons();
     // 클립보드 관련 UI, 로그인 UI 등 숨김/무력화 (생략)
     // ...
 
-    // localStorage에서 목록 불러오기
+    // Firebase/로컬 목록 불러오기 후에도 버튼 숨김 적용
+    function afterRenderPatch() {
+        setTimeout(hideViewerRestrictedButtons, 0);
+    }
+    // renderLists, renderTemporaryLists 후처리 패치
+    const origRenderLists = window.renderLists;
+    if (origRenderLists) {
+        window.renderLists = function(...args) {
+            origRenderLists.apply(this, args);
+            afterRenderPatch();
+        };
+    }
+    const origRenderTemporaryLists = window.renderTemporaryLists;
+    if (origRenderTemporaryLists) {
+        window.renderTemporaryLists = function(...args) {
+            origRenderTemporaryLists.apply(this, args);
+            afterRenderPatch();
+        };
+    }
+
+    // Firebase/로컬 불러오기
+    async function loadListsForViewer() {
+        let loaded = false;
+        try {
+            const db = firebase.firestore();
+            const mainListsDoc = await db.collection('lists').doc('main').get();
+            const tempListsDoc = await db.collection('lists').doc('temporary').get();
+            if (mainListsDoc.exists) {
+                const data = mainListsDoc.data();
+                lists = data.lists || [];
+                loaded = true;
+            }
+            if (tempListsDoc.exists) {
+                const data = tempListsDoc.data();
+                temporaryLists = data.lists || [];
+            }
+        } catch (e) {
+            loaded = false;
+        }
+        if (!loaded) {
+            const savedLists = localStorage.getItem('lists');
+            const savedTempLists = localStorage.getItem('temporaryLists');
+            lists = savedLists ? JSON.parse(savedLists) : [];
+            temporaryLists = savedTempLists ? JSON.parse(savedTempLists) : [];
+        }
+        if (typeof renderLists === 'function') renderLists(1);
+        if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
+        if (typeof updateStats === 'function') updateStats();
+        afterRenderPatch();
+    }
     loadListsForViewer();
 
     // JSON 불러오기 버튼 동작: 로그인/권한 체크 없이 동작하도록 별도 구현
@@ -836,25 +859,25 @@ window.addEventListener('DOMContentLoaded', function() {
         temporaryListsContainer.innerHTML = temporaryLists.map(renderViewerList).join('');
     };
 
-    // Google Sheets 데이터 업로드 제한
-    const originalSaveToSheets = window.saveToSheets;
-    window.saveToSheets = async function() {
-        console.log('Viewer 모드에서는 Google Sheets 업로드가 제한됩니다.');
+    // Firebase 데이터 업로드 제한
+    const originalSaveToFirebase = window.saveToFirebase;
+    window.saveToFirebase = async function() {
+        console.log('Viewer 모드에서는 데이터 업로드가 제한됩니다.');
         return false;
     };
 
-    // 로컬 데이터 저장 함수 (localStorage만 사용)
+    // Firebase 데이터 저장 함수 제한
     const originalSaveLists = window.saveLists;
     window.saveLists = function() {
-        console.log('Viewer 모드에서는 로컬 저장소(localStorage)만 사용됩니다.');
+        console.log('Viewer 모드에서는 데이터 저장이 제한됩니다.');
         localStorage.setItem('lists', JSON.stringify(lists));
         updateStats();
     };
 
-    // 임시 목록 저장 함수 (localStorage만 사용)
+    // Firebase 임시 목록 저장 함수 제한
     const originalSaveTemporaryLists = window.saveTemporaryLists;
     window.saveTemporaryLists = function() {
-        console.log('Viewer 모드에서는 로컬 저장소(localStorage)만 사용됩니다.');
+        console.log('Viewer 모드에서는 임시 목록 저장이 제한됩니다.');
         localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
     };
 }); 

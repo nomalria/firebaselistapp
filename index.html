@@ -5,6 +5,10 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>방덱 목록 관리</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
     <style>
@@ -141,15 +145,73 @@
         <div id="currentListIdDisplay" style="margin-top:8px; color:#555; font-size:13px;"></div>
     </div>
     <div id="lastUploadTimeDisplay" style="position:fixed; right:20px; bottom:60px; background:rgba(255,255,255,0.9); padding:8px 16px; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); font-size:0.95em; color:#666; z-index:9999; min-width:180px; text-align:right; display:none;"></div>
-    <script src="script.js" defer></script>
-    <script>
-        // script.js가 로드된 후 실행되도록 보장
-        function initializeApp() {
-            if (typeof loadLists === 'function') {
-                loadLists();
+    <script type="module">
+        try {
+            // Firebase 설정
+            const firebaseConfig = {
+                apiKey: "AIzaSyCzu8BvgrCepm3yqElubr4AKlIVwu_21_k",
+                authDomain: "listapps-23091.firebaseapp.com",
+                projectId: "listapps-23091",
+                storageBucket: "listapps-23091.firebasestorage.app",
+                messagingSenderId: "158638855824",
+                appId: "1:158638855824:web:5ec8e743771128ee65ea15",
+                measurementId: "G-NGSN7YLFXT"
+            };
+
+            // Firebase 초기화 (중복 초기화 방지)
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+                console.log('Firebase가 성공적으로 초기화되었습니다.');
             } else {
-                console.error('loadLists 함수를 찾을 수 없습니다.');
+                console.log('Firebase가 이미 초기화되어 있습니다.');
             }
+            
+            window.db = firebase.firestore();
+            window.firestore = firebase.firestore;
+
+            // Google 로그인 설정
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            // 로그인 상태 확인
+            firebase.auth().onAuthStateChanged((user) => {
+                const loginStatus = document.getElementById('loginStatus');
+                if (user) {
+                    loginStatus.textContent = user.email;
+                } else {
+                    loginStatus.textContent = '로그인하기';
+                }
+            });
+            
+            // 로그인/로그아웃 처리 함수
+            window.handleLoginStatus = async () => {
+                try {
+                    const user = firebase.auth().currentUser;
+                    if (user) {
+                        // 로그아웃
+                        await firebase.auth().signOut();
+                    } else {
+                        // 로그인
+                        await firebase.auth().signInWithPopup(provider);
+                    }
+                } catch (error) {
+                    console.error('로그인/로그아웃 오류:', error);
+                }
+            };
+
+        } catch (error) {
+            console.error('Firebase 초기화 오류:', error);
+        }
+    </script>
+    
+    <!-- 메인 스크립트 -->
+    <script src="script.js"></script>
+    
+    <!-- 이벤트 리스너 설정 -->
+    <script>
+        // 페이지 로드 시 이벤트 리스너 추가
+        document.addEventListener('DOMContentLoaded', function() {
+            // 초기 데이터 로드
+            loadLists();
             
             // 검색 입력 필드에 이벤트 리스너 추가
             document.getElementById('searchInput').addEventListener('input', function() {
@@ -163,6 +225,7 @@
             
             // Enter 키 이벤트 처리
             document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                // Enter 키만 검색
                 if (e.key === 'Enter') {
                     const query = this.value.trim();
                     if (query) {
@@ -174,26 +237,22 @@
             // 추가 버튼 이벤트 리스너
             document.getElementById('addListBtn').addEventListener('click', addNewList);
             
-            // 기존목록 추가 버튼 이벤트 리스너
+            // 기존목록 추가 버튼 이벤트 리스너 (새로 추가)
             document.getElementById('addTemporaryBtn').addEventListener('click', addTemporaryToLists);
             
-            // 정렬 버튼 이벤트 리스너
-            document.getElementById('sortBtn').addEventListener('click', function() {
-                sortListsAndMemos();
-            });
+            // 정렬 버튼 이벤트 리스너 (함수는 그대로 sortAll 호출)
+            document.getElementById('sortBtn').addEventListener('click', sortAll);
             
             // JSON 관련 버튼 이벤트 리스너
             document.getElementById('importJsonBtn').addEventListener('click', importJsonFile);
             document.getElementById('exportJsonBtn').addEventListener('click', exportLists);
             document.getElementById('jsonFileInput').addEventListener('change', handleJsonFileUpload);
-        }
-
-        // script.js 로드 완료 후 초기화 함수 실행
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
-        } else {
-            initializeApp();
-        }
+        });
     </script>
+
+    <!-- 페이지 맨 아래에 firebase 데이터 삭제 버튼 추가 -->
+    <div style="width:100%;text-align:center;margin:40px 0 20px 0;">
+        <button id="deleteFirebaseBtn" style="background:#e53935;color:#fff;padding:12px 28px;border:none;border-radius:6px;font-size:16px;cursor:pointer;">firebase데이터 삭제</button>
+    </div>
 </body>
 </html>
