@@ -102,14 +102,16 @@
                 <button id="addListBtn" class="add-btn">추가</button>
             </div>
             <div id="searchResults" class="search-results"></div>
-            <div class="reference-url-section" style="margin-top: 10px;">
+            <div class="reference-url-section" style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+                <button id="iconViewBtn" class="action-btn" style="background:#eee; color:#333; border:1px solid #bbb; flex-shrink:0; position:relative;">아이콘 열람</button>
+                <div id="iconViewDropdown" style="display:none; position:absolute; z-index:10001; width:100%; min-width:220px; height:600px; background:white; border:1px solid #bbb; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.12); padding:24px 18px; top:100%; left:0; right:0; text-align:center;"></div>
                 <input type="text" id="referenceUrlInput" placeholder="참고URL" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
             </div>
         </div>
         
         <!-- 통계 섹션 -->
         <div class="stats-section">
-            <div class="category-buttons">
+            <div class="category-buttons" style="display:flex; align-items:center; gap:8px;">
                 <button class="category-btn" id="cat-all" data-filter-type="all">전체보기</button>
                 <button class="category-btn" id="cat-4deck" data-filter-type="4방덱">4방덱 (<span id="stat-4">0</span>)</button>
                 <button class="category-btn" id="cat-5deck" data-filter-type="5방덱">5방덱 (<span id="stat-5">0</span>)</button>
@@ -261,6 +263,7 @@
     
     <!-- 메인 스크립트 -->
     <script src="script.js"></script>
+    <script src="dropbox.js"></script>
     
     <!-- 이벤트 리스너 설정 -->
     <script>

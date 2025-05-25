@@ -412,10 +412,6 @@ function searchLists(query) {
         selectedIndex = -1;
         return;
     }
-
-    console.log('검색어:', query);
-    console.log('전체 목록:', lists);
-
     // 현재 입력된 단어들을 가져옴
     const currentWords = query.split(' ').filter(w => w);
     const lastWord = currentWords[currentWords.length - 1];
@@ -438,9 +434,6 @@ function searchLists(query) {
             }
         });
     });
-
-    console.log('추출된 단어들:', Array.from(allWords));
-
     // 검색어와 일치하는 단어들 찾기 (마지막 단어와 일치하는 것만)
     const matchingWords = Array.from(allWords).filter(word => {
         const matches = word.toLowerCase().includes(lastWord.toLowerCase()) &&
