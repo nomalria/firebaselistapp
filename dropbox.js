@@ -7,7 +7,7 @@
             searchText: "불속성",
             icons: [
                 { id:"fire1", name:"불사전", path:"summoners_war_images/fire/1.png", order: 1, searchText:"불사전"},
-                { id:"fire2", name:"이미지2", path:"summoners_war_images/fire/2.png", order: 2, searchText:"이미지2"},
+                { id:"fire2", name:"이미지2", path:"summoners_war_images/fire/불요괴.png", order: 2, searchText:"불요괴"},
                 { id:"fire3", name:"이미지3", path:"summoners_war_images/fire/3.png", order: 3, searchText:"이미지3"},
                 { id:"fire4", name:"이미지4", path:"summoners_war_images/fire/4.png", order: 4, searchText:"이미지4"},
                 { id:"fire5", name:"이미지5", path:"summoners_war_images/fire/5.png", order: 5, searchText:"이미지5"},
