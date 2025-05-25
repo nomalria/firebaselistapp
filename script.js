@@ -3695,34 +3695,3 @@ function checkAuthorPermission(list, memo = null) {
     // 그 외의 경우는 수정/삭제 불가
     return false;
 }
-
-// 도움말 모달 동작 추가
-window.addEventListener('DOMContentLoaded', function() {
-    const helpBtn = document.getElementById('helpBtn');
-    const helpModal = document.getElementById('helpModal');
-    const closeHelpModal = document.getElementById('closeHelpModal');
-    function setXBtnListener() {
-        const closeHelpModalX = document.getElementById('closeHelpModalX');
-        if (closeHelpModalX) {
-            closeHelpModalX.onclick = function() {
-                helpModal.style.display = 'none';
-            };
-        }
-    }
-    if (helpBtn && helpModal && closeHelpModal) {
-        helpBtn.addEventListener('click', function() {
-            helpModal.style.display = 'flex';
-            setTimeout(setXBtnListener, 10); // helpModal이 열린 뒤 X버튼 리스너 재설정
-        });
-        closeHelpModal.addEventListener('click', function() {
-            helpModal.style.display = 'none';
-        });
-        setXBtnListener(); // 최초에도 시도
-        // 모달 바깥 클릭 시 닫기
-        helpModal.addEventListener('click', function(e) {
-            if (e.target === helpModal) {
-                helpModal.style.display = 'none';
-            }
-        });
-    }
-});
