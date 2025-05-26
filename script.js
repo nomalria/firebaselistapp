@@ -67,17 +67,18 @@ function formatCreatedAt(dateStr) {
     return dateStr.replace(/-(\d{2})-(\d{2})$/, ' $1:$2');
 }
 
-// Firebase에 데이터 저장
+// Firebase에 데이터 저장 (IndexedDB 기반)
 async function saveToFirebase() {
     try {
         const db = window.db;
-        
         if (!db) {
             console.error('Firebase가 초기화되지 않았습니다.');
-            localStorage.setItem('lists', JSON.stringify(lists));
-            localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
             return false;
         }
+
+        // IndexedDB에서 최신 데이터 불러오기
+        const indexedLists = await loadFromIndexedDB('lists');
+        const indexedTempLists = await loadFromIndexedDB('temporaryLists');
 
         // 현재 시간을 타임스탬프로 저장
         const currentTime = new Date();
@@ -88,14 +89,13 @@ async function saveToFirebase() {
         // 데이터를 1000개 단위로 분할
         const BATCH_SIZE = 1000;
         const batches = [];
-        
-        for (let i = 0; i < lists.length; i += BATCH_SIZE) {
-            batches.push(lists.slice(i, i + BATCH_SIZE));
+        for (let i = 0; i < indexedLists.length; i += BATCH_SIZE) {
+            batches.push(indexedLists.slice(i, i + BATCH_SIZE));
         }
 
         // 메타데이터 저장
         await db.collection('lists').doc('metadata').set({
-            totalItems: lists.length,
+            totalItems: indexedLists.length,
             totalBatches: batches.length,
             ...timestamp
         });
@@ -108,6 +108,12 @@ async function saveToFirebase() {
                 ...timestamp
             });
         }
+
+        // 임시 목록도 별도 문서로 저장
+        await db.collection('lists').doc('temporary').set({
+            lists: indexedTempLists,
+            ...timestamp
+        });
 
         // 최근 업로드 시간 표시 업데이트
         updateLastUploadTimeDisplay(currentTime);
@@ -151,36 +157,31 @@ async function loadFromFirebase() {
             return false;
         }
 
-        // 메타데이터 로드
-        const metadataDoc = await db.collection('lists').doc('metadata').get();
-        if (!metadataDoc.exists) {
-            console.log('메타데이터가 없습니다.');
-            return false;
-        }
-
-        const metadata = metadataDoc.data();
-        const totalBatches = metadata.totalBatches;
-
-        // 모든 배치 데이터 로드
-        lists = [];
-        for (let i = 1; i <= totalBatches; i++) {
-            const batchDoc = await db.collection('lists').doc(`batch_${i}`).get();
-            if (batchDoc.exists) {
-                const batchData = batchDoc.data();
-                lists = lists.concat(batchData.items);
-            }
-        }
-
-        // 임시 목록 로드
+        const mainListsDoc = await db.collection('lists').doc('main').get();
         const tempListsDoc = await db.collection('lists').doc('temporary').get();
+
+        if (mainListsDoc.exists) {
+            const data = mainListsDoc.data();
+            lists = data.lists || [];
+            // 각 목록에 id가 없는 경우 추가
+            lists = lists.map(list => ({
+                ...list,
+                id: list.id || Date.now().toString() + Math.random().toString(16).slice(2)
+            }));
+            // IndexedDB에 저장
+            await saveToIndexedDB('lists', lists);
+        }
+
         if (tempListsDoc.exists) {
             const data = tempListsDoc.data();
             temporaryLists = data.lists || [];
-        }
-
-        // 최근 업로드 시간 표시
-        if (metadata.lastUpdated) {
-            updateLastUploadTimeDisplay(new Date(metadata.lastUpdated));
+            // 각 목록에 id가 없는 경우 추가
+            temporaryLists = temporaryLists.map(list => ({
+                ...list,
+                id: list.id || Date.now().toString() + Math.random().toString(16).slice(2)
+            }));
+            // IndexedDB에 저장
+            await saveToIndexedDB('temporaryLists', temporaryLists);
         }
 
         return true;
@@ -195,211 +196,111 @@ async function loadLists() {
     try {
         console.log('목록 로드 시작...');
         
-        // 1. 먼저 로컬 스토리지에서 데이터 로드
-        const savedLists = localStorage.getItem('lists');
-        const savedTempLists = localStorage.getItem('temporaryLists');
-        
-        let localDataExists = false;
-        
-        if (savedLists) {
-            lists = JSON.parse(savedLists);
-            // author가 없으면 '섬세포분열'로 할당
-            lists = lists.map(list => ({
-                ...list,
-                author: list.author ? list.author : '섬세포분열'
-            }));
-            console.log(`로컬 스토리지에서 ${lists.length}개의 목록 로드됨`);
-            localDataExists = lists.length > 0;
-        } else {
-            lists = [];
-        }
-        
-        if (savedTempLists) {
-            temporaryLists = JSON.parse(savedTempLists);
-            // author가 없으면 '섬세포분열'로 할당
-            temporaryLists = temporaryLists.map(list => ({
-                ...list,
-                author: list.author ? list.author : '섬세포분열'
-            }));
-            console.log(`로컬 스토리지에서 ${temporaryLists.length}개의 임시 목록 로드됨`);
-            localDataExists = localDataExists || temporaryLists.length > 0;
-        } else {
-            temporaryLists = [];
-        }
-        
-        // 모든 메모의 상태 자동 업데이트
-        updateAllMemoStatuses();
-        
-        // 2. 로컬 데이터 존재하면 일단 화면에 표시
-        if (localDataExists) {
-            renderTemporaryLists();
-            renderLists(currentPage);
-            updateStats();
-        }
-        
-        // 3. Firebase에서 데이터 로드 시도 (로컬 데이터가 없거나, 더 많은 데이터가 Firebase에 있을 수 있음)
+        // 1. Firebase에서 데이터 로드 시도
         let firebaseSuccess = false;
         try {
-            // 로컬 데이터 백업 (Firebase에서 빈 데이터가 로드되는 경우를 대비)
-            const localListsBackup = JSON.parse(JSON.stringify(lists));
-            const localTempListsBackup = JSON.parse(JSON.stringify(temporaryLists));
-            
-            // Firebase에서 데이터 로드 시도
             firebaseSuccess = await loadFromFirebase();
-            
-            // Firebase에서 데이터를 불러왔는데 로컬 데이터보다 적으면 로컬 데이터 복원
             if (firebaseSuccess) {
-                if (localDataExists && lists.length < localListsBackup.length) {
-                    console.log('Firebase 데이터가 로컬 데이터보다 적습니다. 로컬 데이터 유지.');
-                    lists = localListsBackup;
-                    localStorage.setItem('lists', JSON.stringify(lists));
-        }
-        
-                if (localDataExists && temporaryLists.length < localTempListsBackup.length) {
-                    console.log('Firebase 임시 데이터가 로컬 데이터보다 적습니다. 로컬 데이터 유지.');
-                    temporaryLists = localTempListsBackup;
-                    localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-                }
+                console.log('Firebase에서 데이터 로드 성공');
+                console.log('Firebase 데이터를 IndexedDB에 저장 중...');
             }
         } catch (error) {
             console.error('Firebase 로드 오류:', error);
-            // Firebase 오류 시 이미 로컬 데이터로 초기화되어 있으므로 아무것도 안 함
         }
         
-        // 클립보드 초기화 (기존 코드 대체)
-        initializeClipboard();
+        // 2. IndexedDB에서 데이터 로드
+        try {
+            const indexedLists = await loadFromIndexedDB('lists');
+            const indexedTempLists = await loadFromIndexedDB('temporaryLists');
+            
+            if (indexedLists) {
+                lists = indexedLists;
+                // author가 없으면 '섬세포분열'로 할당
+                lists = lists.map(list => ({
+                    ...list,
+                    author: list.author ? list.author : '섬세포분열'
+                }));
+                console.log(`IndexedDB에서 ${lists.length}개의 목록 로드됨`);
+            }
+            
+            if (indexedTempLists) {
+                temporaryLists = indexedTempLists;
+                // author가 없으면 '섬세포분열'로 할당
+                temporaryLists = temporaryLists.map(list => ({
+                    ...list,
+                    author: list.author ? list.author : '섬세포분열'
+                }));
+                console.log(`IndexedDB에서 ${temporaryLists.length}개의 임시 목록 로드됨`);
+            }
+        } catch (error) {
+            console.error('IndexedDB 로드 오류:', error);
+        }
         
-        // 검색창 이벤트 리스너 설정
-        setupSearchInputEvents();
+        // 3. 모든 메모의 상태 자동 업데이트
+        updateAllMemoStatuses();
         
-        // 최종 목록 렌더링
+        // 4. 화면에 표시
         renderTemporaryLists();
         renderLists(currentPage);
         updateStats();
         
-        // 드롭다운 버튼 이벤트 리스너 설정
-        const filterDropdown = document.getElementById('filterDropdown');
-        if (filterDropdown) {
-            filterDropdown.addEventListener('click', function() {
-                const dropdownContent = document.querySelector('.dropdown-content');
-                if (dropdownContent) {
-                    dropdownContent.classList.toggle('show');
-                }
-            });
-            
-            // 드롭다운 외부 클릭 시 닫기
-            document.addEventListener('click', function(e) {
-                if (!filterDropdown.contains(e.target)) {
-                    const dropdownContent = document.querySelector('.dropdown-content');
-                    if (dropdownContent && dropdownContent.classList.contains('show')) {
-                        dropdownContent.classList.remove('show');
-                    }
-                }
-            });
-        }
+        // 5. 클립보드 초기화
+        initializeClipboard();
         
-        // 클립보드 렌더링 및 이벤트 리스너 설정
-        renderClipboardItems();
-        attachClipboardEventListeners();
-        
-        // 카테고리 버튼에 이벤트 리스너 추가
-        document.querySelectorAll('.category-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const filterType = this.dataset.filterType;
-                currentFilterType = filterType;
-                
-                // 버튼 활성화 상태 업데이트
-                document.querySelectorAll('.category-btn').forEach(b => {
-                    b.classList.toggle('active', b.dataset.filterType === filterType);
-                });
-                
-                // 목록 다시 렌더링
-                renderLists(1);
-            });
-            
-            // 초기 '전체보기' 버튼 활성화
-            if (btn.dataset.filterType === 'all') {
-                btn.classList.add('active');
-            }
-        });
-        
-        // 모든 메모 입력창에 클립보드 단축키 이벤트 리스너 추가
-        document.querySelectorAll('[id^="newMemoInput-"]').forEach(input => {
-            addClipboardShortcutListener(input);
-        });
-        
-        // 클립보드 토글 버튼 이벤트 리스너 추가
-        const toggleClipboardBtn = document.querySelector('.toggle-clipboard-btn');
-        if (toggleClipboardBtn) {
-            // 기존 이벤트 리스너 제거 후 다시 추가
-            toggleClipboardBtn.removeEventListener('click', toggleClipboardContent);
-            toggleClipboardBtn.addEventListener('click', toggleClipboardContent);
-        }
-        
-        // 첫 로드 시 기존 데이터 구조 마이그레이션
-        migrateExistingData();
-        migrateStatusToWinLoss();
-        
-        // 조건부 토글 설정
-        setTimeout(() => {
-            // 상태 아이콘 체크
-            document.querySelectorAll('.memo-item').forEach(memoElement => {
-                checkMemoIcon(memoElement);
-            });
-            
-            // 초기 필터 설정
-            updateStats();
-            
-            // 초기화 상태 표시
-            console.log('초기화 완료: 모든 데이터 정상 로드됨');
-        }, 500);
+        // 6. 검색창 이벤트 리스너 설정
+        setupSearchInputEvents();
         
     } catch (error) {
         console.error('초기화 오류:', error);
         
-        // 오류 발생 시 로컬 스토리지에서 마지막으로 다시 시도
-        const savedLists = localStorage.getItem('lists');
-        const savedTempLists = localStorage.getItem('temporaryLists');
-        
-        if (savedLists) {
-            lists = JSON.parse(savedLists);
-            // author가 없으면 '섬세포분열'로 할당
-            lists = lists.map(list => ({
-                ...list,
-                author: list.author ? list.author : '섬세포분열'
-            }));
-            console.log(`오류 발생, 로컬 스토리지에서 ${lists.length}개의 목록 복구됨`);
-        } else {
-                lists = [];
+        // 오류 발생 시 IndexedDB에서 다시 시도
+        try {
+            const indexedLists = await loadFromIndexedDB('lists');
+            const indexedTempLists = await loadFromIndexedDB('temporaryLists');
+            
+            if (indexedLists) {
+                lists = indexedLists;
+                lists = lists.map(list => ({
+                    ...list,
+                    author: list.author ? list.author : '섬세포분열'
+                }));
             }
-        
-        if (savedTempLists) {
-            temporaryLists = JSON.parse(savedTempLists);
-            // author가 없으면 '섬세포분열'로 할당
-            temporaryLists = temporaryLists.map(list => ({
-                ...list,
-                author: list.author ? list.author : '섬세포분열'
-            }));
-            console.log(`오류 발생, 로컬 스토리지에서 ${temporaryLists.length}개의 임시 목록 복구됨`);
-        } else {
-                temporaryLists = [];
+            
+            if (indexedTempLists) {
+                temporaryLists = indexedTempLists;
+                temporaryLists = temporaryLists.map(list => ({
+                    ...list,
+                    author: list.author ? list.author : '섬세포분열'
+                }));
+            }
+            
+            renderTemporaryLists();
+            renderLists(currentPage);
+            updateStats();
+        } catch (indexedError) {
+            console.error('IndexedDB 복구 오류:', indexedError);
         }
-        
-        renderTemporaryLists();
-        renderLists(currentPage);
-        updateStats();
     }
 }
 
 // 방덱 목록 저장
-function saveLists() {
-    localStorage.setItem('lists', JSON.stringify(lists));
-    updateStats();
+async function saveLists() {
+    try {
+        // IndexedDB에만 저장
+        await saveToIndexedDB('lists', lists);
+        updateStats();
+    } catch (error) {
+        console.error('목록 저장 오류:', error);
+    }
 }
 
-// 임시 방덱 목록 저장 함수 추가
-function saveTemporaryLists() {
-    localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+// 임시 방덱 목록 저장 함수
+async function saveTemporaryLists() {
+    try {
+        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+    } catch (error) {
+        console.error('임시 목록 저장 오류:', error);
+    }
 }
 
 // 방덱 검색
@@ -534,68 +435,19 @@ function addNewList() {
     // 입력된 단어 개수 확인
     const words = title.split(' ').filter(w => w);
     
-    if (words.length <= 3) {
-        // 3개 이하의 단어 입력 시
-        const matchingLists = lists.filter(list => {
-            const listWords = list.title.split(' ').filter(w => w);
-            return words.every(word => 
-                listWords.some(listWord => 
-                    listWord.toLowerCase().includes(word.toLowerCase())
-                )
-            );
-        });
-        
-        if (matchingLists.length > 0) {
-            // 기존 목록에서 제거하지 않고 복사해서 임시목록에 붙여넣기
-            // 깊은 복사로 임시목록에 추가 (comments 등 포함)
-            const copiedLists = matchingLists.map(list => JSON.parse(JSON.stringify(list)));
-            temporaryLists = [...copiedLists, ...temporaryLists];
-            renderTemporaryLists();
-            // 기존 목록은 그대로 두므로 saveLists() 불필요
-            renderLists();
-        } else {
-            const newList = {
-                id: Date.now().toString(),
-                title: title,
-                memos: [],
-                createdAt: createdAt,
-                author: user && user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 로그인 상태에 따른 작성자 설정
-            };
-            temporaryLists.unshift(newList);
-            renderTemporaryLists();
-        }
-    } else {
-        const existingListIndex = lists.findIndex(list => isSameList(list.title, title));
-        const temporaryListIndex = temporaryLists.findIndex(list => isSameList(list.title, title));
-        
-        if (existingListIndex !== -1) {
-            const existingList = lists.splice(existingListIndex, 1)[0];
-            temporaryLists.unshift(existingList);
-            renderTemporaryLists();
-        } else if (temporaryListIndex !== -1) {
-            const existingList = temporaryLists.splice(temporaryListIndex, 1)[0];
-            temporaryLists.unshift(existingList);
-            renderTemporaryLists();
-        } else {
-            const newList = {
-                id: Date.now().toString(),
-                title: title,
-                memos: [],
-                createdAt: createdAt,
-                author: user && user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'  // 로그인 상태에 따른 작성자 설정
-            };
-            temporaryLists.unshift(newList);
-            renderTemporaryLists();
-        }
-    }
-    
+    // 임시목록에만 추가
+    const newList = {
+        id: Date.now().toString(),
+        title: title,
+        memos: [],
+        createdAt: createdAt,
+        author: user && user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'
+    };
+    temporaryLists.unshift(newList);
+    renderTemporaryLists();
     searchInput.value = '';
     updateStats();
-    saveTemporaryLists();
-    saveLists();
-    
-    // 로컬 스토리지에만 저장
-    saveToLocalStorage();
+    saveTemporaryLists(); // 로컬스토리지에만 저장
 }
 
 // 기존 목록에 생성 시간 추가
@@ -2075,19 +1927,13 @@ function handleJsonFileUpload(event) {
 
     try {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             try {
                 const jsonData = JSON.parse(e.target.result);
-                
                 // 데이터 처리 전 현재 데이터 백업
-                const listsBackup = JSON.stringify(lists);
-                const tempListsBackup = JSON.stringify(temporaryLists);
-                localStorage.setItem('lists_backup', listsBackup);
-                localStorage.setItem('tempLists_backup', tempListsBackup);
-                
+                // (백업은 필요시 유지)
                 // 데이터 처리
-                processImportedJson(jsonData);
-                
+                await processImportedJson(jsonData);
                 // 파일 데이터 자체도 백업
                 localStorage.setItem('last_imported_json', e.target.result);
             } catch (error) {
@@ -2103,85 +1949,34 @@ function handleJsonFileUpload(event) {
     }
 }
 
-// 불러온 JSON 데이터 처리 함수
-function processImportedJson(data) {
-    let importedCount = 0;
-    let updatedCount = 0;
-    
+// 불러온 JSON 데이터 처리 함수 (IndexedDB에 저장)
+async function processImportedJson(data) {
     try {
         // 목록 데이터 검증
-        if (!Array.isArray(data) && data.lists && Array.isArray(data.lists)) {
-            data = data.lists; // 'lists' 키 내의 배열을 사용
-        } else if (!Array.isArray(data)) {
+        let listsToImport = [];
+        let tempListsToImport = [];
+        if (Array.isArray(data)) {
+            listsToImport = data;
+        } else if (data.lists && Array.isArray(data.lists)) {
+            listsToImport = data.lists;
+            if (data.temporaryLists && Array.isArray(data.temporaryLists)) {
+                tempListsToImport = data.temporaryLists;
+            }
+        } else {
             showNotification('유효한 목록 데이터가 없습니다', 'importJsonBtn');
             return;
         }
-        
-        // 각 목록 처리
-        data.forEach(list => {
-            if (!list.title) return; // 제목 없는 목록은 건너뜀
-            
-            // 목록 ID 확인 및 생성
-            const listId = list.id || Date.now().toString() + Math.random().toString(16).slice(2);
-            
-            // 메모 형식 확인 및 정규화
-            const memos = Array.isArray(list.memos) ? list.memos.map(memo => {
-                return {
-                    id: memo.id || Date.now().toString() + Math.random().toString(16).slice(2),
-                    text: memo.text || '',
-                    status: memo.status || null,
-                    wins: typeof memo.wins === 'number' ? memo.wins : 0,
-                    losses: typeof memo.losses === 'number' ? memo.losses : 0
-                };
-            }) : [];
-            
-            // createdAt 확인
-            const createdAt = list.createdAt || new Date().toISOString();
-            
-            // 새 목록 객체 생성
-            const newList = {
-                id: listId,
-                title: list.title,
-                memos: memos,
-                createdAt: createdAt
-            };
-            
-            // 기존 목록과 중복 확인
-            const existingList = lists.find(l => l.title === list.title);
-            if (existingList) {
-                // 기존 목록 업데이트 - 새 메모 추가
-                let memosAdded = 0;
-                memos.forEach(memo => {
-                    // 중복 메모 확인 (텍스트 기반)
-                    const duplicateMemo = existingList.memos.find(m => m.text === memo.text);
-                    if (!duplicateMemo) {
-                        existingList.memos.push(memo);
-                        memosAdded++;
-                    }
-                });
-                
-                if (memosAdded > 0) {
-                    updatedCount++;
-                }
-            } else {
-                // 새 목록 추가
-                lists.push(newList);
-                importedCount++;
-            }
-        });
-        
-        // Firebase 저장 전에 먼저 로컬 스토리지에 저장 (주요 변경점)
-        localStorage.setItem('lists', JSON.stringify(lists));
-        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-        console.log('불러온 데이터가 먼저 로컬 스토리지에 저장됨');
-        
-        // 목록 다시 렌더링 (Firebase 응답 기다리지 않고 즉시 화면 갱신)
+        // IndexedDB에 저장
+        await saveToIndexedDB('lists', listsToImport);
+        await saveToIndexedDB('temporaryLists', tempListsToImport);
+        // 메모리 반영
+        lists = listsToImport;
+        temporaryLists = tempListsToImport;
+        // UI 갱신
         renderLists(currentPage);
+        renderTemporaryLists();
         updateStats();
-        
-        // 화면에 메시지 표시
-        const message = `${importedCount}개 목록 추가, ${updatedCount}개 목록 업데이트 완료`;
-        showNotification(message, 'importJsonBtn');
+        showNotification('JSON 데이터가 성공적으로 불러와졌습니다.', 'importJsonBtn');
     } catch (error) {
         console.error('데이터 처리 오류:', error);
         showNotification('데이터 처리 중 오류 발생', 'importJsonBtn');
@@ -2465,56 +2260,39 @@ function migrateStatusToWinLoss() {
 }
 
 // 임시 목록을 정규 목록으로 추가하는 함수
-function addTemporaryToLists() {
+async function addTemporaryToLists() {
     if (temporaryLists.length === 0) {
         return;
     }
-    
-    // 임시 목록을 정규 목록에 추가 (제목 중복 → 덮어쓰기, 제목 다르면 id 중복 검사)
+    // IndexedDB에서 기존 목록 불러오기
+    const indexedLists = await loadFromIndexedDB('lists');
+    let newLists = [...indexedLists];
+    // 임시 목록을 기존 목록에 추가 (제목 중복 → 덮어쓰기, id 중복 검사)
     temporaryLists.forEach(tempList => {
-        // 1. 제목 중복 검사
-        const existingTitleIndex = lists.findIndex(list => list.title === tempList.title);
+        const existingTitleIndex = newLists.findIndex(list => list.title === tempList.title);
         if (existingTitleIndex !== -1) {
-            // 제목이 같으면 덮어쓰기
-            lists[existingTitleIndex] = { ...tempList };
+            newLists[existingTitleIndex] = { ...tempList };
         } else {
-            // 2. 제목이 다르면 id 중복 검사
-            const existingIdIndex = lists.findIndex(list => list.id === tempList.id);
+            const existingIdIndex = newLists.findIndex(list => list.id === tempList.id);
             if (existingIdIndex !== -1) {
-                // id가 중복되면 새로운 id로 변경
                 let newId;
                 do {
                     newId = Date.now().toString() + Math.random().toString(16).slice(2);
-                } while (lists.some(list => list.id === newId));
-                lists.push({ ...tempList, id: newId });
+                } while (newLists.some(list => list.id === newId));
+                newLists.push({ ...tempList, id: newId });
             } else {
-                // 제목과 id 모두 다르면 그대로 추가
-                lists.push({ ...tempList });
+                newLists.push({ ...tempList });
             }
         }
     });
-    
-    // 임시 목록 초기화
+    // IndexedDB에 저장
+    await saveToIndexedDB('lists', newLists);
+    // 임시 목록 초기화 및 로컬스토리지에서 삭제
     temporaryLists = [];
-    
-    // 참고 URL 입력창 초기화
-    const referenceUrlInput = document.getElementById('referenceUrlInput');
-    if (referenceUrlInput) {
-        referenceUrlInput.value = '';
-    }
-    
-    // 변경사항 저장 (Firebase 저장 호출 제거, 로컬스토리지만 저장)
-    localStorage.setItem('lists', JSON.stringify(lists));
-    localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-    
-    // UI 업데이트
+    saveTemporaryLists();
     renderLists();
     renderTemporaryLists();
-    
-    // 알림 메시지 표시
     showNotification('기존 목록에 추가되었습니다', 'addTemporaryBtn');
-    
-    // 통계 업데이트
     updateStats();
 }
 
@@ -2579,82 +2357,55 @@ function initializeClipboard() {
 // 페이지 로드 시 이벤트 리스너를 등록하는 함수 (DOMContentLoaded에서 호출될 예정)
 function setupSearchInputEvents() {
     const searchInput = document.getElementById('searchInput');
-    if (!searchInput) return;
+    const searchBtn = document.getElementById('searchBtn');
     
-    // 모바일 환경 감지
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    // 모바일 환경에서의 스페이스바 처리
-    if (isMobile) {
-        searchInput.addEventListener('input', function(e) {
-            const searchResults = document.getElementById('searchResults');
-            const items = searchResults.getElementsByClassName('list-item');
-            
-            if (items.length === 0) return;
-            
-            // 입력값의 마지막 문자가 스페이스인 경우
-            if (this.value.endsWith(' ')) {
-                e.preventDefault();
-                const word = items[0].dataset.word; // 첫 번째 추천 단어 선택
-                if (word) {
-                    // 마지막 단어를 추천 단어로 대체
-                    const words = this.value.trim().split(' ');
-                    words[words.length - 1] = word;
-                    this.value = words.join(' ') + ' ';
-                    selectedIndex = 0;
-                    updateSelectedItem(items);
+    if (searchInput && searchBtn) {
+        // 검색 버튼 클릭 이벤트
+        searchBtn.addEventListener('click', async () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                await searchLists(query);
+            }
+        });
+        
+        // 엔터 키 이벤트
+        searchInput.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query) {
+                    await searchLists(query);
                 }
             }
         });
     }
-    
-    // 기존 키보드 이벤트 리스너
-    searchInput.addEventListener('keydown', function(e) {
-        const searchResults = document.getElementById('searchResults');
-        const items = searchResults.getElementsByClassName('list-item');
+}
+
+// 검색 결과 표시
+async function searchLists(query) {
+    try {
+        // IndexedDB에서 검색
+        const allLists = await loadFromIndexedDB('lists');
+        const searchResults = allLists.filter(list => 
+            list.title.toLowerCase().includes(query.toLowerCase()) ||
+            list.memos.some(memo => memo.text.toLowerCase().includes(query.toLowerCase()))
+        );
+
+        // 검색 결과를 임시 목록에 저장
+        temporaryLists = searchResults;
         
-        if (items.length === 0) return;
+        // 로컬 스토리지의 임시 목록에만 저장
+        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
         
-        // 위/아래 화살표 키로 추천 단어 이동
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            selectedIndex = (selectedIndex + 1) % items.length;
-            updateSelectedItem(items);
-        } 
-        else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-            updateSelectedItem(items);
-        }
-        // Tab 키로 다음 추천 단어로 이동
-        else if (e.key === 'Tab') {
-            e.preventDefault();
-            if (e.shiftKey) {
-                // Shift + Tab: 이전 단어로 이동
-                selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-            } else {
-                // Tab: 다음 단어로 이동
-                selectedIndex = (selectedIndex + 1) % items.length;
-            }
-            updateSelectedItem(items);
-        }
-        // 엔터 키로 선택한 단어 적용
-        else if (e.key === 'Enter' && selectedIndex >= 0) {
-            e.preventDefault();
-            const word = items[selectedIndex].dataset.word;
-            selectWord(word);
-        }
-        // 스페이스바로 첫 번째 추천 단어 선택
-        else if (e.key === ' ' && items.length > 0) {
-            const hasText = this.value.trim().length > 0;
-            
-            if (hasText && selectedIndex >= 0) {
-                e.preventDefault();
-                const word = items[selectedIndex].dataset.word;
-                selectWord(word);
-            }
-        }
-    });
+        // 화면에 표시
+        renderTemporaryLists();
+        updateStats();
+        
+        // 검색 결과 알림
+        showNotification(`검색 결과: ${searchResults.length}개의 목록을 찾았습니다.`, 'searchBtn');
+    } catch (error) {
+        console.error('검색 오류:', error);
+        showNotification('검색 중 오류가 발생했습니다.', 'searchBtn');
+    }
 }
 
 // 문서 로드 시 CSS 스타일 추가
@@ -3269,28 +3020,17 @@ function deepCopyWithComments(arr) {
     }));
 }
 
-function exportLists() {
+async function exportLists() {
     try {
-        // 내보낼 데이터 준비
-        let exportData;
-        
-        // 로컬 스토리지와 메모리 모두 확인하여 최신 데이터 사용
-        let localLists = [];
-        const savedLists = localStorage.getItem('lists');
-        if (savedLists) {
-            localLists = JSON.parse(savedLists);
-        }
-        let localTemporaryLists = [];
-        const savedTempLists = localStorage.getItem('temporaryLists');
-        if (savedTempLists) {
-            localTemporaryLists = JSON.parse(savedTempLists);
-        }
+        // IndexedDB에서 데이터 불러오기
+        const indexedLists = await loadFromIndexedDB('lists');
+        const indexedTempLists = await loadFromIndexedDB('temporaryLists');
         // deep copy로 comments까지 모두 포함
-        const dataToExport = localLists.length > lists.length ? deepCopyWithComments(localLists) : deepCopyWithComments(lists);
-        const tempToExport = localTemporaryLists.length > temporaryLists.length ? deepCopyWithComments(localTemporaryLists) : deepCopyWithComments(temporaryLists);
-        exportData = {
-            lists: dataToExport,
-            temporaryLists: tempToExport,
+        const listsToExport = deepCopyWithComments(indexedLists);
+        const tempListsToExport = deepCopyWithComments(indexedTempLists);
+        const exportData = {
+            lists: listsToExport,
+            temporaryLists: tempListsToExport,
             exportDate: new Date().toISOString(),
             version: '1.2'
         };
@@ -3687,4 +3427,122 @@ function checkAuthorPermission(list, memo = null) {
     
     // 그 외의 경우는 수정/삭제 불가
     return false;
+}
+
+// IndexedDB 초기화
+const dbName = 'listAppDB';
+const dbVersion = 1;
+
+function initDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            
+            // 저장소 생성 - 자동 증가 키 사용
+            if (!db.objectStoreNames.contains('lists')) {
+                db.createObjectStore('lists', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('temporaryLists')) {
+                db.createObjectStore('temporaryLists', { keyPath: 'id', autoIncrement: true });
+            }
+        };
+    });
+}
+
+// IndexedDB에 데이터 저장
+async function saveToIndexedDB(storeName, data) {
+    try {
+        const db = await initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(storeName, 'readwrite');
+            const store = transaction.objectStore(storeName);
+            
+            // 기존 데이터 삭제
+            store.clear();
+            
+            // 데이터가 배열인 경우 각 항목을 개별적으로 저장
+            if (Array.isArray(data)) {
+                const promises = data.map(item => {
+                    return new Promise((resolveItem, rejectItem) => {
+                        // 각 항목에 고유 ID 추가
+                        const itemWithId = {
+                            ...item,
+                            id: item.id || Date.now().toString() + Math.random().toString(16).slice(2)
+                        };
+                        const request = store.add(itemWithId);
+                        request.onsuccess = () => resolveItem();
+                        request.onerror = () => rejectItem(request.error);
+                    });
+                });
+                
+                Promise.all(promises)
+                    .then(() => resolve())
+                    .catch(error => reject(error));
+            } else {
+                reject(new Error('데이터는 배열이어야 합니다.'));
+            }
+        });
+    } catch (error) {
+        console.error('IndexedDB 저장 오류:', error);
+        throw error;
+    }
+}
+
+// IndexedDB에서 데이터 로드
+async function loadFromIndexedDB(storeName) {
+    try {
+        const db = await initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(storeName, 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const result = request.result;
+                resolve(result || []);
+            };
+            request.onerror = () => reject(request.error);
+        });
+    } catch (error) {
+        console.error('IndexedDB 로드 오류:', error);
+        throw error;
+    }
+}
+
+// Firebase에서 데이터 로드 시 IndexedDB에 저장
+async function loadFromFirebase() {
+    try {
+        const db = window.db;
+        if (!db) {
+            console.error('Firebase가 초기화되지 않았습니다.');
+            return false;
+        }
+
+        const mainListsDoc = await db.collection('lists').doc('main').get();
+        const tempListsDoc = await db.collection('lists').doc('temporary').get();
+
+        if (mainListsDoc.exists) {
+            const data = mainListsDoc.data();
+            lists = data.lists || [];
+            // IndexedDB에 저장
+            await saveToIndexedDB('lists', lists);
+        }
+
+        if (tempListsDoc.exists) {
+            const data = tempListsDoc.data();
+            temporaryLists = data.lists || [];
+            // IndexedDB에 저장
+            await saveToIndexedDB('temporaryLists', temporaryLists);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Firebase 로드 오류:', error);
+        return false;
+    }
 }

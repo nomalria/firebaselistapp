@@ -145,28 +145,15 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // Firebase/로컬 불러오기
     async function loadListsForViewer() {
-        let loaded = false;
         try {
-            const db = firebase.firestore();
-            const mainListsDoc = await db.collection('lists').doc('main').get();
-            const tempListsDoc = await db.collection('lists').doc('temporary').get();
-            if (mainListsDoc.exists) {
-                const data = mainListsDoc.data();
-                lists = data.lists || [];
-                loaded = true;
-            }
-            if (tempListsDoc.exists) {
-                const data = tempListsDoc.data();
-                temporaryLists = data.lists || [];
-            }
+            // IndexedDB에서 데이터 불러오기
+            const indexedLists = await loadFromIndexedDB('lists');
+            const indexedTempLists = await loadFromIndexedDB('temporaryLists');
+            lists = indexedLists || [];
+            temporaryLists = indexedTempLists || [];
         } catch (e) {
-            loaded = false;
-        }
-        if (!loaded) {
-            const savedLists = localStorage.getItem('lists');
-            const savedTempLists = localStorage.getItem('temporaryLists');
-            lists = savedLists ? JSON.parse(savedLists) : [];
-            temporaryLists = savedTempLists ? JSON.parse(savedTempLists) : [];
+            lists = [];
+            temporaryLists = [];
         }
         if (typeof renderLists === 'function') renderLists(1);
         if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
