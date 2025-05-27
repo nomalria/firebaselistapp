@@ -267,7 +267,7 @@ const mobImageMap = {
         '물네파': 'summoners_war_images/water/103.png',
         '물암살': 'summoners_war_images/water/104.png',
         '물마검': 'summoners_war_images/water/105.png',
-        '물머메': 'summoners_war_images/water/106.png',
+    '물머메': 'summoners_war_images/water/106.png',
         '물해적': 'summoners_war_images/water/107.png',
         '물야만': 'summoners_war_images/water/108.png',
         '물도술': 'summoners_war_images/water/109.png',
@@ -432,7 +432,7 @@ const mobImageMap = {
         '풍네파': 'summoners_war_images/wind/107.png',
         '풍암살': 'summoners_war_images/wind/108.png',
         '풍마검': 'summoners_war_images/wind/109.png',
-        '풍머메': 'summoners_war_images/wind/110.png',
+    '풍머메': 'summoners_war_images/wind/110.png',
         '풍해적': 'summoners_war_images/wind/111.png',
         '풍야만': 'summoners_war_images/wind/112.png',
         '풍도술': 'summoners_war_images/wind/113.png',
@@ -828,7 +828,7 @@ function renderMobIconsForList(listTitle, isTemporary = false, force = false) {
         for (const element of ['fire', 'water', 'wind', 'light', 'dark']) {
             if (mobImageMap[element] && mobImageMap[element][word]) {
                 const imgSrc = mobImageMap[element][word];
-                icons.push(`<img src="${imgSrc}" alt="${word}" title="${word}" class="mob-icon">`);
+            icons.push(`<img src="${imgSrc}" alt="${word}" title="${word}" class="mob-icon">`);
                 break;
             }
         }
