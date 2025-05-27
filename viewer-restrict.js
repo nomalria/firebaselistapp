@@ -617,17 +617,19 @@ window.addEventListener('DOMContentLoaded', function() {
     const sortAndMoveBtn = document.getElementById('sortAndMoveBtn');
     if (sortAndMoveBtn) {
         sortAndMoveBtn.onclick = function() {
-            // 1. 목록 및 메모 정렬 (기존 sortBtn 기능)
-            if (typeof sortListsAndMemos === 'function') sortListsAndMemos();
-            
-            // 2. 임시목록 기존목록으로 이동 (검색 결과 목록 제외)
+            // 1. 임시목록 기존목록으로 이동 (검색 결과 목록 제외)
             if (temporaryLists && temporaryLists.length > 0) {
-                // 검색 결과 목록 제외
                 const nonSearchResults = temporaryLists.filter(list => list.id !== 'search-result');
                 lists = lists.concat(nonSearchResults);
                 temporaryLists = [];
             }
-            
+            // 2. 목록 및 메모 정렬 (가나다순)
+            lists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+            lists.forEach(list => {
+                if (Array.isArray(list.memos)) {
+                    list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
+                }
+            });
             // 3. 화면 갱신
             if (typeof renderLists === 'function') renderLists(1);
             if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
@@ -778,6 +780,7 @@ window.addEventListener('DOMContentLoaded', function() {
         return `
             <div class="list-item" data-list-id="${list.id}">
                 <div class="list-title" onclick="toggleMemos('${list.id}')">
+                    <span class="mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(list.title, false) : ''}</span>
                     <span class="list-title-text">${list.title}</span>
                     <span class="memo-count">${list.memos.length}/100</span>
                 </div>

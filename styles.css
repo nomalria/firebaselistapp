@@ -2092,3 +2092,18 @@ h1 {
         flex: 3 1 0%;
     }
 }
+
+.mob-icons {
+  display: inline-flex;
+  gap: 6px;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+.mob-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 0;
+  background: #f5f5f5;
+}

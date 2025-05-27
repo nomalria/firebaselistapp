@@ -548,6 +548,7 @@ function renderTemporaryLists() {
     temporaryListsContainer.innerHTML = temporaryLists.map(list => `
         <div class="list-item" data-list-id="${list.id}">
             <div class="list-title" onclick="toggleMemos('${list.id}')">
+                <span class="mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(list.title, true) : ''}</span>
                 <span class="list-title-text">${list.title}</span>
                 <span class="memo-count">${list.memos.length}/100</span>
                 <div class="button-group">
@@ -923,6 +924,7 @@ function renderLists(page = 1) {
     listsContainer.innerHTML = paginatedLists.map(list => `
         <div class="list-item" data-list-id="${list.id}">
             <div class="list-title" onclick="toggleMemos('${list.id}')">
+                <span class="mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(list.title, false) : ''}</span>
                 <span class="list-title-text">${list.title}</span>
                 <span class="memo-count">${list.memos.length}/100</span>
                 <div class="button-group">
@@ -963,6 +965,33 @@ function renderLists(page = 1) {
             addMemoInputListeners(memoInput, list.id, false);
         }
     });
+
+    // ... existing code ...
+    function updateMobIcons() {
+        // 기존 목록(페이지네이션)
+        document.querySelectorAll('#lists .list-item').forEach(item => {
+            const title = item.querySelector('.list-title-text')?.textContent?.trim();
+            const iconSpan = item.querySelector('.mob-icons');
+            if (title && iconSpan && window.renderMobIconsForList) {
+                iconSpan.innerHTML = window.renderMobIconsForList(title, false);
+            }
+        });
+        // 임시 목록
+        document.querySelectorAll('#temporaryLists .list-item').forEach(item => {
+            const title = item.querySelector('.list-title-text')?.textContent?.trim();
+            const iconSpan = item.querySelector('.mob-icons');
+            if (title && iconSpan && window.renderMobIconsForList) {
+                iconSpan.innerHTML = window.renderMobIconsForList(title, true);
+            }
+        });
+    }
+    // ... existing code ...
+    // renderLists 마지막에 추가
+    updateMobIcons();
+    // ... existing code ...
+    // renderTemporaryLists 마지막에 추가
+    updateMobIcons();
+    // ... existing code ...
 }
 
 // 페이지네이션 컨트롤 렌더링 함수 (개선된 버전: 처음/끝 페이지 버튼 추가)
