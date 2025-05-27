@@ -1,3 +1,4 @@
+alert('script.js 최신버전!');
 // Firebase 초기화
 const firebaseConfig = {
     apiKey: "AIzaSyCzu8BvgrCepm3yqElubr4AKlIVwu_21_k",
@@ -80,6 +81,9 @@ async function saveToFirebase() {
         const indexedLists = await loadFromIndexedDB('lists');
         const indexedTempLists = await loadFromIndexedDB('temporaryLists');
 
+        // 업로드할 목록 개수 콘솔 출력
+        console.log(`[Firebase 업로드] 업로드할 목록 개수: ${indexedLists.length}`);
+
         // 현재 시간을 타임스탬프로 저장
         const currentTime = new Date();
         const timestamp = {
@@ -117,6 +121,9 @@ async function saveToFirebase() {
 
         // 최근 업로드 시간 표시 업데이트
         updateLastUploadTimeDisplay(currentTime);
+
+        // 업로드 완료 콘솔 출력
+        console.log(`[Firebase 업로드] 업로드 완료! 총 ${indexedLists.length}개의 목록이 업로드되었습니다.`);
         return true;
     } catch (error) {
         console.error('Firebase 저장 오류:', error);
@@ -151,6 +158,7 @@ function updateLastUploadTimeDisplay(timestamp) {
 // Firebase에서 데이터 로드 (모든 batch 문서 합치기)
 async function loadFromFirebase() {
     try {
+        console.log('loadFromFirebase 진입'); // 진단용 로그
         const db = window.db;
         if (!db) {
             console.error('Firebase가 초기화되지 않았습니다.');
@@ -163,17 +171,26 @@ async function loadFromFirebase() {
         if (metadataDoc.exists) {
             const metadata = metadataDoc.data();
             const totalBatches = metadata.totalBatches || 0;
+            console.log('metadata 문서 있음, totalBatches:', totalBatches); // 진단용 로그
             // 모든 batch 문서 순회하여 데이터 합치기
             for (let i = 1; i <= totalBatches; i++) {
                 const batchDoc = await db.collection('lists').doc(`batch_${i}`).get();
                 if (batchDoc.exists) {
                     const batchData = batchDoc.data();
                     if (Array.isArray(batchData.items)) {
+                        console.log(`batch_${i}의 목록 개수:`, batchData.items.length); // 진단용 콘솔
                         allLists = allLists.concat(batchData.items);
+                    } else {
+                        console.log(`batch_${i}의 items가 배열이 아님 또는 없음`, batchData.items);
                     }
+                } else {
+                    console.log(`batch_${i} 문서가 존재하지 않음`);
                 }
             }
+        } else {
+            console.log('metadata 문서가 존재하지 않음');
         }
+        console.log('Firebase에서 불러온 전체 목록 개수:', allLists.length); // 진단용 콘솔
 
         // 임시 목록 불러오기
         const tempListsDoc = await db.collection('lists').doc('temporary').get();
@@ -197,6 +214,7 @@ async function loadFromFirebase() {
         return false;
     }
 }
+window.loadFromFirebase = loadFromFirebase;
 
 // 방덱 목록 불러오기 (메모 구조 변환 로직 추가)
 async function loadLists() {
@@ -206,7 +224,7 @@ async function loadLists() {
         // 1. Firebase에서 데이터 로드 시도
         let firebaseSuccess = false;
         try {
-            firebaseSuccess = await loadFromFirebase();
+            firebaseSuccess = await window.loadFromFirebase();
             if (firebaseSuccess) {
                 console.log('Firebase에서 데이터 로드 성공');
                 console.log('Firebase 데이터를 IndexedDB에 저장 중...');
@@ -222,11 +240,11 @@ async function loadLists() {
             
             if (indexedLists) {
                 lists = indexedLists;
-                // author가 없으면 '섬세포분열'로 할당
-                lists = lists.map(list => ({
-                    ...list,
-                    author: list.author ? list.author : '섬세포분열'
-                }));
+            // author가 없으면 '섬세포분열'로 할당
+            lists = lists.map(list => ({
+                ...list,
+                author: list.author ? list.author : '섬세포분열'
+            }));
                 // 여기서 정렬
                 lists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
                 lists.forEach(list => {
@@ -239,11 +257,11 @@ async function loadLists() {
             
             if (indexedTempLists) {
                 temporaryLists = indexedTempLists;
-                // author가 없으면 '섬세포분열'로 할당
-                temporaryLists = temporaryLists.map(list => ({
-                    ...list,
-                    author: list.author ? list.author : '섬세포분열'
-                }));
+            // author가 없으면 '섬세포분열'로 할당
+            temporaryLists = temporaryLists.map(list => ({
+                ...list,
+                author: list.author ? list.author : '섬세포분열'
+            }));
                 // 임시목록도 정렬
                 temporaryLists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
                 temporaryLists.forEach(list => {
@@ -261,9 +279,9 @@ async function loadLists() {
         updateAllMemoStatuses();
         
         // 4. 화면에 표시
-        renderTemporaryLists();
-        renderLists(currentPage);
-        updateStats();
+            renderTemporaryLists();
+            renderLists(currentPage);
+            updateStats();
         
         // 5. 클립보드 초기화
         initializeClipboard();
@@ -290,23 +308,23 @@ async function loadLists() {
             
             if (indexedLists) {
                 lists = indexedLists;
-                lists = lists.map(list => ({
-                    ...list,
-                    author: list.author ? list.author : '섬세포분열'
-                }));
+            lists = lists.map(list => ({
+                ...list,
+                author: list.author ? list.author : '섬세포분열'
+            }));
             }
-            
+        
             if (indexedTempLists) {
                 temporaryLists = indexedTempLists;
-                temporaryLists = temporaryLists.map(list => ({
-                    ...list,
-                    author: list.author ? list.author : '섬세포분열'
-                }));
-            }
-            
-            renderTemporaryLists();
-            renderLists(currentPage);
-            updateStats();
+            temporaryLists = temporaryLists.map(list => ({
+                ...list,
+                author: list.author ? list.author : '섬세포분열'
+            }));
+        }
+        
+        renderTemporaryLists();
+        renderLists(currentPage);
+        updateStats();
         } catch (indexedError) {
             console.error('IndexedDB 복구 오류:', indexedError);
         }
@@ -318,7 +336,7 @@ async function saveLists() {
     try {
         // IndexedDB에만 저장
         await saveToIndexedDB('lists', lists);
-        updateStats();
+    updateStats();
     } catch (error) {
         console.error('목록 저장 오류:', error);
     }
@@ -327,7 +345,7 @@ async function saveLists() {
 // 임시 방덱 목록 저장 함수
 async function saveTemporaryLists() {
     try {
-        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
+    localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
     } catch (error) {
         console.error('임시 목록 저장 오류:', error);
     }
@@ -459,7 +477,7 @@ async function addNewList() {
             return words.every(w => listWords.includes(w));
         });
         temporaryLists = results;
-        renderTemporaryLists();
+            renderTemporaryLists();
         updateStats();
         saveTemporaryLists();
         if (results.length === 0) {
@@ -2430,42 +2448,42 @@ function setupSearchInputEvents() {
         });
         // 추천단어 input 이벤트 연결
         searchInput.addEventListener('input', function(e) {
-            const cursor = this.selectionStart;
-            const value = this.value.slice(0, cursor);
-            const words = value.split(' ');
-            const currentWord = words[words.length - 1];
-            if (currentWord && currentWord.length > 0) {
-                renderMemoSuggestions(this, currentWord);
-            } else {
-                removeMemoSuggestionBox();
-            }
-        });
+        const cursor = this.selectionStart;
+        const value = this.value.slice(0, cursor);
+        const words = value.split(' ');
+        const currentWord = words[words.length - 1];
+        if (currentWord && currentWord.length > 0) {
+            renderMemoSuggestions(this, currentWord);
+        } else {
+            removeMemoSuggestionBox();
+        }
+    });
         // 추천단어 키보드 네비게이션
         searchInput.addEventListener('keydown', function(e) {
-            const box = document.getElementById('memoSuggestionBox');
-            if (!box || memoSuggestionWords.length === 0) return;
+        const box = document.getElementById('memoSuggestionBox');
+        if (!box || memoSuggestionWords.length === 0) return;
             if (e.key === 'ArrowDown' || e.key === 'Tab') {
+            e.preventDefault();
+            memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
+            updateMemoSuggestionBox();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            memoSuggestionIndex = (memoSuggestionIndex - 1 + memoSuggestionWords.length) % memoSuggestionWords.length;
+            updateMemoSuggestionBox();
+        } else if (e.key === ' ' || e.key === 'Spacebar') {
+            if (memoSuggestionIndex >= 0) {
                 e.preventDefault();
-                memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
-                updateMemoSuggestionBox();
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                memoSuggestionIndex = (memoSuggestionIndex - 1 + memoSuggestionWords.length) % memoSuggestionWords.length;
-                updateMemoSuggestionBox();
-            } else if (e.key === ' ' || e.key === 'Spacebar') {
-                if (memoSuggestionIndex >= 0) {
-                    e.preventDefault();
-                    selectMemoSuggestion(memoSuggestionIndex);
-                    memoSuggestionWords = [];
-                    memoSuggestionIndex = -1;
-                    removeMemoSuggestionBox();
-                }
+                selectMemoSuggestion(memoSuggestionIndex);
+                memoSuggestionWords = [];
+                memoSuggestionIndex = -1;
+                removeMemoSuggestionBox();
             }
-        });
+        }
+    });
         // 포커스 아웃 시 추천단어 박스 제거
         searchInput.addEventListener('blur', function() {
-            setTimeout(removeMemoSuggestionBox, 100);
-        });
+        setTimeout(removeMemoSuggestionBox, 100);
+    });
     }
 }
 
@@ -2755,13 +2773,13 @@ function getAllMemoWords() {
     // 정규 목록의 제목에서 단어 추출
     lists.forEach(list => {
         list.title.split(' ').forEach(word => {
-            if (word.trim()) wordSet.add(word.trim());
+                if (word.trim()) wordSet.add(word.trim());
+            });
         });
-    });
     // 임시 목록의 제목에서도 단어 추출 (선택적으로 포함)
     temporaryLists.forEach(list => {
         list.title.split(' ').forEach(word => {
-            if (word.trim()) wordSet.add(word.trim());
+                if (word.trim()) wordSet.add(word.trim());
         });
     });
     return Array.from(wordSet);
@@ -3051,40 +3069,6 @@ async function loadFromIndexedDB(storeName) {
         throw error;
     }
 }
-
-// Firebase에서 데이터 로드 시 IndexedDB에 저장
-async function loadFromFirebase() {
-    try {
-        const db = window.db;
-        if (!db) {
-            console.error('Firebase가 초기화되지 않았습니다.');
-            return false;
-        }
-
-        const mainListsDoc = await db.collection('lists').doc('main').get();
-        const tempListsDoc = await db.collection('lists').doc('temporary').get();
-
-        if (mainListsDoc.exists) {
-            const data = mainListsDoc.data();
-            lists = data.lists || [];
-            // IndexedDB에 저장
-            await saveToIndexedDB('lists', lists);
-        }
-
-        if (tempListsDoc.exists) {
-            const data = tempListsDoc.data();
-            temporaryLists = data.lists || [];
-            // IndexedDB에 저장
-            await saveToIndexedDB('temporaryLists', temporaryLists);
-        }
-
-        return true;
-    } catch (error) {
-        console.error('Firebase 로드 오류:', error);
-        return false;
-    }
-}
-
 // 메모 편집 저장 함수 추가
 function saveMemoEdit(listId, memoId, isTemporary = false) {
     try {
