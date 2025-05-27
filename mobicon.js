@@ -1,7 +1,7 @@
 // 실험용: 단어별 이미지 경로 매핑
 const mobImageMap = {
-    '물머메': 'summoners_war_images/water/50.png',
-    '풍머메': 'summoners_war_images/wind/2.png',
+    '물머메': 'summoners_war_images/water/106.png',
+    '풍머메': 'summoners_war_images/wind/110.png',
     '불요괴': 'summoners_war_images/fire/88.png',
 };
 
