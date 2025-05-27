@@ -1,4 +1,3 @@
-alert('script.js 최신버전!');
 // Firebase 초기화
 const firebaseConfig = {
     apiKey: "AIzaSyCzu8BvgrCepm3yqElubr4AKlIVwu_21_k",
