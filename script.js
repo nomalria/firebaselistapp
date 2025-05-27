@@ -148,7 +148,7 @@ function updateLastUploadTimeDisplay(timestamp) {
     }
 }
 
-// Firebase에서 데이터 로드
+// Firebase에서 데이터 로드 (모든 batch 문서 합치기)
 async function loadFromFirebase() {
     try {
         const db = window.db;
@@ -157,32 +157,39 @@ async function loadFromFirebase() {
             return false;
         }
 
-        const mainListsDoc = await db.collection('lists').doc('main').get();
-        const tempListsDoc = await db.collection('lists').doc('temporary').get();
-
-        if (mainListsDoc.exists) {
-            const data = mainListsDoc.data();
-            lists = data.lists || [];
-            // 각 목록에 id가 없는 경우 추가
-            lists = lists.map(list => ({
-                ...list,
-                id: list.id || Date.now().toString() + Math.random().toString(16).slice(2)
-            }));
-            // IndexedDB에 저장
-            await saveToIndexedDB('lists', lists);
+        // 메타데이터에서 batch 개수 확인
+        const metadataDoc = await db.collection('lists').doc('metadata').get();
+        let allLists = [];
+        if (metadataDoc.exists) {
+            const metadata = metadataDoc.data();
+            const totalBatches = metadata.totalBatches || 0;
+            // 모든 batch 문서 순회하여 데이터 합치기
+            for (let i = 1; i <= totalBatches; i++) {
+                const batchDoc = await db.collection('lists').doc(`batch_${i}`).get();
+                if (batchDoc.exists) {
+                    const batchData = batchDoc.data();
+                    if (Array.isArray(batchData.items)) {
+                        allLists = allLists.concat(batchData.items);
+                    }
+                }
+            }
         }
 
+        // 임시 목록 불러오기
+        const tempListsDoc = await db.collection('lists').doc('temporary').get();
+        let tempLists = [];
         if (tempListsDoc.exists) {
             const data = tempListsDoc.data();
-            temporaryLists = data.lists || [];
-            // 각 목록에 id가 없는 경우 추가
-            temporaryLists = temporaryLists.map(list => ({
-                ...list,
-                id: list.id || Date.now().toString() + Math.random().toString(16).slice(2)
-            }));
-            // IndexedDB에 저장
-            await saveToIndexedDB('temporaryLists', temporaryLists);
+            tempLists = data.lists || [];
         }
+
+        // IndexedDB에 저장
+        await saveToIndexedDB('lists', allLists);
+        await saveToIndexedDB('temporaryLists', tempLists);
+
+        // 메모리 반영
+        lists = allLists;
+        temporaryLists = tempLists;
 
         return true;
     } catch (error) {
@@ -220,6 +227,13 @@ async function loadLists() {
                     ...list,
                     author: list.author ? list.author : '섬세포분열'
                 }));
+                // 여기서 정렬
+                lists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+                lists.forEach(list => {
+                    if (Array.isArray(list.memos)) {
+                        list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
+                    }
+                });
                 console.log(`IndexedDB에서 ${lists.length}개의 목록 로드됨`);
             }
             
@@ -230,6 +244,13 @@ async function loadLists() {
                     ...list,
                     author: list.author ? list.author : '섬세포분열'
                 }));
+                // 임시목록도 정렬
+                temporaryLists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+                temporaryLists.forEach(list => {
+                    if (Array.isArray(list.memos)) {
+                        list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
+                    }
+                });
                 console.log(`IndexedDB에서 ${temporaryLists.length}개의 임시 목록 로드됨`);
             }
         } catch (error) {
@@ -250,6 +271,15 @@ async function loadLists() {
         // 6. 검색창 이벤트 리스너 설정
         setupSearchInputEvents();
         
+        // IndexedDB에서 데이터 로드 후 정렬
+        if (lists && Array.isArray(lists)) {
+            lists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+            lists.forEach(list => {
+                if (Array.isArray(list.memos)) {
+                    list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
+                }
+            });
+        }
     } catch (error) {
         console.error('초기화 오류:', error);
         
@@ -411,43 +441,70 @@ function isSameList(list1, list2) {
 }
 
 // 방덱 추가
-function addNewList() {
+async function addNewList() {
     const user = firebase.auth().currentUser;
     const searchInput = document.getElementById('searchInput');
     const title = searchInput.value.trim();
-    
     if (!title) {
         alert('방덱 이름을 입력해주세요.');
         return;
     }
-    
-    // 현재 시간 정보 생성
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    
-    // 생성 시간을 공백과 콜론 형식으로 저장
-    const createdAt = `${year}-${month}-${day} ${hours}:${minutes}`;
-    
-    // 입력된 단어 개수 확인
     const words = title.split(' ').filter(w => w);
-    
-    // 임시목록에만 추가
-    const newList = {
-        id: Date.now().toString(),
-        title: title,
-        memos: [],
-        createdAt: createdAt,
-        author: user && user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'
-    };
-    temporaryLists.unshift(newList);
-    renderTemporaryLists();
+    // 단어 개수에 따라 분기
+    const allLists = await loadFromIndexedDB('lists');
+    if (words.length <= 3) {
+        // 3단어 이하: 해당 단어들을 모두 포함하는 목록만 임시목록에 표시
+        const results = allLists.filter(list => {
+            const listWords = list.title.split(' ').filter(w => w);
+            return words.every(w => listWords.includes(w));
+        });
+        temporaryLists = results;
+        renderTemporaryLists();
+        updateStats();
+        saveTemporaryLists();
+        if (results.length === 0) {
+            showNotification('일치하는 목록이 없습니다.', 'addListBtn');
+        } else {
+            showNotification(`검색 결과: ${results.length}개의 목록을 찾았습니다.`, 'addListBtn');
+        }
+    } else if (words.length === 4) {
+        // 4단어: 해당 단어들을 모두 포함하는 목록이 있으면 임시목록에 표시, 없으면 새 목록 추가
+        const results = allLists.filter(list => {
+            const listWords = list.title.split(' ').filter(w => w);
+            return words.every(w => listWords.includes(w));
+        });
+        if (results.length > 0) {
+            temporaryLists = results;
+            renderTemporaryLists();
+            updateStats();
+            saveTemporaryLists();
+            showNotification(`검색 결과: ${results.length}개의 목록을 찾았습니다.`, 'addListBtn');
+        } else {
+            // 새 목록 생성
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const createdAt = `${year}-${month}-${day} ${hours}:${minutes}`;
+            const newList = {
+                id: Date.now().toString(),
+                title: title,
+                memos: [],
+                createdAt: createdAt,
+                author: user && user.email === 'longway7098@gmail.com' ? '섬세포분열' : '외부 사용자'
+            };
+            temporaryLists = [newList];
+            renderTemporaryLists();
+            updateStats();
+            saveTemporaryLists();
+            showNotification('새로운 목록이 임시목록에 추가되었습니다.', 'addListBtn');
+        }
+    } else {
+        showNotification('단어는 4개 이하로 입력해주세요.', 'addListBtn');
+    }
     searchInput.value = '';
-    updateStats();
-    saveTemporaryLists(); // 로컬스토리지에만 저장
 }
 
 // 기존 목록에 생성 시간 추가
@@ -2025,7 +2082,7 @@ window.deleteMemo = deleteMemo;
     window.setupSearchInputEvents = setupSearchInputEvents;
     
     // 정렬 함수
-    window.sortAll = function() {
+    window.sortAll = async function() {
         // 목록을 가나다순으로 정렬
         lists = sortListsByAlphabetical(lists);
         
@@ -2045,7 +2102,11 @@ window.deleteMemo = deleteMemo;
         });
         
         // 변경사항 저장
-        saveToFirebase();
+        saveLists();
+        saveTemporaryLists();
+        
+        // Firebase에 업로드
+        await saveToFirebase();
         
         // UI 업데이트
         renderLists();
@@ -2357,579 +2418,55 @@ function initializeClipboard() {
 // 페이지 로드 시 이벤트 리스너를 등록하는 함수 (DOMContentLoaded에서 호출될 예정)
 function setupSearchInputEvents() {
     const searchInput = document.getElementById('searchInput');
-    const searchBtn = document.getElementById('searchBtn');
+    const searchBtn = document.getElementById('addListBtn');
     
     if (searchInput && searchBtn) {
-        // 검색 버튼 클릭 이벤트
+        // '추가' 버튼 클릭 시에만 검색 기능 동작
         searchBtn.addEventListener('click', async () => {
             const query = searchInput.value.trim();
             if (query) {
                 await searchLists(query);
             }
         });
-        
-        // 엔터 키 이벤트
-        searchInput.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                const query = searchInput.value.trim();
-                if (query) {
-                    await searchLists(query);
-                }
-            }
-        });
-    }
-}
-
-// 검색 결과 표시
-async function searchLists(query) {
-    try {
-        // IndexedDB에서 검색
-        const allLists = await loadFromIndexedDB('lists');
-        const searchResults = allLists.filter(list => 
-            list.title.toLowerCase().includes(query.toLowerCase()) ||
-            list.memos.some(memo => memo.text.toLowerCase().includes(query.toLowerCase()))
-        );
-
-        // 검색 결과를 임시 목록에 저장
-        temporaryLists = searchResults;
-        
-        // 로컬 스토리지의 임시 목록에만 저장
-        localStorage.setItem('temporaryLists', JSON.stringify(temporaryLists));
-        
-        // 화면에 표시
-        renderTemporaryLists();
-        updateStats();
-        
-        // 검색 결과 알림
-        showNotification(`검색 결과: ${searchResults.length}개의 목록을 찾았습니다.`, 'searchBtn');
-    } catch (error) {
-        console.error('검색 오류:', error);
-        showNotification('검색 중 오류가 발생했습니다.', 'searchBtn');
-    }
-}
-
-// 문서 로드 시 CSS 스타일 추가
-document.addEventListener('DOMContentLoaded', function() {
-    // 메모 편집 관련 스타일 추가
-    const style = document.createElement('style');
-    style.textContent = `
-        /* 메모 편집 관련 스타일 */
-        .memo-item.editing {
-            position: relative;
-            /* 편집 모드에서 배경색 살짝 변경 */
-            background-color: #f8f8f8;
-        }
-        
-        .edit-section {
-            background-color: #f0f8ff; /* 연한 파란색 배경 */
-            border-radius: 4px;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #cfe8fc;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            position: relative;
-            z-index: 1;
-        }
-        
-        .edit-section textarea {
-            width: 100%;
-            min-height: 60px;
-            padding: 8px 12px;
-            border: 2px solid #4CAF50;
-            border-radius: 4px;
-            font-size: 14px;
-            line-height: 1.5;
-            resize: vertical;
-            font-family: inherit;
-            background-color: white;
-        }
-        
-        .edit-section textarea:focus {
-            outline: none;
-            border-color: #2E7D32;
-            box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
-        }
-        
-        .edit-section .input-group {
-            margin-bottom: 8px;
-        }
-        
-        .edit-section button {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.2s;
-            margin-left: 8px;
-        }
-        
-        .edit-section button[onclick*="saveMemoEdit"] {
-            background-color: #4CAF50;
-            color: white;
-        }
-        
-        .edit-section button[onclick*="saveMemoEdit"]:hover {
-            background-color: #3d8b40;
-        }
-        
-        .edit-section button[onclick*="cancelMemoEdit"] {
-            background-color: #f44336;
-            color: white;
-        }
-        
-        .edit-section button[onclick*="cancelMemoEdit"]:hover {
-            background-color: #d32f2f;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    console.log('메모 편집 스타일 로드 완료');
-});
-
-// 메모 편집 저장
-function saveMemoEdit(listId, memoId, isTemporary = false) {
-    const user = firebase.auth().currentUser;
-    const targetLists = isTemporary ? temporaryLists : lists;
-    const list = targetLists.find(l => l.id.toString() === listId.toString());
-    if (!list) return;
-    const memo = list.memos.find(m => m.id.toString() === memoId.toString());
-    if (!memo) return;
-    const isAdmin = user && user.email === 'longway7098@gmail.com';
-    const isProtectedAuthor = !memo.author || memo.author === '섬세포분열' || memo.author === 'longway7098@gmail.com';
-    if (isProtectedAuthor && !isAdmin) {
-        alert('이 메모는 관리자만 편집할 수 있습니다.');
-        return;
-    }
-
-    try {
-        console.log(`메모 편집 저장: listId=${listId}, memoId=${memoId}, isTemporary=${isTemporary}`);
-        
-        // 입력 필드 찾기
-        const inputElement = document.getElementById(`editMemoInput-${memoId}`);
-        if (!inputElement) {
-            console.error('편집 입력 필드를 찾을 수 없습니다');
-            return;
-        }
-        
-        // 새 텍스트 가져오기
-        const newText = inputElement.value.trim();
-        if (!newText) {
-            alert('메모 내용을 입력해주세요');
-            inputElement.focus();
-            return;
-        }
-        
-        // 데이터에서 메모 찾기
-        const targetLists = isTemporary ? temporaryLists : lists;
-        const list = targetLists.find(l => l.id.toString() === listId.toString());
-        if (!list) {
-            console.error('목록을 찾을 수 없습니다:', listId);
-            return;
-        }
-        
-        const memo = list.memos.find(m => m.id.toString() === memoId.toString());
-        if (!memo) {
-            console.error('메모를 찾을 수 없습니다:', memoId);
-            return;
-        }
-        
-        // 메모 텍스트 업데이트
-        memo.text = newText;
-
-        // 참고URL 확인 및 자동 참고자료 추가
-        const referenceUrlInput = document.getElementById('referenceUrlInput');
-        if (referenceUrlInput && referenceUrlInput.value.trim()) {
-            const referenceUrl = referenceUrlInput.value.trim();
-            const autoComment = {
-                id: Date.now().toString() + Math.random().toString(16).slice(2),
-                text: `참고자료: ${referenceUrl}`,
-                isReference: true, // 참고자료 표시를 위한 플래그
-                url: referenceUrl, // 원본 URL 저장
-                createdAt: new Date().toISOString()
-            };
-            if (!memo.comments) {
-                memo.comments = [];
-            }
-            memo.comments.push(autoComment);
-        }
-        
-        // DOM에서 메모 요소 찾기
-        let memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-        if (!memoItem) {
-            console.error('메모 항목 DOM 요소를 찾을 수 없습니다:', memoId);
-            return;
-        }
-        
-        // 메모 텍스트 요소 찾기
-        const memoTextElement = memoItem.querySelector('.memo-text');
-        if (memoTextElement) {
-            memoTextElement.textContent = newText;
-        }
-        
-        // 편집 섹션 제거 및 원래 요소 표시
-        const editSection = memoItem.querySelector('.memo-edit-section');
-        if (editSection) {
-            editSection.remove();
-        }
-        
-        // 원래 요소 표시
-        memoItem.querySelector('.memo-content').style.display = '';
-        memoItem.querySelector('.memo-buttons').style.display = '';
-        
-        // 참고자료 섹션 업데이트
-        const commentSection = document.getElementById(`commentSection-${memoId}`);
-        if (commentSection) {
-            const commentList = commentSection.querySelector('.comment-list');
-            if (commentList) {
-                commentList.innerHTML = renderComments(memo);
-            }
-        }
-
-        // 참고자료 버튼 텍스트 업데이트
-        const commentBtn = memoItem.querySelector('.comment-btn');
-        if (commentBtn) {
-            const commentCount = memo.comments ? memo.comments.length : 0;
-            commentBtn.textContent = commentCount > 0 ? `참고자료 (${commentCount})` : '참고자료';
-        }
-        
-        // 변경사항 저장
-        if (isTemporary) {
-            saveTemporaryLists();
-        } else {
-            saveLists();
-        }
-        
-        console.log('메모 편집 완료');
-        
-    } catch (error) {
-        console.error('메모 편집 저장 중 오류 발생:', error, error.stack);
-        alert('메모 편집을 저장하는 중 오류가 발생했습니다. 다시 시도해주세요.');
-    }
-}
-
-// 메모 편집 취소
-function cancelMemoEdit(listId, memoId, isTemporary = false) {
-    try {
-        console.log(`메모 편집 취소: listId=${listId}, memoId=${memoId}, isTemporary=${isTemporary}`);
-        
-        // DOM에서 메모 찾기
-        let memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
-        if (!memoItem) {
-            console.error('메모 항목 DOM 요소를 찾을 수 없습니다:', memoId);
-            return;
-        }
-        
-        // 편집 섹션 제거
-        const editSection = memoItem.querySelector('.memo-edit-section');
-        if (editSection) {
-            editSection.remove();
-        }
-        
-        // 원래 요소 표시
-        memoItem.querySelector('.memo-content').style.display = '';
-        memoItem.querySelector('.memo-buttons').style.display = '';
-        
-        console.log('메모 편집 취소 완료');
-        
-    } catch (error) {
-        console.error('메모 편집 취소 중 오류 발생:', error, error.stack);
-    }
-}
-
-// 메모 편집 UI 스타일 추가
-document.addEventListener('DOMContentLoaded', function() {
-    const style = document.createElement('style');
-    style.textContent = `
-        .memo-edit-section {
-            margin-top: 6px;
-            margin-bottom: 6px;
-            padding: 8px;
-            background-color: #f9f9f9;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            width: calc(100% + 20px);
-            margin-left: -10px;
-            margin-right: -10px;
-            box-sizing: border-box;
-        }
-        
-        .edit-memo-input {
-            width: 100%;
-            height: 36px;
-            padding: 6px 10px;
-            margin-bottom: 6px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            line-height: 1.4;
-            font-family: inherit;
-            overflow-y: auto;
-            resize: none;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-        
-        .edit-memo-input:focus {
-            border-color: #4CAF50;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-        }
-        
-        .edit-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-        }
-        
-        .save-edit-btn, .cancel-edit-btn {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            transition: all 0.2s;
-        }
-        
-        .save-edit-btn {
-            background-color: #4CAF50;
-            color: white;
-        }
-        
-        .save-edit-btn:hover {
-            background-color: #3d8b40;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        .cancel-edit-btn {
-            background-color: #f44336;
-            color: white;
-        }
-        
-        .cancel-edit-btn:hover {
-            background-color: #d32f2f;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        @media (max-width: 768px) {
-            .memo-edit-section {
-                width: calc(100% + 16px);
-                margin-left: -8px;
-                margin-right: -8px;
-                padding: 6px;
-            }
-            
-            .edit-buttons {
-                justify-content: space-between;
-            }
-            
-            .save-edit-btn, .cancel-edit-btn {
-                flex: 1;
-                justify-content: center;
-                font-size: 13px;
-                padding: 5px 8px;
-            }
-            
-            .edit-memo-input {
-                height: 30px;
-                padding: 4px 8px;
-                font-size: 13px;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-});
-
-// 메모 목록 렌더링
-function renderMemos(listElement, memos, listId, isTemporary = false) {
-    try {
-        console.log(`메모 렌더링: listId=${listId}, isTemporary=${isTemporary}, memos=`, memos);
-        const memosContainer = listElement.querySelector('.memos-container');
-        if (!memosContainer) {
-            console.error('메모 컨테이너를 찾을 수 없습니다');
-            return;
-        }
-        
-        memosContainer.innerHTML = '';
-        
-        if (!memos || memos.length === 0) {
-            memosContainer.innerHTML = '<div class="no-memos">메모가 없습니다.</div>';
-            return;
-        }
-        
-        memos.forEach(memo => {
-            try {
-                const memoItem = document.createElement('div');
-                memoItem.className = 'memo-item';
-                memoItem.dataset.memoId = memo.id;
-                
-                // 메모 내용 컨테이너
-                const memoContent = document.createElement('div');
-                memoContent.className = 'memo-content';
-                
-                // 메모 텍스트
-                const memoText = document.createElement('div');
-                memoText.className = 'memo-text';
-                memoText.textContent = memo.text;
-                memoContent.appendChild(memoText);
-                
-                // 메모 작성 시간 표시
-                if (memo.timestamp) {
-                    const memoTime = document.createElement('div');
-                    memoTime.className = 'memo-time';
-                    memoTime.textContent = formatTimestamp(memo.timestamp);
-                    memoContent.appendChild(memoTime);
-                }
-                
-                memoItem.appendChild(memoContent);
-                
-                // 메모 버튼 컨테이너
-                const memoButtons = document.createElement('div');
-                memoButtons.className = 'memo-buttons';
-                
-                // 편집 버튼
-                const editButton = document.createElement('button');
-                editButton.className = 'edit-memo-btn';
-                editButton.innerHTML = '<i class="fas fa-edit"></i>';
-                editButton.title = '메모 편집';
-                editButton.onclick = () => startEditMemo(listId, memo.id, isTemporary);
-                memoButtons.appendChild(editButton);
-                
-                // 삭제 버튼
-                const deleteButton = document.createElement('button');
-                deleteButton.className = 'delete-memo-btn';
-                deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
-                deleteButton.title = '메모 삭제';
-                deleteButton.onclick = () => deleteMemo(listId, memo.id, isTemporary);
-                memoButtons.appendChild(deleteButton);
-                
-                memoItem.appendChild(memoButtons);
-                
-                memosContainer.appendChild(memoItem);
-            } catch (error) {
-                console.error('메모 항목 렌더링 중 오류 발생:', error, error.stack);
-            }
-        });
-        
-    } catch (error) {
-        console.error('메모 렌더링 중 오류 발생:', error, error.stack);
-    }
-}
-
-// 메모를 가나다순으로 정렬하는 함수 추가
-function sortMemosByAlphabetical(memos) {
-    return [...memos].sort((a, b) => {
-        return a.text.localeCompare(b.text, 'ko');
-    });
-}
-
-// 메모 입력창에 키보드로 승/패 카운터 조작 기능 추가
-function addCounterHotkeyListener(memoInput, listId, isTemporary = false) {
-    // 중복 등록 방지
-    memoInput.removeEventListener('keydown', memoInput._counterHotkeyHandler);
-    memoInput._counterHotkeyHandler = function(e) {
-        // Alt + ↑ : 승리 +1
-        if (e.altKey && !e.shiftKey && e.key === 'ArrowUp') {
-            e.preventDefault();
-            const targetLists = isTemporary ? temporaryLists : lists;
-            const list = targetLists.find(l => l.id.toString() === listId.toString());
-            if (list && list.memos.length > 0) {
-                const memoId = list.memos[0].id;
-                updateCounter(listId, memoId, 'win', 1, isTemporary);
-            }
-        }
-        // Alt + Shift + ↑ : 승리 -1
-        if (e.altKey && e.shiftKey && e.key === 'ArrowUp') {
-            e.preventDefault();
-            const targetLists = isTemporary ? temporaryLists : lists;
-            const list = targetLists.find(l => l.id.toString() === listId.toString());
-            if (list && list.memos.length > 0) {
-                const memoId = list.memos[0].id;
-                updateCounter(listId, memoId, 'win', -1, isTemporary);
-            }
-        }
-        // Alt + ↓ : 패배 +1
-        if (e.altKey && !e.shiftKey && e.key === 'ArrowDown') {
-            e.preventDefault();
-            const targetLists = isTemporary ? temporaryLists : lists;
-            const list = targetLists.find(l => l.id.toString() === listId.toString());
-            if (list && list.memos.length > 0) {
-                const memoId = list.memos[0].id;
-                updateCounter(listId, memoId, 'loss', 1, isTemporary);
-            }
-        }
-        // Alt + Shift + ↓ : 패배 -1
-        if (e.altKey && e.shiftKey && e.key === 'ArrowDown') {
-            e.preventDefault();
-            const targetLists = isTemporary ? temporaryLists : lists;
-            const list = targetLists.find(l => l.id.toString() === listId.toString());
-            if (list && list.memos.length > 0) {
-                const memoId = list.memos[0].id;
-                updateCounter(listId, memoId, 'loss', -1, isTemporary);
-            }
-        }
-    };
-    memoInput.addEventListener('keydown', memoInput._counterHotkeyHandler);
-}
-
-// 클립보드 단축키와 카운터 단축키를 모두 등록하는 함수
-function addMemoInputListeners(memoInput, listId, isTemporary = false) {
-    addClipboardShortcutListener(memoInput);
-    addCounterHotkeyListener(memoInput, listId, isTemporary);
-
-    // 추천 단어 기능
-    memoInput.addEventListener('input', function(e) {
-        const cursor = this.selectionStart;
-        const value = this.value.slice(0, cursor);
-        const words = value.split(' ');
-        const currentWord = words[words.length - 1];
-        if (currentWord && currentWord.length > 0) {
-            renderMemoSuggestions(this, currentWord);
-        } else {
-            removeMemoSuggestionBox();
-        }
-    });
-
-    memoInput.addEventListener('keydown', function(e) {
-        const box = document.getElementById('memoSuggestionBox');
-        if (!box || memoSuggestionWords.length === 0) return;
-        
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
-            updateMemoSuggestionBox();
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            memoSuggestionIndex = (memoSuggestionIndex - 1 + memoSuggestionWords.length) % memoSuggestionWords.length;
-            updateMemoSuggestionBox();
-        } else if (e.key === 'Tab') {
-            e.preventDefault();
-            memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
-            updateMemoSuggestionBox();
-        } else if (e.key === ' ' || e.key === 'Spacebar') {
-            if (memoSuggestionIndex >= 0) {
-                e.preventDefault();
-                selectMemoSuggestion(memoSuggestionIndex);
-                // 스페이스바 입력 후 추천 단어 목록 초기화
-                memoSuggestionWords = [];
-                memoSuggestionIndex = -1;
+        // 추천단어 input 이벤트 연결
+        searchInput.addEventListener('input', function(e) {
+            const cursor = this.selectionStart;
+            const value = this.value.slice(0, cursor);
+            const words = value.split(' ');
+            const currentWord = words[words.length - 1];
+            if (currentWord && currentWord.length > 0) {
+                renderMemoSuggestions(this, currentWord);
+            } else {
                 removeMemoSuggestionBox();
             }
-        } else if (e.key === 'Escape') {
-            removeMemoSuggestionBox();
-        }
-    });
-
-    // 입력창 포커스 아웃 시 추천 박스 제거
-    memoInput.addEventListener('blur', function() {
-        setTimeout(removeMemoSuggestionBox, 100);
-    });
+        });
+        // 추천단어 키보드 네비게이션
+        searchInput.addEventListener('keydown', function(e) {
+            const box = document.getElementById('memoSuggestionBox');
+            if (!box || memoSuggestionWords.length === 0) return;
+            if (e.key === 'ArrowDown' || e.key === 'Tab') {
+                e.preventDefault();
+                memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
+                updateMemoSuggestionBox();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                memoSuggestionIndex = (memoSuggestionIndex - 1 + memoSuggestionWords.length) % memoSuggestionWords.length;
+                updateMemoSuggestionBox();
+            } else if (e.key === ' ' || e.key === 'Spacebar') {
+                if (memoSuggestionIndex >= 0) {
+                    e.preventDefault();
+                    selectMemoSuggestion(memoSuggestionIndex);
+                    memoSuggestionWords = [];
+                    memoSuggestionIndex = -1;
+                    removeMemoSuggestionBox();
+                }
+            }
+        });
+        // 포커스 아웃 시 추천단어 박스 제거
+        searchInput.addEventListener('blur', function() {
+            setTimeout(removeMemoSuggestionBox, 100);
+        });
+    }
 }
 
 function updateMemoSuggestionBox() {
@@ -3215,20 +2752,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // 모든 메모에서 단어 추출
 function getAllMemoWords() {
     const wordSet = new Set();
-    // 정규 목록
+    // 정규 목록의 제목에서 단어 추출
     lists.forEach(list => {
-        (list.memos || []).forEach(memo => {
-            memo.text.split(' ').forEach(word => {
-                if (word.trim()) wordSet.add(word.trim());
-            });
+        list.title.split(' ').forEach(word => {
+            if (word.trim()) wordSet.add(word.trim());
         });
     });
-    // 임시 목록
+    // 임시 목록의 제목에서도 단어 추출 (선택적으로 포함)
     temporaryLists.forEach(list => {
-        (list.memos || []).forEach(memo => {
-            memo.text.split(' ').forEach(word => {
-                if (word.trim()) wordSet.add(word.trim());
-            });
+        list.title.split(' ').forEach(word => {
+            if (word.trim()) wordSet.add(word.trim());
         });
     });
     return Array.from(wordSet);
@@ -3236,6 +2769,11 @@ function getAllMemoWords() {
 
 // 추천 단어 목록 렌더링
 function renderMemoSuggestions(input, currentWord) {
+    // 입력값이 비어있으면 추천단어 표시하지 않음
+    if (!currentWord || currentWord.trim() === '') {
+        removeMemoSuggestionBox();
+        return;
+    }
     // 추천 단어 추출
     memoSuggestionWords = getAllMemoWords().filter(word =>
         word.toLowerCase().startsWith(currentWord.toLowerCase()) && word !== currentWord
@@ -3545,4 +3083,98 @@ async function loadFromFirebase() {
         console.error('Firebase 로드 오류:', error);
         return false;
     }
+}
+
+// 메모 편집 저장 함수 추가
+function saveMemoEdit(listId, memoId, isTemporary = false) {
+    try {
+        const memoItem = document.querySelector(`.memo-item[data-memo-id="${memoId}"]`);
+        if (!memoItem) {
+            console.error('메모 항목을 찾을 수 없습니다:', memoId);
+            return;
+        }
+
+        const textInput = memoItem.querySelector('.edit-memo-input');
+        if (!textInput) {
+            console.error('편집 입력 필드를 찾을 수 없습니다:', memoId);
+            return;
+        }
+
+        const newText = textInput.value.trim();
+        if (!newText) {
+            alert('메모 내용을 입력해주세요.');
+            return;
+        }
+
+        const targetLists = isTemporary ? temporaryLists : lists;
+        const list = targetLists.find(l => l.id === listId);
+        if (!list) {
+            console.error('목록을 찾을 수 없습니다:', listId);
+            return;
+        }
+
+        const memo = list.memos.find(m => m.id === memoId);
+        if (!memo) {
+            console.error('메모를 찾을 수 없습니다:', memoId);
+            return;
+        }
+
+        if (!checkAuthorPermission(list, memo)) {
+            showNotification('해당 메모는 수정할 수 없습니다.', 'editMemoBtn');
+            return;
+        }
+
+        memo.text = newText;
+
+        // 변경사항 저장
+        if (isTemporary) {
+            saveTemporaryLists();
+        } else {
+            saveLists();
+        }
+
+        // UI 업데이트
+        const memoContent = memoItem.querySelector('.memo-content');
+        if (memoContent) {
+            memoContent.style.display = '';
+        }
+
+        const editSection = memoItem.querySelector('.memo-edit-section');
+        if (editSection) {
+            editSection.remove();
+        }
+
+        // 메모 목록 다시 렌더링
+        updateMemoListUI(listId, list.memos, isTemporary);
+
+        // 편집 상태 초기화
+        editingMemoId = null;
+
+    } catch (error) {
+        console.error('메모 편집 저장 중 오류 발생:', error);
+        alert('메모 저장 중 오류가 발생했습니다.');
+    }
+}
+
+// 메모 입력 이벤트 리스너 추가 함수
+function addMemoInputListeners(memoInput, listId, isTemporary) {
+    if (!memoInput) return;
+
+    // 클립보드 단축키 이벤트 리스너
+    memoInput.addEventListener('keydown', function(event) {
+        handleClipboardShortcut(event, this);
+    });
+
+    // 엔터 키 이벤트
+    memoInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addMemo(listId, isTemporary);
+        }
+    });
+}
+
+// 메모 정렬 함수 추가
+function sortMemosByAlphabetical(memos) {
+    return [...memos].sort((a, b) => a.text.localeCompare(b.text, 'ko'));
 }

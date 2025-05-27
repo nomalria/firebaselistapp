@@ -151,6 +151,23 @@ window.addEventListener('DOMContentLoaded', function() {
             const indexedTempLists = await loadFromIndexedDB('temporaryLists');
             lists = indexedLists || [];
             temporaryLists = indexedTempLists || [];
+            // 목록 정렬 (데이터 할당 직후)
+            if (lists && Array.isArray(lists)) {
+                lists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+                lists.forEach(list => {
+                    if (Array.isArray(list.memos)) {
+                        list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
+                    }
+                });
+            }
+            if (temporaryLists && Array.isArray(temporaryLists)) {
+                temporaryLists.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+                temporaryLists.forEach(list => {
+                    if (Array.isArray(list.memos)) {
+                        list.memos.sort((a, b) => a.text.localeCompare(b.text, 'ko'));
+                    }
+                });
+            }
         } catch (e) {
             lists = [];
             temporaryLists = [];
