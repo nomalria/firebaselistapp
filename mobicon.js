@@ -6,9 +6,9 @@ const mobImageMap = {
 };
 
 // 목록 제목에서 특정 단어가 있으면 이미지를 차례대로 반환
-function renderMobIconsForList(listTitle, isTemporary = false) {
-    // viewer.html에서는 isCurrentPageList 체크를 건너뜀
-    if (!window.location.pathname.includes('viewer.html')) {
+function renderMobIconsForList(listTitle, isTemporary = false, force = false) {
+    // force가 true면 무조건 아이콘 표시(메모용)
+    if (!force && !window.location.pathname.includes('viewer.html')) {
         if (!isTemporary && !isCurrentPageList(listTitle)) {
             return '';
         }

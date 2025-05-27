@@ -752,6 +752,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const commentButtonText = commentCount > 0 ? `참고자료 (${commentCount})` : '참고자료';
         // 검색결과(해당 메모만 보기) 모드에서 원래 목록 제목 표시
         const listTitleInfo = memo._listTitle ? `<div class="memo-list-title" style="color:#2196F3;font-size:13px;margin-bottom:2px;">[목록: ${memo._listTitle}]</div>` : '';
+        const hasCommentButton = commentCount > 0 || true; // 참고자료 버튼 항상 있음(뷰어)
         return `
             <div class="memo-item" data-memo-id="${memo.id}">
                 <div class="memo-content">
@@ -761,11 +762,22 @@ window.addEventListener('DOMContentLoaded', function() {
                         <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
                     </div>
                 </div>
+                ${hasCommentButton ? `
+                <div class="memo-table-row">
+                    <div class="memo-table-left">
+                        <span class="mob-icons memo-mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(memo.text, false) : ''}</span>
+                    </div>
+                    <div class="memo-table-right">
+                        <button class="comment-btn" onclick="toggleCommentSection('${listId}', '${memo.id}')">${commentButtonText}</button>
+                    </div>
+                </div>
+                ` : `
                 <div class="memo-actions">
                     <div class="memo-buttons">
                         <button class="comment-btn" onclick="toggleCommentSection('${listId}', '${memo.id}')">${commentButtonText}</button>
                     </div>
                 </div>
+                `}
                 <div class="comment-section" id="commentSection-${memo.id}" style="display: none;">
                     <div class="comment-list">
                         ${renderComments(memo)}

@@ -168,14 +168,14 @@ async function loadFromFirebase() {
         const metadataDoc = await db.collection('lists').doc('metadata').get();
         let allLists = [];
         if (metadataDoc.exists) {
-            const metadata = metadataDoc.data();
+        const metadata = metadataDoc.data();
             const totalBatches = metadata.totalBatches || 0;
             console.log('metadata 문서 있음, totalBatches:', totalBatches); // 진단용 로그
             // 모든 batch 문서 순회하여 데이터 합치기
-            for (let i = 1; i <= totalBatches; i++) {
-                const batchDoc = await db.collection('lists').doc(`batch_${i}`).get();
-                if (batchDoc.exists) {
-                    const batchData = batchDoc.data();
+        for (let i = 1; i <= totalBatches; i++) {
+            const batchDoc = await db.collection('lists').doc(`batch_${i}`).get();
+            if (batchDoc.exists) {
+                const batchData = batchDoc.data();
                     if (Array.isArray(batchData.items)) {
                         console.log(`batch_${i}의 목록 개수:`, batchData.items.length); // 진단용 콘솔
                         allLists = allLists.concat(batchData.items);
@@ -1623,10 +1623,11 @@ function createMemoItemHTML(memo, listId, isTemporary) {
         <div class="memo-item" data-memo-id="${memo.id}">
             <div class="memo-content">
                 <div class="memo-text">${memo.text}</div>
+                <span class="mob-icons memo-mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(memo.text, isTemporary, true) : ''}</span>
                 <div class="memo-stats">
                     <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
                 </div>
-                <div class="memo-author">작성자: ${(memo.author === 'longway7098@gmail.com' || !memo.author) ? '섬세포분열' : memo.author}</div>
+                <span class="memo-author memo-author-right">작성자: ${(memo.author === 'longway7098@gmail.com' || !memo.author) ? '섬세포분열' : memo.author}</span>
             </div>
             <div class="memo-actions">
                 <div class="memo-status-display">
