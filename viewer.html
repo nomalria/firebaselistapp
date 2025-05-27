@@ -6,6 +6,54 @@
     <title>방덱 목록</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+    <style>
+        /* 몬스터 아이콘 관련 스타일 */
+        .icon-boxes {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .icon-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 29px;
+            height: 29px;
+            background: #b9f6ca;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            border: 2px solid #222c3a;
+            transition: background 0.15s;
+        }
+        .icon-box.selected {
+            background: #388e3c !important;
+        }
+        .icon-separator {
+            width: 100%;
+            height: 1px;
+            background: #ddd;
+            margin: 16px 0;
+        }
+        .mobicon {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .mobicon img {
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .mobicon img:hover {
+            transform: scale(1.1);
+        }
+    </style>
 </head>
 <body>
     <div class="container" id="mainContainer">
@@ -71,5 +119,6 @@
     <script src="mobicon.js"></script>
     <script src="script.js"></script>
     <script src="viewer-restrict.js"></script>
+    <script src="viewer-mobicon.js"></script>
 </body>
 </html> 

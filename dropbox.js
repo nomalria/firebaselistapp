@@ -1022,20 +1022,38 @@
                                 overflow-y: auto;
                             }
                         </style>
-                        <div class="filter-buttons" style="display:flex; align-items:flex-start; gap:0; padding-top:2px; padding-left:2px;">
-                            <div class="icon-box"><img id="fireAttrIcon" src="summoners_war_images/fireimage.png" alt="불속성" style="width:18px; height:18px; cursor:pointer;"></div>
-                            <div class="icon-box"><img id="waterAttrIcon" src="summoners_war_images/waterimage.png" alt="물속성" style="width:18px; height:18px; cursor:pointer;"></div>
-                            <div class="icon-box"><img id="windAttrIcon" src="summoners_war_images/windimage.png" alt="바람속성" style="width:18px; height:18px; cursor:pointer;"></div>
-                            <div class="icon-box"><img id="lightAttrIcon" src="summoners_war_images/lightimage.png" alt="빛속성" style="width:18px; height:18px; cursor:pointer;"></div>
-                            <div class="icon-box"><img id="darkAttrIcon" src="summoners_war_images/darkimage.png" alt="어둠속성" style="width:18px; height:18px; cursor:pointer;"></div>
-                            <div class="icon-box" style="background:#b9f6ca; border:2px solid #222c3a; cursor:pointer; width:52px;"><span style="font-size:13px; color:#333;">★1~4성</span></div>
-                            <div class="icon-box" style="background:#b9f6ca; border:2px solid #222c3a; cursor:pointer; width:52px;"><span style="font-size:13px; color:#333;">★5성</span></div>
-                            <div class="icon-box" style="background:#b9f6ca; border:2px solid #222c3a; cursor:pointer; width:52px;"><span style="font-size:13px; color:#333;">전체</span></div>
+                        <div style="display:flex; align-items:center; justify-content:flex-start; gap:18px; margin-bottom:12px;">
+                            <button id="undoLastWordBtn" class="action-btn" style="background:#f5f5f5; color:#d32f2f; border:1px solid #d32f2f;">검색 단어 지우기</button>
+                            <div class="filter-buttons" style="display:flex; align-items:flex-start; gap:0; padding-top:2px; padding-left:2px;">
+                                <div class="icon-box"><img id="fireAttrIcon" src="summoners_war_images/fireimage.png" alt="불속성" style="width:18px; height:18px; cursor:pointer;"></div>
+                                <div class="icon-box"><img id="waterAttrIcon" src="summoners_war_images/waterimage.png" alt="물속성" style="width:18px; height:18px; cursor:pointer;"></div>
+                                <div class="icon-box"><img id="windAttrIcon" src="summoners_war_images/windimage.png" alt="바람속성" style="width:18px; height:18px; cursor:pointer;"></div>
+                                <div class="icon-box"><img id="lightAttrIcon" src="summoners_war_images/lightimage.png" alt="빛속성" style="width:18px; height:18px; cursor:pointer;"></div>
+                                <div class="icon-box"><img id="darkAttrIcon" src="summoners_war_images/darkimage.png" alt="어둠속성" style="width:18px; height:18px; cursor:pointer;"></div>
+                                <div class="icon-box" style="background:#b9f6ca; border:2px solid #222c3a; cursor:pointer; width:52px;"><span style="font-size:13px; color:#333;">★1~4성</span></div>
+                                <div class="icon-box" style="background:#b9f6ca; border:2px solid #222c3a; cursor:pointer; width:52px;"><span style="font-size:13px; color:#333;">★5성</span></div>
+                                <div class="icon-box" style="background:#b9f6ca; border:2px solid #222c3a; cursor:pointer; width:52px;"><span style="font-size:13px; color:#333;">전체</span></div>
+                            </div>
                         </div>
                         <div class="icon-separator"></div>
                         <div class="mobicon" style="display:flex; align-items:center; gap:8px; padding-left:2px; padding-top:4px; min-height:44px; padding-bottom:8px; background:rgba(0,255,0,0.05);">
                         </div>
                     `;
+                    // 검색 단어 지우기(되돌리기) 버튼 기능 추가
+                    const undoBtn = iconViewDropdown.querySelector('#undoLastWordBtn');
+                    if (undoBtn) {
+                        const searchInput = document.getElementById('searchInput');
+                        undoBtn.addEventListener('click', function() {
+                            if (searchInput) {
+                                let words = searchInput.value.trim().split(/\s+/);
+                                words.pop();
+                                let newValue = words.join(' ');
+                                if (newValue.length > 0) newValue += ' ';
+                                searchInput.value = newValue;
+                                searchInput.focus();
+                            }
+                        });
+                    }
                     iconViewDropdown.style.display = 'block';
                     
                     // 몬스터 아이콘 생성
