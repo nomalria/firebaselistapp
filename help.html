@@ -24,6 +24,7 @@
             color: #2E7D32;
             margin-bottom: 30px;
             text-align: center;
+            font-size: 2.2em;
         }
         .content {
             font-size: 16px;
@@ -31,13 +32,50 @@
             white-space: pre-line;
             text-align: left;
         }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .section-title {
+            color: #2E7D32;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
         .important {
             font-weight: bold;
             color: #388e3c;
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
         }
         .warning {
             font-weight: bold;
             color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .feature-list li {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .feature-list li:before {
+            content: "•";
+            color: #4CAF50;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
         }
         
         /* 메인으로 돌아가기 버튼 스타일 */
@@ -67,6 +105,12 @@
                 text-align: center;
                 width: fit-content;
             }
+            .container {
+                padding: 15px;
+            }
+            .section {
+                padding: 15px;
+            }
         }
     </style>
 </head>
@@ -75,43 +119,53 @@
     <div class="container">
         <h1>도움말</h1>
         <div class="content">
-이 페이지는 목록과 메모 작성을 중점으로 두고 제작되었습니다.
+            <div class="section">
+                <div class="section-title">기본 정보</div>
+                <p>이 페이지는 목록과 메모 작성을 중점으로 두고 제작되었습니다.</p>
+                <div class="important">저장 방식: "목록 및 메모 정렬" 버튼을 클릭하면 현재 작성된 내용이 저장됩니다.</div>
+            </div>
 
-<span class="important">저장 방식: "목록 및 메모 정렬" 버튼을 클릭하면 현재 작성된 내용이 저장됩니다.</span>
+            <div class="section">
+                <div class="section-title">추천 단어 기능</div>
+                <ul class="feature-list">
+                    <li>메모나 목록을 작성할 때, 입력 창 위나 아래에 지금까지 입력된 내용을 바탕으로 추천 단어가 표시됩니다.</li>
+                    <li>추천 단어가 나타난 상태에서 스페이스바를 누르면, 선택된 단어가 현재 입력 중인 단어를 자동으로 대체합니다.</li>
+                </ul>
+                <div class="warning">⚠️ 이 기능은 모바일 환경에서는 지원되지 않습니다.</div>
+            </div>
 
-추천 단어 기능:
+            <div class="section">
+                <div class="section-title">클립보드 UI 사용법</div>
+                <ul class="feature-list">
+                    <li>클립보드 UI에 단어를 저장해두고, ALT + (해당 단어를 저장한 클립보드 번호)를 입력하면 빠르게 해당 단어를 입력할 수 있습니다.</li>
+                </ul>
+                <div class="warning">⚠️ 이 기능도 모바일에서는 지원되지 않습니다.</div>
+            </div>
 
-메모나 목록을 작성할 때, 입력 창 위나 아래에 지금까지 입력된 내용을 바탕으로 추천 단어가 표시됩니다.
+            <div class="section">
+                <div class="section-title">접근 권한</div>
+                <ul class="feature-list">
+                    <li>로그인하지 않아도 누구나 페이지를 사용할 수 있습니다.</li>
+                    <li>작성자 항목에 "섬세포분열"로 표시된 목록이나 메모는 외부 사용자가 수정할 수 없습니다.</li>
+                    <li>작성자 항목이 "외부 사용자"로 된 경우에는 누구나 수정이 가능합니다.</li>
+                </ul>
+            </div>
 
-추천 단어가 나타난 상태에서 스페이스바를 누르면, 선택된 단어가 현재 입력 중인 단어를 자동으로 대체합니다.
+            <div class="section">
+                <div class="section-title">로그인 기능 안내</div>
+                <ul class="feature-list">
+                    <li>로그인은 필수가 아닌 선택 사항입니다.</li>
+                    <li>주로 기존 목록이 삭제되는 사고를 방지하기 위한 안전장치로 제공됩니다.</li>
+                </ul>
+            </div>
 
-<span class="warning">⚠️ 이 기능은 모바일 환경에서는 지원되지 않습니다.</span>
-
-클립보드 UI 사용법:
-
-클립보드 UI에 단어를 저장해두고, ALT + (해당 단어를 저장한 클립보드 번호)를 입력하면 빠르게 해당 단어를 입력할 수 있습니다.
-
-<span class="warning">⚠️ 이 기능도 모바일에서는 지원되지 않습니다.</span>
-
-접근 권한:
-
-로그인하지 않아도 누구나 페이지를 사용할 수 있습니다.
-
-단, 작성자 항목에 "섬세포분열"로 표시된 목록이나 메모는 외부 사용자가 수정할 수 없습니다.
-
-작성자 항목이 "외부 사용자"로 된 경우에는 누구나 수정이 가능합니다.
-
-로그인 기능 안내:
-
-로그인은 필수가 아닌 선택 사항이며,
-
-주로 기존 목록이 삭제되는 사고를 방지하기 위한 안전장치로 제공됩니다.
-
-주의 사항:
-
-이 페이지는 PC 사용 환경을 기준으로 설계되었습니다.
-
-<span class="warning">모바일에서는 일부 기능이 제한되며, 사용이 불편할 수 있습니다.</span>
+            <div class="section">
+                <div class="section-title">주의 사항</div>
+                <ul class="feature-list">
+                    <li>이 페이지는 PC 사용 환경을 기준으로 설계되었습니다.</li>
+                </ul>
+                <div class="warning">모바일에서는 일부 기능이 제한되며, 사용이 불편할 수 있습니다.</div>
+            </div>
         </div>
     </div>
 </body>
