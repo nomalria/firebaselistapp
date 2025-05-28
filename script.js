@@ -335,7 +335,7 @@ async function saveLists() {
     try {
         // IndexedDB에만 저장
         await saveToIndexedDB('lists', lists);
-    updateStats();
+        updateStats();
     } catch (error) {
         console.error('목록 저장 오류:', error);
     }
@@ -526,9 +526,14 @@ async function addNewList() {
                 }
             });
             
-            // 기존 임시목록 업데이트 (새로 찾은 항목들을 앞에 추가)
-            temporaryLists = [...uniqueResults];
+            // 기존 목록에서 해당 항목 삭제 (lists, IndexedDB)
+            const idsToRemove = new Set(results.map(item => item.id));
+            lists = lists.filter(item => !idsToRemove.has(item.id));
+            await saveToIndexedDB('lists', lists);
+            // 임시목록에는 복사본만 남기기
+            temporaryLists = [...uniqueResults.map(item => ({ ...item }))];
             renderTemporaryLists();
+            renderLists();
             updateStats();
             saveTemporaryLists();
             showNotification(`검색 결과: ${results.length}개의 목록을 찾았습니다.`, 'addListBtn');
@@ -678,30 +683,11 @@ async function deleteList(listId, isTemporary = false) {
     }
 }
 
-// 메모 추가 (키워드 기반 자동 상태 설정 및 텍스트 제거 - 로그 제거)
-let isAddingMemo = false; // 중복 실행 방지 플래그
-
+// 메모 추가 (키워드 기반 자동 상태 설정 및 텍스트 제거 - 로그 제거) // 중복 실행 방지 플래그
 function addMemo(listId, isTemporary = false) {
-    console.log('addMemo 호출됨 - listId:', listId, 'isTemporary:', isTemporary);
-    
-    // 이미 메모 추가 중이면 무시
-    if (isAddingMemo) {
-        console.log('이미 메모 추가 중이므로 무시합니다.');
-        return;
-    }
-    
-    isAddingMemo = true; // 메모 추가 시작
-    console.log('메모 추가 시작');
-    
     const user = firebase.auth().currentUser;
     const targetLists = isTemporary ? temporaryLists : lists;
     const list = targetLists.find(l => l.id === listId);
-    
-    if (!list) {
-        console.log('목록을 찾을 수 없음 - listId:', listId);
-        isAddingMemo = false; // 플래그 초기화
-        return;
-    }
 
     if (list.memos.length >= 100) {
         console.log('메모 개수 초과 (100개 제한)');
@@ -972,12 +958,6 @@ function renderLists(page = 1) {
     } else if (currentFilterType === '기타') {
         filteredLists = lists.filter(list => !list.title.startsWith('4방덱') && !list.title.startsWith('5방덱'));
     }
-
-    // 생성 시간 기준 정렬 적용
-    if (currentSortType !== 'none') {
-        filteredLists = sortListsByCreatedAt(filteredLists, currentSortType);
-    }
-
     // 2. 현재 페이지에 해당하는 목록만 추출
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -2223,8 +2203,11 @@ window.deleteMemo = deleteMemo;
         saveLists();
         saveTemporaryLists();
         
-        // Firebase에 업로드
-        await saveToFirebase();
+        // 관리자 계정일 때만 Firebase에 업로드
+        const user = firebase.auth().currentUser;
+        if (user && user.email === 'longway7098@gmail.com') {
+            await saveToFirebase();
+        }
         
         // UI 업데이트
         renderLists();
@@ -2466,6 +2449,8 @@ async function addTemporaryToLists() {
     });
     // IndexedDB에 저장
     await saveToIndexedDB('lists', newLists);
+    // 메모리상의 lists 변수도 업데이트
+    lists = newLists;
     // 임시 목록 초기화 및 로컬스토리지에서 삭제
     temporaryLists = [];
     saveTemporaryLists();
@@ -2862,21 +2847,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 엔터 키 이벤트 처리 (메모 추가용)
+    // 방덱 편집 입력창에서 엔터 키 처리
     document.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && e.target.matches('input[type="text"][id^="newMemoInput-"]')) {
-            const inputId = e.target.id;
-            const listId = inputId.replace('newMemoInput-', '');
-            const isTemporary = e.target.closest('.temporary-list') !== null;
-            
-            if (e.target.value.trim() !== '') {
-                addMemo(listId, isTemporary);
-            } else {
-                showNotification('메모내용을 입력해주세요.', inputId);
-            }
-        }
-        
-        // 방덱 편집 입력창에서 엔터 키 처리
         if (e.key === 'Enter' && e.target.matches('input[type="text"][id^="editListInput-"]')) {
             const listId = e.target.id.replace('editListInput-', '');
             const isTemporary = e.target.closest('.temporary-list') !== null;
@@ -3745,4 +3717,28 @@ function selectListSuggestion(index) {
     removeSuggestionBox();
 }
 
+// ... existing code ...
+
+// ... existing code ...
+function doViewerSearch() {
+    if (!searchInput) return;
+    const query = searchInput.value.trim();
+    if (!query) return;
+    const keywords = query.split(/\s+/).map(w => w.trim()).filter(Boolean);
+    if (keywords.length === 0) return;
+    // 모든 키워드를 포함하는 목록만 추출
+    const matched = lists.filter(list => {
+        const titleWords = list.title.split(/\s+/);
+        return keywords.every(kw => titleWords.includes(kw));
+    });
+    // 임시목록에 복사하고 기존 목록에서는 삭제
+    temporaryLists = matched.map(list => ({ ...list })); // 깊은 복사
+    lists = lists.filter(list => !matched.includes(list));
+    // 화면 갱신
+    if (typeof renderLists === 'function') renderLists(1);
+    if (typeof renderTemporaryLists === 'function') renderTemporaryLists();
+    if (typeof updateStats === 'function') updateStats();
+    // 검색창 비우기
+    searchInput.value = '';
+}
 // ... existing code ...
