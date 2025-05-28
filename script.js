@@ -2970,8 +2970,8 @@ function renderMemoSuggestions(input, currentWord) {
         removeMemoSuggestionBox();
         return;
     }
-    // 추천 단어 추출
-    memoSuggestionWords = getAllMemoWords().filter(word =>
+    // 추천 단어 추출 (메모 내용 기반)
+    memoSuggestionWords = getAllMemoContentWords().filter(word =>
         word.toLowerCase().startsWith(currentWord.toLowerCase()) && word !== currentWord
     );
     memoSuggestionList = memoSuggestionWords;
@@ -3326,6 +3326,48 @@ function addMemoInputListeners(memoInput, listId, isTemporary) {
     const newInput = memoInput.cloneNode(true);
     memoInput.parentNode.replaceChild(newInput, memoInput);
     
+    // 메모 입력용 추천 단어 이벤트
+    newInput.addEventListener('input', function(e) {
+        const cursor = this.selectionStart;
+        const value = this.value.slice(0, cursor);
+        const words = value.split(' ');
+        const currentWord = words[words.length - 1];
+        if (currentWord && currentWord.length > 0) {
+            renderMemoContentSuggestions(this, currentWord);
+        } else {
+            removeMemoSuggestionBox();
+        }
+    });
+
+    // 추천단어 키보드 네비게이션 및 선택
+    newInput.addEventListener('keydown', function(e) {
+        const box = document.getElementById('memoSuggestionBox');
+        if (!box) return;
+        const items = box.querySelectorAll('.memo-suggestion-item');
+        if (items.length === 0) return;
+        let selectedIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+        if (e.key === 'ArrowDown' || e.key === 'Tab') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex + 1) % items.length;
+            items.forEach((item, idx) => {
+                item.classList.toggle('selected', idx === selectedIndex);
+                item.style.backgroundColor = idx === selectedIndex ? '#f0f0f0' : '';
+            });
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+            items.forEach((item, idx) => {
+                item.classList.toggle('selected', idx === selectedIndex);
+                item.style.backgroundColor = idx === selectedIndex ? '#f0f0f0' : '';
+            });
+        } else if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') {
+            if (selectedIndex >= 0) {
+                e.preventDefault();
+                selectMemoSuggestion(selectedIndex);
+            }
+        }
+    });
+
     // 키다운 이벤트 리스너
     newInput.addEventListener('keydown', function(event) {
         // Alt + ↑ 키 조합 처리
@@ -3401,3 +3443,307 @@ function addMemoInputListeners(memoInput, listId, isTemporary) {
 function sortMemosByAlphabetical(memos) {
     return [...memos].sort((a, b) => a.text.localeCompare(b.text, 'ko'));
 }
+
+// 목록 검색용 추천 단어 추출 함수
+function getAllListWords() {
+    const wordSet = new Set();
+    lists.forEach(list => {
+        list.title.split(' ').forEach(word => {
+            if (word.trim()) wordSet.add(word.trim());
+        });
+    });
+    temporaryLists.forEach(list => {
+        list.title.split(' ').forEach(word => {
+            if (word.trim()) wordSet.add(word.trim());
+        });
+    });
+    return Array.from(wordSet);
+}
+
+// 메모 입력용 추천 단어 추출 함수
+function getAllMemoContentWords() {
+    const words = new Set();
+    [...lists, ...temporaryLists].forEach(list => {
+        if (list.memos) {
+            list.memos.forEach(memo => {
+                if (memo.text) {
+                    const memoWords = memo.text.split(/\s+/).filter(word => word.length > 0);
+                    memoWords.forEach(word => words.add(word));
+                }
+            });
+        }
+    });
+    return Array.from(words);
+}
+
+// 목록 검색용 추천 단어 표시 함수
+function renderListSuggestions(input, currentWord) {
+    if (!currentWord || currentWord.trim() === '') {
+        removeSuggestionBox();
+        return;
+    }
+
+    const suggestionWords = getAllListWords().filter(word =>
+        word.toLowerCase().startsWith(currentWord.toLowerCase()) && word !== currentWord
+    );
+
+    if (suggestionWords.length === 0) {
+        removeSuggestionBox();
+        return;
+    }
+
+    let suggestionBox = document.getElementById('suggestionBox');
+    if (suggestionBox) suggestionBox.remove();
+
+    suggestionBox = document.createElement('div');
+    suggestionBox.id = 'suggestionBox';
+    suggestionBox.style.position = 'absolute';
+    suggestionBox.style.background = '#fff';
+    suggestionBox.style.border = '1px solid #ccc';
+    suggestionBox.style.borderRadius = '6px';
+    suggestionBox.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+    suggestionBox.style.zIndex = '1000';
+    suggestionBox.style.minWidth = input.offsetWidth + 'px';
+    suggestionBox.style.maxHeight = '200px';
+    suggestionBox.style.overflowY = 'auto';
+    suggestionBox.style.left = input.getBoundingClientRect().left + 'px';
+    suggestionBox.style.top = (input.getBoundingClientRect().bottom + window.scrollY) + 'px';
+
+    suggestionBox.innerHTML = suggestionWords.map((word, index) => `
+        <div class="suggestion-item${index === 0 ? ' selected' : ''}" 
+             data-index="${index}" 
+             style="padding: 8px 12px; cursor: pointer; ${index === 0 ? 'background-color: #f0f0f0;' : ''}">
+            ${word}
+        </div>
+    `).join('');
+
+    document.body.appendChild(suggestionBox);
+
+    // 마우스 클릭 이벤트
+    suggestionBox.addEventListener('mousedown', function(e) {
+        const item = e.target.closest('.suggestion-item');
+        if (item) {
+            const index = parseInt(item.dataset.index);
+            selectListSuggestion(index);
+        }
+    });
+}
+
+// 메모 입력용 추천 단어 표시 함수
+function renderMemoContentSuggestions(input, currentWord) {
+    if (!currentWord || currentWord.length === 0) {
+        removeMemoSuggestionBox();
+        return;
+    }
+
+    const words = getAllMemoContentWords();
+    const suggestions = words.filter(word => 
+        word.toLowerCase().includes(currentWord.toLowerCase())
+    ).slice(0, 5);
+
+    if (suggestions.length === 0) {
+        removeMemoSuggestionBox();
+        return;
+    }
+
+    let box = document.getElementById('memoSuggestionBox');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'memoSuggestionBox';
+        box.style.position = 'absolute';
+        box.style.zIndex = '1000';
+        box.style.backgroundColor = 'white';
+        box.style.border = '1px solid #ccc';
+        box.style.borderRadius = '4px';
+        box.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        box.style.maxHeight = '200px';
+        box.style.overflowY = 'auto';
+        document.body.appendChild(box);
+    }
+
+    box.innerHTML = '';
+    suggestions.forEach((word, index) => {
+        const item = document.createElement('div');
+        item.className = 'memo-suggestion-item' + (index === 0 ? ' selected' : '');
+        item.textContent = word;
+        item.style.padding = '8px 12px';
+        item.style.cursor = 'pointer';
+        item.style.borderBottom = index < suggestions.length - 1 ? '1px solid #eee' : 'none';
+        if (index === 0) item.style.backgroundColor = '#f0f0f0';
+        item.addEventListener('mouseover', () => {
+            box.querySelectorAll('.memo-suggestion-item').forEach(el => {
+                el.classList.remove('selected');
+                el.style.backgroundColor = '';
+            });
+            item.classList.add('selected');
+            item.style.backgroundColor = '#f0f0f0';
+        });
+        item.addEventListener('mouseout', () => {
+            item.classList.remove('selected');
+            item.style.backgroundColor = '';
+        });
+        item.addEventListener('mousedown', () => {
+            selectMemoSuggestion(index);
+        });
+        box.appendChild(item);
+    });
+    const inputRect = input.getBoundingClientRect();
+    box.style.top = `${inputRect.bottom + window.scrollY}px`;
+    box.style.left = `${inputRect.left + window.scrollX}px`;
+    box.style.width = `${inputRect.width}px`;
+}
+
+// 목록 검색용 추천 단어 선택 함수
+function selectListSuggestion(index) {
+    const suggestionBox = document.getElementById('suggestionBox');
+    if (!suggestionBox) return;
+
+    const items = suggestionBox.querySelectorAll('.suggestion-item');
+    if (index >= 0 && index < items.length) {
+        const selectedWord = items[index].textContent.trim();
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            const words = searchInput.value.split(' ').filter(word => word.trim() !== '');
+            words[words.length - 1] = selectedWord;
+            searchInput.value = words.join(' ') + ' ';
+            searchInput.focus();
+            searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+    }
+    removeSuggestionBox();
+}
+
+// 메모 입력용 추천 단어 선택 함수
+function selectMemoSuggestion(index) {
+    const suggestionBox = document.getElementById('memoSuggestionBox');
+    if (!suggestionBox) return;
+
+    const items = suggestionBox.querySelectorAll('.memo-suggestion-item');
+    if (index >= 0 && index < items.length) {
+        const selectedWord = items[index].textContent.trim();
+        const memoInput = document.activeElement;
+        if (memoInput && memoInput.tagName === 'INPUT') {
+            const value = memoInput.value;
+            const cursor = memoInput.selectionStart;
+            let currentWordStart = cursor;
+            while (currentWordStart > 0 && value[currentWordStart - 1] !== ' ') {
+                currentWordStart--;
+            }
+            const previousInput = value.slice(0, currentWordStart);
+            const remainingInput = value.slice(cursor);
+            memoInput.value = previousInput + selectedWord + ' ' + remainingInput;
+            memoInput.focus();
+            memoInput.setSelectionRange(previousInput.length + selectedWord.length + 1, previousInput.length + selectedWord.length + 1);
+        }
+    }
+    removeMemoSuggestionBox();
+}
+
+// 목록 검색용 추천 단어 박스 제거
+function removeSuggestionBox() {
+    const box = document.getElementById('suggestionBox');
+    if (box) box.remove();
+}
+
+// 메모 입력용 추천 단어 박스 제거
+function removeMemoSuggestionBox() {
+    const box = document.getElementById('memoSuggestionBox');
+    if (box) {
+        box.remove();
+    }
+}
+
+// ... existing code ...
+
+// setupSearchInputEvents 함수 수정
+function setupSearchInputEvents() {
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('addListBtn');
+    
+    if (searchInput && searchBtn) {
+        searchBtn.addEventListener('click', async () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                await searchLists(query);
+            }
+        });
+
+        // 목록 검색용 추천 단어 이벤트
+        searchInput.addEventListener('input', function(e) {
+            const cursor = this.selectionStart;
+            const value = this.value.slice(0, cursor);
+            const words = value.split(' ');
+            const currentWord = words[words.length - 1];
+            if (currentWord && currentWord.length > 0) {
+                renderListSuggestions(this, currentWord);
+            } else {
+                removeSuggestionBox();
+            }
+        });
+
+        // 목록 검색용 키보드 네비게이션
+        searchInput.addEventListener('keydown', function(e) {
+            const box = document.getElementById('suggestionBox');
+            if (!box) return;
+
+            const items = box.querySelectorAll('.suggestion-item');
+            if (items.length === 0) return;
+
+            let selectedIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex + 1) % items.length;
+                items.forEach((item, index) => {
+                    item.classList.toggle('selected', index === selectedIndex);
+                    item.style.backgroundColor = index === selectedIndex ? '#f0f0f0' : '';
+                });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+                items.forEach((item, index) => {
+                    item.classList.toggle('selected', index === selectedIndex);
+                    item.style.backgroundColor = index === selectedIndex ? '#f0f0f0' : '';
+                });
+            } else if (e.key === 'Tab') {
+                e.preventDefault();
+                if (selectedIndex >= 0) {
+                    selectListSuggestion(selectedIndex);
+                }
+            } else if (e.key === ' ' || e.key === 'Spacebar') {
+                if (selectedIndex >= 0) {
+                    e.preventDefault();
+                    selectListSuggestion(selectedIndex);
+                }
+            } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                e.preventDefault();
+                selectListSuggestion(selectedIndex);
+            }
+        });
+
+        searchInput.addEventListener('blur', function() {
+            setTimeout(removeSuggestionBox, 200);
+        });
+    }
+}
+
+function selectListSuggestion(index) {
+    const suggestionBox = document.getElementById('suggestionBox');
+    if (!suggestionBox) return;
+
+    const items = suggestionBox.querySelectorAll('.suggestion-item');
+    if (index >= 0 && index < items.length) {
+        const selectedWord = items[index].textContent.trim();
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            const words = searchInput.value.split(' ').filter(word => word.trim() !== '');
+            words[words.length - 1] = selectedWord;
+            searchInput.value = words.join(' ') + ' ';
+            searchInput.focus();
+            searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+    }
+    removeSuggestionBox();
+}
+
+// ... existing code ...
