@@ -3278,6 +3278,20 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
 
         memo.text = newText;
 
+        // 참고URL 확인 및 자동 참고자료 추가
+        const referenceUrlInput = document.getElementById('referenceUrlInput');
+        if (referenceUrlInput && referenceUrlInput.value.trim()) {
+            const referenceUrl = referenceUrlInput.value.trim();
+            const autoComment = {
+                id: Date.now().toString() + Math.random().toString(16).slice(2),
+                text: `참고자료: ${referenceUrl}`,
+                isReference: true,
+                url: referenceUrl,
+                createdAt: new Date().toISOString()
+            };
+            memo.comments.push(autoComment);
+        }
+
         // 변경사항 저장
         if (isTemporary) {
             saveTemporaryLists();
