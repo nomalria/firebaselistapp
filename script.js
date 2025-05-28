@@ -2426,34 +2426,40 @@ async function addTemporaryToLists() {
     if (temporaryLists.length === 0) {
         return;
     }
-    // IndexedDB에서 기존 목록 불러오기
-    const indexedLists = await loadFromIndexedDB('lists');
-    let newLists = [...indexedLists];
+    
     // 임시 목록을 기존 목록에 추가 (제목 중복 → 덮어쓰기, id 중복 검사)
     temporaryLists.forEach(tempList => {
-        const existingTitleIndex = newLists.findIndex(list => list.title === tempList.title);
+        const existingTitleIndex = lists.findIndex(list => list.title === tempList.title);
         if (existingTitleIndex !== -1) {
-            newLists[existingTitleIndex] = { ...tempList };
+            lists[existingTitleIndex] = { ...tempList };
         } else {
-            const existingIdIndex = newLists.findIndex(list => list.id === tempList.id);
+            const existingIdIndex = lists.findIndex(list => list.id === tempList.id);
             if (existingIdIndex !== -1) {
                 let newId;
                 do {
                     newId = Date.now().toString() + Math.random().toString(16).slice(2);
-                } while (newLists.some(list => list.id === newId));
-                newLists.push({ ...tempList, id: newId });
+                } while (lists.some(list => list.id === newId));
+                lists.push({ ...tempList, id: newId });
             } else {
-                newLists.push({ ...tempList });
+                lists.push({ ...tempList });
             }
         }
     });
+
     // IndexedDB에 저장
-    await saveToIndexedDB('lists', newLists);
-    // 메모리상의 lists 변수도 업데이트
-    lists = newLists;
+    await saveToIndexedDB('lists', lists);
+    
     // 임시 목록 초기화 및 로컬스토리지에서 삭제
     temporaryLists = [];
     saveTemporaryLists();
+    
+    // 참고 URL 입력창 초기화
+    const referenceUrlInput = document.getElementById('referenceUrlInput');
+    if (referenceUrlInput) {
+        referenceUrlInput.value = '';
+    }
+    
+    // UI 업데이트
     renderLists();
     renderTemporaryLists();
     showNotification('기존 목록에 추가되었습니다', 'addTemporaryBtn');
@@ -2524,51 +2530,64 @@ function setupSearchInputEvents() {
     const searchBtn = document.getElementById('addListBtn');
     
     if (searchInput && searchBtn) {
-        // '추가' 버튼 클릭 시에만 검색 기능 동작
         searchBtn.addEventListener('click', async () => {
             const query = searchInput.value.trim();
             if (query) {
                 await searchLists(query);
             }
         });
-        // 추천단어 input 이벤트 연결
+
+        // 목록 검색용 추천 단어 이벤트
         searchInput.addEventListener('input', function(e) {
-        const cursor = this.selectionStart;
-        const value = this.value.slice(0, cursor);
-        const words = value.split(' ');
-        const currentWord = words[words.length - 1];
-        if (currentWord && currentWord.length > 0) {
-            renderMemoSuggestions(this, currentWord);
-        } else {
-            removeMemoSuggestionBox();
-        }
-    });
+            const cursor = this.selectionStart;
+            const value = this.value.slice(0, cursor);
+            const words = value.split(' ');
+            const currentWord = words[words.length - 1];
+            if (currentWord && currentWord.length > 0) {
+                renderListSuggestions(this, currentWord);
+            } else {
+                removeSuggestionBox();
+            }
+        });
+
         // 추천단어 키보드 네비게이션
         searchInput.addEventListener('keydown', function(e) {
-        const box = document.getElementById('memoSuggestionBox');
-        if (!box || memoSuggestionWords.length === 0) return;
+            const box = document.getElementById('suggestionBox');
+            if (!box || !box.children.length) return;
+
             if (e.key === 'ArrowDown' || e.key === 'Tab') {
-            e.preventDefault();
-            memoSuggestionIndex = (memoSuggestionIndex + 1) % memoSuggestionWords.length;
-            updateMemoSuggestionBox();
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            memoSuggestionIndex = (memoSuggestionIndex - 1 + memoSuggestionWords.length) % memoSuggestionWords.length;
-            updateMemoSuggestionBox();
-        } else if (e.key === ' ' || e.key === 'Spacebar') {
-            if (memoSuggestionIndex >= 0) {
                 e.preventDefault();
-                selectMemoSuggestion(memoSuggestionIndex);
-                memoSuggestionWords = [];
-                memoSuggestionIndex = -1;
-                removeMemoSuggestionBox();
+                const items = box.querySelectorAll('.suggestion-item');
+                const currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+                const nextIndex = (currentIndex + 1) % items.length;
+                
+                items.forEach(item => item.classList.remove('selected'));
+                items[nextIndex].classList.add('selected');
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const items = box.querySelectorAll('.suggestion-item');
+                const currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+                const prevIndex = (currentIndex - 1 + items.length) % items.length;
+                
+                items.forEach(item => item.classList.remove('selected'));
+                items[prevIndex].classList.add('selected');
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                const selectedItem = box.querySelector('.suggestion-item.selected');
+                if (selectedItem) {
+                    const selectedWord = selectedItem.textContent.trim();
+                    const words = this.value.split(' ');
+                    words[words.length - 1] = selectedWord;
+                    this.value = words.join(' ') + ' ';
+                    removeSuggestionBox();
+                }
             }
-        }
-    });
+        });
+
         // 포커스 아웃 시 추천단어 박스 제거
         searchInput.addEventListener('blur', function() {
-        setTimeout(removeMemoSuggestionBox, 100);
-    });
+            setTimeout(removeSuggestionBox, 100);
+        });
     }
 }
 
@@ -3652,48 +3671,43 @@ function setupSearchInputEvents() {
             }
         });
 
-        // 목록 검색용 키보드 네비게이션
+        // 추천단어 키보드 네비게이션
         searchInput.addEventListener('keydown', function(e) {
             const box = document.getElementById('suggestionBox');
-            if (!box) return;
+            if (!box || !box.children.length) return;
 
-            const items = box.querySelectorAll('.suggestion-item');
-            if (items.length === 0) return;
-
-            let selectedIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
-
-            if (e.key === 'ArrowDown') {
+            if (e.key === 'ArrowDown' || e.key === 'Tab') {
                 e.preventDefault();
-                selectedIndex = (selectedIndex + 1) % items.length;
-                items.forEach((item, index) => {
-                    item.classList.toggle('selected', index === selectedIndex);
-                    item.style.backgroundColor = index === selectedIndex ? '#f0f0f0' : '';
-                });
+                const items = box.querySelectorAll('.suggestion-item');
+                const currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+                const nextIndex = (currentIndex + 1) % items.length;
+                
+                items.forEach(item => item.classList.remove('selected'));
+                items[nextIndex].classList.add('selected');
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-                items.forEach((item, index) => {
-                    item.classList.toggle('selected', index === selectedIndex);
-                    item.style.backgroundColor = index === selectedIndex ? '#f0f0f0' : '';
-                });
-            } else if (e.key === 'Tab') {
+                const items = box.querySelectorAll('.suggestion-item');
+                const currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+                const prevIndex = (currentIndex - 1 + items.length) % items.length;
+                
+                items.forEach(item => item.classList.remove('selected'));
+                items[prevIndex].classList.add('selected');
+            } else if (e.key === ' ') {
                 e.preventDefault();
-                if (selectedIndex >= 0) {
-                    selectListSuggestion(selectedIndex);
+                const selectedItem = box.querySelector('.suggestion-item.selected');
+                if (selectedItem) {
+                    const selectedWord = selectedItem.textContent.trim();
+                    const words = this.value.split(' ');
+                    words[words.length - 1] = selectedWord;
+                    this.value = words.join(' ') + ' ';
+                    removeSuggestionBox();
                 }
-            } else if (e.key === ' ' || e.key === 'Spacebar') {
-                if (selectedIndex >= 0) {
-                    e.preventDefault();
-                    selectListSuggestion(selectedIndex);
-                }
-            } else if (e.key === 'Enter' && selectedIndex >= 0) {
-                e.preventDefault();
-                selectListSuggestion(selectedIndex);
             }
         });
 
+        // 포커스 아웃 시 추천단어 박스 제거
         searchInput.addEventListener('blur', function() {
-            setTimeout(removeSuggestionBox, 200);
+            setTimeout(removeSuggestionBox, 100);
         });
     }
 }
