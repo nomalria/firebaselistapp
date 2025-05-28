@@ -679,7 +679,7 @@
                 { id:"dark9", name:"암하르퓨", path:"summoners_war_images/dark/9.png", order: 9, searchText:"암하르퓨"},
                 { id:"dark10", name:"암하엘", path:"summoners_war_images/dark/10.png", order: 10, searchText:"암하엘"},
                 { id:"dark11", name:"암그리폰", path:"summoners_war_images/dark/11.png", order: 11, searchText:"암그리폰"},
-                { id:"dark12", name:"암늑인", path:"summoners_war_images/dark/12.png", order: 12, searchText:"암늑인"},
+                { id:"dark12", name:"암이누", path:"summoners_war_images/dark/12.png", order: 12, searchText:"암이누"},
                 { id:"dark13", name:"암워베어", path:"summoners_war_images/dark/13.png", order: 13, searchText:"암워베어"},
                 { id:"dark14", name:"암픽시", path:"summoners_war_images/dark/14.png", order: 14, searchText:"암픽시"},
                 { id:"dark15", name:"암페어리", path:"summoners_war_images/dark/15.png", order: 15, searchText:"암페어리"},
