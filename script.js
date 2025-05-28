@@ -2082,7 +2082,6 @@ function addClipboardShortcutListener(element) {
 
 // 클립보드 단축키 키다운 핸들러
 function handleClipboardKeydown(event) {
-            handleClipboardShortcut(event, this);
 }
 
 // JSON 불러오기 함수
