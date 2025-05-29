@@ -176,7 +176,7 @@ const mobImageMap = {
         '물이누': 'summoners_war_images/water/12.png',
         '물워베어': 'summoners_war_images/water/13.png',
         '물픽시': 'summoners_war_images/water/14.png',
-        '믈페어리': 'summoners_war_images/water/15.png',
+        '물페어리': 'summoners_war_images/water/15.png',
         '물호문': 'summoners_war_images/water/16.png',
         '물젠이츠': 'summoners_war_images/water/17.png',
         '물이노스케': 'summoners_war_images/water/18.png',
