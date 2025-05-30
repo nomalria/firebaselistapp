@@ -901,33 +901,45 @@ h1 {
 }
 
 /* 메모 편집 textarea 스타일 */
-.memo-edit-textarea {
-    width: 100%;
-    min-height: 60px;
-    padding: 8px;
-    border: 1px solid #ddd;
+.edit-memo-input {
+    width: 400px;
+    min-height: 30px;
+    max-height: 30px;
+    padding: 8px 12px;
+    border: 2px solid #4CAF50;
     border-radius: 4px;
-    resize: vertical;
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 20px;
+    background: #fff;
+    color: #333;
     font-family: inherit;
+    box-sizing: border-box;
+    resize: none;
+    line-height: 1.4;
+    margin: 0;
+    display: block;
 }
 
-.memo-edit-textarea:focus {
+.edit-memo-input:focus {
     outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    border-color: #388e3c;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.15);
 }
 
-/* 편집 버튼 스타일 */
+.edit-memo-input::placeholder {
+    color: #888;
+    opacity: 1;
+}
+
+/* 편집 버튼(저장/취소)도 한 줄로 정렬 */
 .edit-section .edit-buttons {
     display: flex;
-    gap: 8px;
+    gap: 20px;
     justify-content: flex-end;
+    margin-top: 10px;
 }
 
 .edit-section .edit-buttons button {
-    padding: 6px 12px;
+    padding: 12px 24px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -937,7 +949,7 @@ h1 {
 
 .edit-section .edit-buttons button:first-child {
     background-color: #4CAF50;
-    color: white;
+    color: rgb(18, 250, 10);
 }
 
 .edit-section .edit-buttons button:first-child:hover {
