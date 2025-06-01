@@ -42,8 +42,9 @@ let statusTimeoutId = null; // 상태 메시지 타임아웃 ID
 // 전역 변수에 정렬 타입 추가
 let currentSortType = 'none'; // 'none', 'newest', 'oldest'
 
-// 클립보드 관련 전역 변수 추가
-let clipboardItems = [];
+// 클립보드 관련 전역 변수 추가 (메모용, 목록용)
+let clipboardItemsMemo = [];
+let clipboardItemsList = [];
 const MAX_CLIPBOARD_ITEMS = 9;
 
 // 추천 단어 관련 변수
@@ -1634,8 +1635,16 @@ function updateCounter(listId, memoId, counterType, change, isTemporary = false)
     
     // 승수 또는 패수 업데이트
     if (counterType === 'win') {
+        // 승수가 0이고 감소하려는 경우 무시
+        if (memo.wins === 0 && change < 0) {
+            return;
+        }
         memo.wins = (memo.wins || 0) + change;
     } else if (counterType === 'loss') {
+        // 패수가 0이고 감소하려는 경우 무시
+        if (memo.losses === 0 && change < 0) {
+            return;
+        }
         memo.losses = (memo.losses || 0) + change;
     }
     
@@ -1673,19 +1682,26 @@ function createMemoItemHTML(memo, listId, isTemporary) {
 
     return `
         <div class="memo-item" data-memo-id="${memo.id}">
-            <div class="memo-content">
-                <div class="memo-text">${memo.text}</div>
-                <span class="mob-icons memo-mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(memo.text, isTemporary, true) : ''}</span>
-                <div class="memo-stats">
-                    <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
+            <div class="memo-table">
+                <div class="memo-row">
+                    <div class="memo-cell memo-title">${memo.text}</div>
+                    <div class="memo-cell memo-stats">
+                        <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
+                    </div>
                 </div>
-                <span class="memo-author memo-author-right">작성자: ${(memo.author === 'longway7098@gmail.com' || !memo.author) ? '섬세포분열' : memo.author}</span>
+                <div class="memo-row">
+                    <div class="memo-cell memo-icons">
+                        <span class="mob-icons memo-mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(memo.text, isTemporary, true) : ''}</span>
+                    </div>
+                    <div class="memo-cell memo-author">작성자: ${(memo.author === 'longway7098@gmail.com' || !memo.author) ? '섬세포분열' : memo.author}</div>
+                </div>
             </div>
             <div class="memo-actions">
                 <div class="memo-status-display">
                     ${statusIcon ? `<span class="status-icon ${statusClass}">${statusIcon}</span>` : ''}
                 </div>
                 <div class="memo-buttons">
+                    <button class="add-reference-btn" onclick="addReferenceFromUrl('${listId}', '${memo.id}', ${isTemporary})">자료추가</button>
                     <button class="comment-btn" onclick="toggleCommentSection('${listId}', '${memo.id}', ${isTemporary})">${commentButtonText}</button>
                 </div>
                 <div class="memo-counter">
@@ -1942,22 +1958,15 @@ function deleteComment(memoId, commentId) {
 // 클립보드 관련 함수들
 function loadClipboardItems() {
     try {
-        const saved = localStorage.getItem('clipboardItems');
-        if (saved) {
-            clipboardItems = JSON.parse(saved);
-            if (!Array.isArray(clipboardItems)) {
-                clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
-            }
-        } else {
-            // 저장된 데이터가 없는 경우 기본값으로 초기화
-            clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
-            saveClipboardItems(); // 초기 상태 저장
-        }
+        const savedMemo = localStorage.getItem('clipboardItemsMemo');
+        const savedList = localStorage.getItem('clipboardItemsList');
+        clipboardItemsMemo = savedMemo ? JSON.parse(savedMemo) : Array(MAX_CLIPBOARD_ITEMS).fill('');
+        clipboardItemsList = savedList ? JSON.parse(savedList) : Array(MAX_CLIPBOARD_ITEMS).fill('');
         renderClipboardItems();
     } catch (error) {
-        console.error('클립보드 로드 중 오류:', error);
-        clipboardItems = Array(MAX_CLIPBOARD_ITEMS).fill('');
-        saveClipboardItems(); // 오류 발생 시에도 초기 상태 저장
+        clipboardItemsMemo = Array(MAX_CLIPBOARD_ITEMS).fill('');
+        clipboardItemsList = Array(MAX_CLIPBOARD_ITEMS).fill('');
+        saveClipboardItems();
     }
 }
 
@@ -1965,43 +1974,62 @@ function loadClipboardItems() {
 function renderClipboardItems() {
     const container = document.querySelector('.clipboard-items');
     if (!container) return;
-    
     container.innerHTML = '';
-    
-    // 기존 클립보드 아이템 렌더링
-    clipboardItems.forEach((item, index) => {
-        const itemElement = document.createElement('div');
-        itemElement.className = 'clipboard-item';
-        itemElement.innerHTML = `
-            <div class="clipboard-item-header">
-                <span class="shortcut">Alt + ${index + 1}</span>
-            </div>
-            <textarea class="clipboard-text" data-index="${index}" 
-                placeholder="클립보드 ${index + 1}번">${item}</textarea>
-        `;
-        container.appendChild(itemElement);
-    });
-
-    // 새 아이템 추가 버튼 (최대 9개까지만)
-    if (clipboardItems.length < MAX_CLIPBOARD_ITEMS) {
-        const addButton = document.createElement('button');
-        addButton.className = 'add-clipboard-item';
-        addButton.textContent = '+ 새 클립보드 추가';
-        addButton.onclick = addNewClipboardItem;
-        container.appendChild(addButton);
+    // 상단 라벨
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.gap = '12px';
+    header.style.marginBottom = '8px';
+    header.innerHTML = '<span style="flex:1;text-align:center;font-weight:bold;">메모용</span><span style="flex:1;text-align:center;font-weight:bold;">목록용</span>';
+    container.appendChild(header);
+    // 각 클립보드 줄
+    for (let i = 0; i < MAX_CLIPBOARD_ITEMS; i++) {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '8px';
+        row.style.marginBottom = '4px';
+        // 단축키 안내
+        const shortcut = document.createElement('span');
+        shortcut.textContent = `Alt + ${i + 1}`;
+        shortcut.style.width = '60px';
+        shortcut.style.fontSize = '12px';
+        shortcut.style.color = '#888';
+        row.appendChild(shortcut);
+        // 메모용 입력창
+        const memoInput = document.createElement('input');
+        memoInput.type = 'text';
+        memoInput.value = clipboardItemsMemo[i] || '';
+        memoInput.placeholder = `메모용 ${i + 1}`;
+        memoInput.style.flex = '1';
+        memoInput.className = 'clipboard-memo-input';
+        memoInput.dataset.index = i;
+        memoInput.addEventListener('input', function() {
+            clipboardItemsMemo[i] = this.value;
+            saveClipboardItems();
+        });
+        row.appendChild(memoInput);
+        // 목록용 입력창
+        const listInput = document.createElement('input');
+        listInput.type = 'text';
+        listInput.value = clipboardItemsList[i] || '';
+        listInput.placeholder = `목록용 ${i + 1}`;
+        listInput.style.flex = '1';
+        listInput.className = 'clipboard-list-input';
+        listInput.dataset.index = i;
+        listInput.addEventListener('input', function() {
+            clipboardItemsList[i] = this.value;
+            saveClipboardItems();
+        });
+        row.appendChild(listInput);
+        container.appendChild(row);
     }
-
-    // 이벤트 리스너 추가
-    attachClipboardEventListeners();
 }
 
 // 클립보드 저장
 function saveClipboardItems() {
-    try {
-        localStorage.setItem('clipboardItems', JSON.stringify(clipboardItems));
-    } catch (error) {
-        console.error('클립보드 저장 중 오류:', error);
-    }
+    localStorage.setItem('clipboardItemsMemo', JSON.stringify(clipboardItemsMemo));
+    localStorage.setItem('clipboardItemsList', JSON.stringify(clipboardItemsList));
 }
 
 // 새 클립보드 아이템 추가
@@ -3278,20 +3306,6 @@ function saveMemoEdit(listId, memoId, isTemporary = false) {
 
         memo.text = newText;
 
-        // 참고URL 확인 및 자동 참고자료 추가
-        const referenceUrlInput = document.getElementById('referenceUrlInput');
-        if (referenceUrlInput && referenceUrlInput.value.trim()) {
-            const referenceUrl = referenceUrlInput.value.trim();
-            const autoComment = {
-                id: Date.now().toString() + Math.random().toString(16).slice(2),
-                text: `참고자료: ${referenceUrl}`,
-                isReference: true,
-                url: referenceUrl,
-                createdAt: new Date().toISOString()
-            };
-            memo.comments.push(autoComment);
-        }
-
         // 변경사항 저장
         if (isTemporary) {
             saveTemporaryLists();
@@ -3769,4 +3783,114 @@ function doViewerSearch() {
     // 검색창 비우기
     searchInput.value = '';
 }
+// ... existing code ...
+
+// 참고자료 추가 함수
+function addReferenceFromUrl(listId, memoId, isTemporary) {
+    const referenceUrlInput = document.getElementById('referenceUrlInput');
+    if (!referenceUrlInput || !referenceUrlInput.value.trim()) {
+        showNotification('참고 URL을 입력해주세요.', 'addReferenceBtn');
+        return;
+    }
+
+    const referenceUrl = referenceUrlInput.value.trim();
+    const targetLists = isTemporary ? temporaryLists : lists;
+    const list = targetLists.find(l => l.id === listId);
+    if (!list) return;
+
+    const memo = list.memos.find(m => m.id === memoId);
+    if (!memo) return;
+
+    const autoComment = {
+        id: Date.now().toString() + Math.random().toString(16).slice(2),
+        text: `참고자료: ${referenceUrl}`,
+        isReference: true,
+        url: referenceUrl,
+        createdAt: new Date().toISOString()
+    };
+
+    memo.comments.push(autoComment);
+
+    // 변경사항 저장
+    if (isTemporary) {
+        saveTemporaryLists();
+    } else {
+        saveLists();
+    }
+
+    // UI 업데이트
+    updateMemoListUI(listId, list.memos, isTemporary);
+    showNotification('참고자료가 추가되었습니다.', 'addReferenceBtn');
+}
+
+// ... existing code ...
+// ====== 전역 단축키: Alt+/ → 검색창, Alt+. → 임시목록 맨 위 메모입력 ======
+document.addEventListener('keydown', function(e) {
+    // Alt + / : 검색창 포커스
+    if (e.key === '/' && e.altKey && !e.ctrlKey && !e.metaKey) {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        }
+    }
+    // Alt + . : 임시목록 맨 위 메모입력창 포커스
+    if (e.key === '.' && e.altKey && !e.ctrlKey && !e.metaKey) {
+        const tempList = temporaryLists && temporaryLists[0];
+        if (!tempList) {
+            showNotification('임시목록이 없습니다.', 'addListBtn');
+            return;
+        }
+        // 메모섹션 열기
+        const memoSection = document.getElementById(`memoSection-${tempList.id}`);
+        if (memoSection && memoSection.style.display !== 'block') {
+            memoSection.style.display = 'block';
+        }
+        // 메모 입력창 포커스
+        const memoInput = document.getElementById(`newMemoInput-${tempList.id}`);
+        if (memoInput) {
+            e.preventDefault();
+            memoInput.focus();
+            memoInput.select();
+            memoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+});
+// ... existing code ...
+
+// ... existing code ...
+// Alt+숫자 단축키 입력 확장 (메모/목록 입력창 모두 지원)
+document.addEventListener('keydown', function(event) {
+    if (event.altKey && event.key >= '1' && event.key <= '9') {
+        const idx = parseInt(event.key) - 1;
+        const active = document.activeElement;
+        // 메모 입력창
+        if (active && active.id && active.id.startsWith('newMemoInput-')) {
+            event.preventDefault();
+            const value = clipboardItemsMemo[idx] || '';
+            if (value) {
+                const start = active.selectionStart;
+                const end = active.selectionEnd;
+                active.value = active.value.substring(0, start) + value + active.value.substring(end);
+                const newPos = start + value.length;
+                active.setSelectionRange(newPos, newPos);
+                active.focus();
+            }
+        }
+        // 목록 검색창
+        else if (active && active.id === 'searchInput') {
+            event.preventDefault();
+            const value = clipboardItemsList[idx] || '';
+            if (value) {
+                const start = active.selectionStart;
+                const end = active.selectionEnd;
+                active.value = active.value.substring(0, start) + value + active.value.substring(end);
+                const newPos = start + value.length;
+                active.setSelectionRange(newPos, newPos);
+                active.focus();
+            }
+        }
+    }
+});
 // ... existing code ...
