@@ -3388,8 +3388,8 @@ function addMemoInputListeners(memoInput, listId, isTemporary) {
 
     // 키다운 이벤트 리스너
     newInput.addEventListener('keydown', function(event) {
-        // Alt + ↑ 키 조합 처리
-        if (event.altKey && event.key === 'ArrowUp') {
+        // Alt + ↑ 키 조합 처리 (승리 횟수 증가)
+        if (event.altKey && !event.shiftKey && event.key === 'ArrowUp') {
             event.preventDefault();
             event.stopPropagation();
             
@@ -3409,8 +3409,8 @@ function addMemoInputListeners(memoInput, listId, isTemporary) {
             return;
         }
         
-        // Alt + ↓ 키 조합 처리
-        if (event.altKey && event.key === 'ArrowDown') {
+        // Alt + ↓ 키 조합 처리 (패배 횟수 증가)
+        if (event.altKey && !event.shiftKey && event.key === 'ArrowDown') {
             event.preventDefault();
             event.stopPropagation();
             
@@ -3424,6 +3424,46 @@ function addMemoInputListeners(memoInput, listId, isTemporary) {
                 const firstMemo = targetList.memos[0];
                 updateCounter(listId, firstMemo.id, 'loss', 1, isTemporary);
                 showNotification('첫 번째 메모의 패배 횟수가 증가했습니다.', newInput.id);
+            }
+            return;
+        }
+
+        // Alt + Shift + ↑ 키 조합 처리 (승리 횟수 감소)
+        if (event.altKey && event.shiftKey && event.key === 'ArrowUp') {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // 현재 목록의 메모 목록 가져오기
+            const targetList = isTemporary 
+                ? temporaryLists.find(list => list.id === listId)
+                : lists.find(list => list.id === listId);
+                
+            if (targetList && targetList.memos && targetList.memos.length > 0) {
+                // 첫 번째 메모의 승리 횟수 감소
+                const firstMemoId = targetList.memos[0].id;
+                updateCounter(listId, firstMemoId, 'win', -1, isTemporary);
+                
+                // 성공 메시지 표시
+                showNotification('첫 번째 메모의 승리 횟수가 감소했습니다.', newInput.id);
+            }
+            return;
+        }
+        
+        // Alt + Shift + ↓ 키 조합 처리 (패배 횟수 감소)
+        if (event.altKey && event.shiftKey && event.key === 'ArrowDown') {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // 현재 목록의 메모 목록 가져오기
+            const targetList = isTemporary 
+                ? temporaryLists.find(list => list.id === listId)
+                : lists.find(list => list.id === listId);
+                
+            if (targetList && targetList.memos && targetList.memos.length > 0) {
+                // 첫 번째 메모의 패배 횟수 감소
+                const firstMemo = targetList.memos[0];
+                updateCounter(listId, firstMemo.id, 'loss', -1, isTemporary);
+                showNotification('첫 번째 메모의 패배 횟수가 감소했습니다.', newInput.id);
             }
             return;
         }
@@ -3862,6 +3902,25 @@ document.addEventListener('keydown', function(e) {
 // ... existing code ...
 // Alt+숫자 단축키 입력 확장 (메모/목록 입력창 모두 지원)
 document.addEventListener('keydown', function(event) {
+    // Alt + Backspace로 입력창 초기화
+    if (event.altKey && event.key === 'Backspace') {
+        const active = document.activeElement;
+        // 메모 입력창
+        if (active && active.id && active.id.startsWith('newMemoInput-')) {
+            event.preventDefault();
+            active.value = '';
+            active.focus();
+        }
+        // 목록 검색창
+        else if (active && active.id === 'searchInput') {
+            event.preventDefault();
+            active.value = '';
+            active.focus();
+        }
+        return;
+    }
+
+    // 기존 Alt + 숫자 단축키 기능
     if (event.altKey && event.key >= '1' && event.key <= '9') {
         const idx = parseInt(event.key) - 1;
         const active = document.activeElement;
