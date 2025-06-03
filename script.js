@@ -1682,18 +1682,20 @@ function createMemoItemHTML(memo, listId, isTemporary) {
 
     return `
         <div class="memo-item" data-memo-id="${memo.id}">
-            <div class="memo-table">
-                <div class="memo-row">
-                    <div class="memo-cell memo-title">${memo.text}</div>
-                    <div class="memo-cell memo-stats">
-                        <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
+            <div class="memo-content">
+                <div class="memo-table">
+                    <div class="memo-row">
+                        <div class="memo-cell memo-title memo-text">${memo.text}</div>
+                        <div class="memo-cell memo-stats">
+                            <span class="counter-text">${wins}승 ${losses}패 (${winRate}%)</span>
+                        </div>
                     </div>
-                </div>
-                <div class="memo-row">
-                    <div class="memo-cell memo-icons">
-                        <span class="mob-icons memo-mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(memo.text, isTemporary, true) : ''}</span>
+                    <div class="memo-row">
+                        <div class="memo-cell memo-icons">
+                            <span class="mob-icons memo-mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(memo.text, isTemporary, true) : ''}</span>
+                        </div>
+                        <div class="memo-cell memo-author">작성자: ${(memo.author === 'longway7098@gmail.com' || !memo.author) ? '섬세포분열' : memo.author}</div>
                     </div>
-                    <div class="memo-cell memo-author">작성자: ${(memo.author === 'longway7098@gmail.com' || !memo.author) ? '섬세포분열' : memo.author}</div>
                 </div>
             </div>
             <div class="memo-actions">
