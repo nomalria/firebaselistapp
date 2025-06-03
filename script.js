@@ -1986,18 +1986,35 @@ function renderClipboardItems() {
     container.appendChild(header);
     // 각 클립보드 줄
     for (let i = 0; i < MAX_CLIPBOARD_ITEMS; i++) {
+        // 단축키 안내 라인 추가
+        const shortcutRow = document.createElement('div');
+        shortcutRow.style.display = 'flex';
+        shortcutRow.style.gap = '8px';
+        shortcutRow.style.marginBottom = '0px';
+        shortcutRow.style.alignItems = 'center';
+        // 왼쪽(메모용)
+        const shortcutMemo = document.createElement('span');
+        shortcutMemo.textContent = `Alt + ${i + 1}`;
+        shortcutMemo.style.flex = '1';
+        shortcutMemo.style.textAlign = 'center';
+        shortcutMemo.style.fontSize = '12px';
+        shortcutMemo.style.color = '#888';
+        shortcutRow.appendChild(shortcutMemo);
+        // 오른쪽(목록용)
+        const shortcutList = document.createElement('span');
+        shortcutList.textContent = `Alt + ${i + 1}`;
+        shortcutList.style.flex = '1';
+        shortcutList.style.textAlign = 'center';
+        shortcutList.style.fontSize = '12px';
+        shortcutList.style.color = '#888';
+        shortcutRow.appendChild(shortcutList);
+        container.appendChild(shortcutRow);
+        // 입력창 라인
         const row = document.createElement('div');
         row.style.display = 'flex';
         row.style.alignItems = 'center';
         row.style.gap = '8px';
         row.style.marginBottom = '4px';
-        // 단축키 안내
-        const shortcut = document.createElement('span');
-        shortcut.textContent = `Alt + ${i + 1}`;
-        shortcut.style.width = '60px';
-        shortcut.style.fontSize = '12px';
-        shortcut.style.color = '#888';
-        row.appendChild(shortcut);
         // 메모용 입력창
         const memoInput = document.createElement('input');
         memoInput.type = 'text';
@@ -3394,82 +3411,82 @@ function addMemoInputListeners(memoInput, listId, isTemporary) {
         if (event.altKey && !event.shiftKey && event.key === 'ArrowUp') {
             event.preventDefault();
             event.stopPropagation();
-            
             // 현재 목록의 메모 목록 가져오기
             const targetList = isTemporary 
                 ? temporaryLists.find(list => list.id === listId)
                 : lists.find(list => list.id === listId);
-                
             if (targetList && targetList.memos && targetList.memos.length > 0) {
                 // 첫 번째 메모의 승리 횟수 증가
                 const firstMemoId = targetList.memos[0].id;
                 updateCounter(listId, firstMemoId, 'win', 1, isTemporary);
-                
-                // 성공 메시지 표시
                 showNotification('첫 번째 메모의 승리 횟수가 증가했습니다.', newInput.id);
             }
             return;
         }
-        
         // Alt + ↓ 키 조합 처리 (패배 횟수 증가)
         if (event.altKey && !event.shiftKey && event.key === 'ArrowDown') {
             event.preventDefault();
             event.stopPropagation();
-            
-            // 현재 목록의 메모 목록 가져오기
             const targetList = isTemporary 
                 ? temporaryLists.find(list => list.id === listId)
                 : lists.find(list => list.id === listId);
-                
             if (targetList && targetList.memos && targetList.memos.length > 0) {
-                // 첫 번째 메모의 패배 횟수 증가
                 const firstMemo = targetList.memos[0];
                 updateCounter(listId, firstMemo.id, 'loss', 1, isTemporary);
                 showNotification('첫 번째 메모의 패배 횟수가 증가했습니다.', newInput.id);
             }
             return;
         }
-
         // Alt + Shift + ↑ 키 조합 처리 (승리 횟수 감소)
         if (event.altKey && event.shiftKey && event.key === 'ArrowUp') {
             event.preventDefault();
             event.stopPropagation();
-            
-            // 현재 목록의 메모 목록 가져오기
             const targetList = isTemporary 
                 ? temporaryLists.find(list => list.id === listId)
                 : lists.find(list => list.id === listId);
-                
             if (targetList && targetList.memos && targetList.memos.length > 0) {
-                // 첫 번째 메모의 승리 횟수 감소
                 const firstMemoId = targetList.memos[0].id;
                 updateCounter(listId, firstMemoId, 'win', -1, isTemporary);
-                
-                // 성공 메시지 표시
                 showNotification('첫 번째 메모의 승리 횟수가 감소했습니다.', newInput.id);
             }
             return;
         }
-        
         // Alt + Shift + ↓ 키 조합 처리 (패배 횟수 감소)
         if (event.altKey && event.shiftKey && event.key === 'ArrowDown') {
             event.preventDefault();
             event.stopPropagation();
-            
-            // 현재 목록의 메모 목록 가져오기
             const targetList = isTemporary 
                 ? temporaryLists.find(list => list.id === listId)
                 : lists.find(list => list.id === listId);
-                
             if (targetList && targetList.memos && targetList.memos.length > 0) {
-                // 첫 번째 메모의 패배 횟수 감소
                 const firstMemo = targetList.memos[0];
                 updateCounter(listId, firstMemo.id, 'loss', -1, isTemporary);
                 showNotification('첫 번째 메모의 패배 횟수가 감소했습니다.', newInput.id);
             }
             return;
         }
-        
+        // Alt + C : 가장 위 메모에 참고자료 추가
+        if (event.altKey && !event.shiftKey && (event.key === 'c' || event.key === 'C')) {
+            event.preventDefault();
+            event.stopPropagation();
+            const referenceUrlInput = document.getElementById('referenceUrlInput');
+            const targetList = isTemporary 
+                ? temporaryLists.find(list => list.id === listId)
+                : lists.find(list => list.id === listId);
+            if (
+                referenceUrlInput &&
+                referenceUrlInput.value.trim() &&
+                targetList &&
+                targetList.memos &&
+                targetList.memos.length > 0
+            ) {
+                const firstMemoId = targetList.memos[0].id;
+                addReferenceFromUrl(listId, firstMemoId, isTemporary);
+            } else {
+                showNotification('참고 URL이 없거나 추가할 메모가 없습니다.', newInput.id);
+            }
+            return;
+        }
         // 클립보드 단축키 처리
         handleClipboardShortcut(event, this);
     });
