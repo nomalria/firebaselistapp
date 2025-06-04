@@ -3487,6 +3487,62 @@ function addMemoInputListeners(memoInput, listId, isTemporary) {
             }
             return;
         }
+        // Alt + → : 다음 목록으로 이동
+        if (event.altKey && !event.shiftKey && event.key === 'ArrowRight') {
+            event.preventDefault();
+            event.stopPropagation();
+            const currentListIndex = temporaryLists.findIndex(list => list.id === listId);
+            if (currentListIndex < temporaryLists.length - 1) {
+                // 현재 목록의 메모 섹션 닫기
+                const currentMemoSection = document.getElementById(`memoSection-${listId}`);
+                if (currentMemoSection) {
+                    currentMemoSection.style.display = 'none';
+                }
+                
+                const nextList = temporaryLists[currentListIndex + 1];
+                // 다음 목록의 메모 섹션 열기
+                const nextMemoSection = document.getElementById(`memoSection-${nextList.id}`);
+                if (nextMemoSection) {
+                    nextMemoSection.style.display = 'block';
+                }
+                // 다음 목록의 메모 입력창으로 포커스 이동
+                const nextMemoInput = document.getElementById(`newMemoInput-${nextList.id}`);
+                if (nextMemoInput) {
+                    nextMemoInput.focus();
+                    nextMemoInput.select();
+                    nextMemoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+            return;
+        }
+        // Alt + ← : 이전 목록으로 이동
+        if (event.altKey && !event.shiftKey && event.key === 'ArrowLeft') {
+            event.preventDefault();
+            event.stopPropagation();
+            const currentListIndex = temporaryLists.findIndex(list => list.id === listId);
+            if (currentListIndex > 0) {
+                // 현재 목록의 메모 섹션 닫기
+                const currentMemoSection = document.getElementById(`memoSection-${listId}`);
+                if (currentMemoSection) {
+                    currentMemoSection.style.display = 'none';
+                }
+                
+                const prevList = temporaryLists[currentListIndex - 1];
+                // 이전 목록의 메모 섹션 열기
+                const prevMemoSection = document.getElementById(`memoSection-${prevList.id}`);
+                if (prevMemoSection) {
+                    prevMemoSection.style.display = 'block';
+                }
+                // 이전 목록의 메모 입력창으로 포커스 이동
+                const prevMemoInput = document.getElementById(`newMemoInput-${prevList.id}`);
+                if (prevMemoInput) {
+                    prevMemoInput.focus();
+                    prevMemoInput.select();
+                    prevMemoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+            return;
+        }
         // 클립보드 단축키 처리
         handleClipboardShortcut(event, this);
     });
