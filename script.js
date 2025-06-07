@@ -593,7 +593,7 @@ function renderTemporaryLists() {
             <div class="list-title" data-list-id="${list.id}" data-istemporary="true">
                 <span class="mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(list.title, true) : ''}</span>
                 <span class="list-title-text">${list.title}</span>
-                <span class="memo-count">${list.memos.length}/100</span>
+                <span class="memo-count">${list.memos.length}/500</span>
                 <div class="button-group">
                     <button class="edit-btn" data-edit-list="${list.id}" data-istemporary="true">편집</button>
                     <button class="delete-btn" data-delete-list="${list.id}" data-istemporary="true">삭제</button>
@@ -690,9 +690,9 @@ function addMemo(listId, isTemporary = false) {
     const targetLists = isTemporary ? temporaryLists : lists;
     const list = targetLists.find(l => l.id === listId);
 
-    if (list.memos.length >= 100) {
-        console.log('메모 개수 초과 (100개 제한)');
-        alert('한 방덱에는 최대 100개의 메모만 추가할 수 있습니다.');
+    if (list.memos.length >= 500) {
+        console.log('메모 개수 초과 (500개 제한)');
+        alert('한 방덱에는 최대 500개의 메모만 추가할 수 있습니다.');
         isAddingMemo = false; // 플래그 초기화
         return;
     }
@@ -970,7 +970,7 @@ function renderLists(page = 1) {
             <div class="list-title" data-list-id="${list.id}" data-istemporary="false">
                 <span class="mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(list.title, false) : ''}</span>
                 <span class="list-title-text">${list.title}</span>
-                <span class="memo-count">${list.memos.length}/100</span>
+                <span class="memo-count">${list.memos.length}/500</span>
                 <div class="button-group">
                     <button class="edit-btn" data-edit-list="${list.id}">편집</button>
                     <button class="delete-btn" data-delete-list="${list.id}">삭제</button>

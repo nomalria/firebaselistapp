@@ -797,7 +797,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 <div class="list-title" onclick="toggleMemos('${list.id}')">
                     <span class="mob-icons">${window.renderMobIconsForList ? window.renderMobIconsForList(list.title, false) : ''}</span>
                     <span class="list-title-text">${list.title}</span>
-                    <span class="memo-count">${list.memos.length}/100</span>
+                    <span class="memo-count">${list.memos.length}/500</span>
                 </div>
                 <div class="memo-section" id="memoSection-${list.id}" style="display: none;">
                     <span class="list-created-at">생성: ${formatCreatedAt(list.createdAt)}</span>
